@@ -1,0 +1,25 @@
+{
+  "scripts": {
+    "test": "truffle test",
+    "compile": "truffle compile",
+    "migrate": "truffle migrate",
+    "coverage": "node --max-old-space-size=65536 ./node_modules/.bin/truffle run coverage"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "2.5.0",
+    "bignumber.js": "^7.2.1",
+    "byzantine": "^1.1.0",
+    "coveralls": "^3.0.6",
+    "ethereumjs-util": "^5.2.0",
+    "ganache-cli": "^6.9.1",
+    "solidity-coverage": "^0.7.7",
+    "truffle": "5.1.30",
+    "truffle-hdwallet-provider": "^1.0.17",
+    "truffle-privatekey-provider": "^1.2.0",
+    "web3": "^1.2.0"
+  },
+  "devDependencies": {
+    "prettier": "^1.19.1",
+    "prettier-plugin-solidity": "^1.0.0-alpha.37"
+  }
+}
