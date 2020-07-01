@@ -7,8 +7,9 @@ library LibOrderbook {
     struct ShareOrder {
         uint256 id;
         uint256 index;
+        uint256 filled;
         address trader;
-        address shareAmount;
+        address amount;
         uint256 slippage;
         uint256 availableAt;
     }
