@@ -3,44 +3,44 @@ pragma solidity 0.6.10;
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./LibFundStorage.sol";
+import "./LibFundCore.sol";
 import "./LibMathExt.sol";
 
-library LibFundCalculator {
+library LibFundProperty {
     using SafeMath for uint256;
     using SafeCast for int256;
     using SafeCast for uint256;
     using LibMathExt for uint256;
     using LibFundStorage for LibFundStorage.FundStorage;
 
-    function getMarginBalance(LibFundStorage.FundStorage storage fundStorage)
+    function totalAssetValue(LibFundCore storage core)
         internal
         view
         returns (uint256)
     {
-        int256 marginBalance = fundStorage.perpetual.marginBalance(this.address);
+        int256 marginBalance = core.perpetual.marginBalance(address(this));
         require(marginBalance > 0, "marginBalance must be greater than 0");
         return marginBalance.toUint256();
     }
 
-    function getNetAssetValue(LibFundStorage.FundStorage storage fundStorage)
+    function netAssetValue(LibFundCore storage core)
         internal
         view
         returns (uint256)
     {
-        if (fundStorage.totalShareSupply == 0) {
+        if (shareTotalSupply == 0) {
             return 0;
         }
-        return getMarginBalance(fundStorage).wdiv(fundStorage.totalShareSupply);
+        return marginBalance(core).wdiv(core.shareTotalSupply);
     }
 
-    function getLeverage(LibFundStorage.FundStorage storage fundStorage)
+    function leverage(LibFundCore storage core)
         internal
         view
         returns (uint256)
     {
-        uint256 margin = fundStorage.perpetual.positionMargin();
-        uint256 marginBalance = getMarginBalance(fundStorage);
+        uint256 margin = core.perpetual.positionMargin(address(this));
+        uint256 marginBalance = marginBalance(core);
         return margin.wdiv(marginBalance);
     }
 }

@@ -3,18 +3,17 @@ pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./Fund.sol";
-import "../lib/LibOrderbook.sol";
-import "../lib/LibFundStorage.sol";
-import "../lib/LibFundCalculator.sol";
+import "../storage/Storage.sol";
 
-contract TokenBase is TraderBase, IERC20 {
+/**
+ * @notice Implemetation of ERC20 interfaces.
+ */
+abstract contract ERC20Wrapper is IERC20 {
 
+    // using fixed decimals 18
     uint8 constant private DECIMALS = 18;
-
-    mapping (address => mapping (address => uint256)) private _allowances;
-
-    uint256 private _totalSupply;
+    // allowances, deprecated when implementation upgraded
+    mapping(address => mapping (address => uint256)) private _allowances;
 
     function decimals() public view returns (uint8) {
         return DECIMALS;
@@ -32,18 +31,8 @@ contract TokenBase is TraderBase, IERC20 {
         return _fundStorage.accounts[msg.sender].shareBalance;
     }
 
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-
-        _fundStorage.accounts[sender].transferShareBalance(_fundStorage.accounts[recipient], amount);
-
-        emit Transfer(sender, recipient, amount);
-    }
-
     // code below comes from ERC20 by openzepplin
     // "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(msg.sender, recipient, amount);
         return true;
@@ -89,4 +78,14 @@ contract TokenBase is TraderBase, IERC20 {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
+
+    function _transfer(address sender, address recipient, uint256 amount) internal virtual {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+        _transferShare(sender, recipient, amount);
+        emit Transfer(sender, recipient, amount);
+    }
+
+    // abstract method.
+    function _transferShare(address sender, address recipient, uint256 amount) internal virtual;
 }

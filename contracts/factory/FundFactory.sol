@@ -1,16 +1,19 @@
 pragma solidity 0.6.10;
 
+import "../storage/UpgradableProxy.sol";
+
 /**
  * @title Administration module for fund.
  */
 contract FundAdministration {
 
     IGlobalConfig private _globalConfig;
-    mapping(address => bool) public funds;
+    address[] _allFunds;
+    mapping(address => bool) public _funds;
 
-    event CreateSocialTradingFund(address indexed perpetual, address indexed manager, uint256[] configuration);
-    event CreateAutoTradingFund(address indexed perpetual, address indexed strategy, uint256[] configuration);
-    event ShutdownFund(address indexed fundInstance);
+    event CreateSocialTradingFund(address indexed newFund);
+    event CreateAutoTradingFund(address indexed newFund);
+    event ShutdownFund(address indexed fund);
 
     constructor(address globalConfig) public {
         _globalConfig = IGlobalConfig(globalConfig);
@@ -21,6 +24,10 @@ contract FundAdministration {
         _;
     }
 
+    /**
+     * @dev Get address of global config.
+     * @returns Address of account owning GlobalConfig contract.
+     */
     function globalConfig() public view returns (address) {
         return _globalConfig.address;
     }
@@ -36,23 +43,38 @@ contract FundAdministration {
     /**
      * @dev Create a fund maintained by social trader.
      * @param pereptual             Address of perpetual.
-     * @param manager               Address of maintainer.
+     * @param maintainer            Address of maintainer.
      * @param initialConfiguration  Array of configurations.
      * @return Address of new fund.
      */
     function createSocialTradingFund(
+        string calldata name,
+        string calldata symbol,
+        address maintainer,
         address perpetual,
-        address manager,
-        uint256[] initialConfiguration
+        address collateralDecimals,
+        uint256[] calldata configuration
     )
-        external onlyAdministrator
-        returns (address)
+        external
+        onlyAdministrator
     {
-        IFund newFund = new SocialTrader(perpetual, manager, initialConfiguration);
-        funds[newFund] = true;
+        UpgradableProxy fundProxy = new UpgradableProxy();
+        fundProxy.initialize(
+            name,
+            symbol,
+            maintainer,
+            perpetual,
+            collateralDecimals,
+            configuration
+        );
+        FundTrader trader = new SocialTrader(maintainer);
+        fundProxy.upgradeTo("", trader.address);
 
-        emit CreateSocialTradingFund(perpetual, manager, initialConfiguration);
-        return newFund.address;
+        _funds[fundProxy.address] = true;
+        _allFunds.push(fundProxy.address);
+
+        emit CreateSocialTradingFund(fundProxy.address);
+        return fundProxy.address;
     }
 
     /**
