@@ -6,7 +6,7 @@
     "coverage": "node --max-old-space-size=65536 ./node_modules/.bin/truffle run coverage"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "2.5.0",
+    "@openzeppelin/contracts": "3.1.0",
     "bignumber.js": "^7.2.1",
     "byzantine": "^1.1.0",
     "coveralls": "^3.0.6",

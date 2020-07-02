@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
 contract Proxy {
@@ -45,5 +46,9 @@ contract Proxy {
             case 0 { revert(ptr, size) }
             default { return(ptr, size) }
         }
+    }
+
+    receive() payable external {
+        revert("ether transfer disabled");
     }
 }

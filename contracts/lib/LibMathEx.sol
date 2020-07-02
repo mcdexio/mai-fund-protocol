@@ -1,27 +1,40 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
+
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
 import "./LibConstant.sol";
 
 library LibMathEx {
 
+    using SafeMath for uint256;
+    using SignedSafeMath for int256;
+
     function wmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = add(mul(x, y), LibConstant.UNSIGNED_ONE / 2) / LibConstant.UNSIGNED_ONE;
+        z = x.mul(y).add(LibConstant.UNSIGNED_ONE / 2) / LibConstant.UNSIGNED_ONE;
     }
 
     function wdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = add(mul(x, LibConstant.UNSIGNED_ONE), y / 2) / y;
+        z = x.mul(LibConstant.UNSIGNED_ONE).add(y / 2) / y;
     }
 
     function wfrac(uint256 x, uint256 y, uint256 z) internal pure returns (uint256 r) {
-        r = mul(x, y) / z;
+        require(z != 0, "division by zero");
+        r = x.mul(y).div(z);
     }
 
-    function min(uint256 x, uint256 y) internal pure returns (uint256) {
-        return x <= y ? x : y;
+    function wmul(int256 x, int256 y) internal pure returns (int256 z) {
+        z = x.mul(y).add(LibConstant.SIGNED_ONE / 2) / LibConstant.SIGNED_ONE;
     }
 
-    function max(uint256 x, uint256 y) internal pure returns (uint256) {
-        return x >= y ? x : y;
+    function wdiv(int256 x, int256 y) internal pure returns (int256 z) {
+        z = x.mul(LibConstant.SIGNED_ONE).add(y / 2) / y;
+    }
+
+    function wfrac(int256 x, int256 y, int256 z) internal pure returns (int256 r) {
+        require(z != 0, "division by zero");
+        r = x.mul(y).div(z);
     }
 
     /**
@@ -34,7 +47,7 @@ library LibMathEx {
         return x % m;
     }
 
-    function rate(uint256 factor, uint256 numerator, uint256 denominator) internal {
-        return div(mul(factor, numerator), denominator);
+    function abs(int256 x) internal pure returns (int256) {
+        return x >= 0? x: -x;
     }
 }

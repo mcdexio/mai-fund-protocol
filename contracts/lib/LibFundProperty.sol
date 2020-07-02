@@ -1,21 +1,22 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/utils/SafeCast.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./LibFundCore.sol";
-import "./LibMathExt.sol";
+import "./LibMathEx.sol";
 
 library LibFundProperty {
+    using Math for uint256;
     using SafeMath for uint256;
     using SafeCast for int256;
     using SafeCast for uint256;
-    using LibMathExt for uint256;
-    using LibFundStorage for LibFundStorage.FundStorage;
+    using LibMathEx for uint256;
 
-    function totalAssetValue(LibFundCore storage core)
+    function totalAssetValue(LibFundCore.Core storage core)
         internal
-        view
         returns (uint256)
     {
         int256 marginBalance = core.perpetual.marginBalance(address(this));
@@ -23,24 +24,22 @@ library LibFundProperty {
         return marginBalance.toUint256();
     }
 
-    function netAssetValue(LibFundCore storage core)
+    function netAssetValue(LibFundCore.Core storage core)
         internal
-        view
         returns (uint256)
     {
-        if (shareTotalSupply == 0) {
+        if (core.shareTotalSupply == 0) {
             return 0;
         }
-        return marginBalance(core).wdiv(core.shareTotalSupply);
+        return totalAssetValue(core).wdiv(core.shareTotalSupply);
     }
 
-    function leverage(LibFundCore storage core)
+    function leverage(LibFundCore.Core storage core)
         internal
-        view
         returns (uint256)
     {
         uint256 margin = core.perpetual.positionMargin(address(this));
-        uint256 marginBalance = marginBalance(core);
+        uint256 marginBalance = totalAssetValue(core);
         return margin.wdiv(marginBalance);
     }
 }

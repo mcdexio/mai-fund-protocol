@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "interface/IPerpetual.sol";
+import "../interface/IPerpetual.sol";
 
 import "./LibCollateral.sol";
 import "./LibFundAccount.sol";
 import "./LibFundConfiguration.sol";
-import "./LibFundFees.sol";
+import "./LibFundFee.sol";
 
 library LibFundCore {
 
@@ -23,11 +24,11 @@ library LibFundCore {
         uint256 shareTotalSupply;
         address maintainer;
         LibCollateral.Collateral collateral;
-        LibFundFees.FeeState _feeState;
+        LibFundFee.FeeState feeState;
         LibFundConfiguration.Configuration configuration;
         mapping(address => LibFundAccount.Account) accounts;
         // initialize guard
-        bool initialize;
+        bool isInitialized;
     }
 
     function initialize(
@@ -41,19 +42,19 @@ library LibFundCore {
     )
         external
     {
-        require(!core.initialize, "storage is already initialzed");
+        require(!core.isInitialized, "storage is already initialzed");
         require(maintainer != address(0), "fund must have a maintainer");
         require(perpetual != address(0), "fund must associate with a perpetual");
 
         core.name = name;
-        core.symbol = _symbol;
+        core.symbol = symbol;
         core.maintainer = maintainer;
         core.perpetual = IPerpetual(perpetual);
         // initialize collateral
-        address collateral = _perpetual.collateral();
+        address collateral = core.perpetual.collateral();
         core.collateral.initialize(collateral, collateralDecimals);
         // configuration
         core.configuration.initialize(configuration);
-        core.initialize = true;
+        core.isInitialized = true;
     }
 }

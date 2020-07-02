@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
 import "../storage/UpgradableProxy.sol";
+import "../interface/IGlobalConfig.sol";
+import "../trader/social/SocialTraderFund.sol";
+import "../trader/robot/AutoTraderFund.sol";
 
 /**
  * @title Administration module for fund.
@@ -26,25 +30,28 @@ contract FundAdministration {
 
     /**
      * @dev Get address of global config.
-     * @returns Address of account owning GlobalConfig contract.
+     * @return Address of account owning GlobalConfig contract.
      */
     function globalConfig() public view returns (address) {
-        return _globalConfig.address;
+        return address(_globalConfig);
     }
 
     /**
      * @dev Use owner of global config as administrator.
-     * @returns Address of account owning GlobalConfig contract.
+     * @return Address of account owning GlobalConfig contract.
      */
     function administrator() public view returns (address) {
-        return _globalConfig.owner()
+        return _globalConfig.owner();
     }
 
     /**
      * @dev Create a fund maintained by social trader.
-     * @param pereptual             Address of perpetual.
-     * @param maintainer            Address of maintainer.
-     * @param initialConfiguration  Array of configurations.
+     * @param name                  Name of fund (share token).
+     * @param symbol                Symbol of fund (share token).
+     * @param maintainer            Address of fund maintainer (social trader).
+     * @param perpetual             Address of undelaying perpetual contract.
+     * @param collateralDecimals    Decimals of collateral.
+     * @param configuration         Array of configurations. See LibFundConfiguration for item arrangement.
      * @return Address of new fund.
      */
     function createSocialTradingFund(
@@ -52,11 +59,12 @@ contract FundAdministration {
         string calldata symbol,
         address maintainer,
         address perpetual,
-        address collateralDecimals,
+        uint8 collateralDecimals,
         uint256[] calldata configuration
     )
         external
         onlyAdministrator
+        returns (address)
     {
         UpgradableProxy fundProxy = new UpgradableProxy();
         fundProxy.initialize(
@@ -67,46 +75,68 @@ contract FundAdministration {
             collateralDecimals,
             configuration
         );
-        FundTrader trader = new SocialTrader(maintainer);
-        fundProxy.upgradeTo("", trader.address);
+        SocialTraderFund trader = new SocialTraderFund();
+        fundProxy.upgradeTo("", address(trader));
 
-        _funds[fundProxy.address] = true;
-        _allFunds.push(fundProxy.address);
+        address fundProxyAddress = address(fundProxy);
+        _funds[fundProxyAddress] = true;
+        _allFunds.push(fundProxyAddress);
 
-        emit CreateSocialTradingFund(fundProxy.address);
-        return fundProxy.address;
+        emit CreateSocialTradingFund(fundProxyAddress);
+        return fundProxyAddress;
     }
 
     /**
      * @dev Create a fund maintained by strategy contract.
      *      Rebalance can be triggered by anyone once the condition defined by stratege satisfied.
-     * @param pereptual             Address of perpetual.
-     * @param manager               Address of maintainer.
-     * @param initialConfiguration  Array of configurations.
+     * @param name                  Name of fund (share token).
+     * @param symbol                Symbol of fund (share token).
+     * @param strategy              Address of fund maintainer (strategy).
+     * @param perpetual             Address of undelaying perpetual contract.
+     * @param collateralDecimals    Decimals of collateral.
+     * @param configuration         Array of configurations. See LibFundConfiguration for item arrangement.
      * @return Address of new fund.
      */
     function createAutoTradingFund(
-        address perpetual,
+        string calldata name,
+        string calldata symbol,
         address strategy,
-        uint256[] initialConfiguration
+        address perpetual,
+        uint8 collateralDecimals,
+        uint256[] calldata configuration
     )
-        external onlyAdministrator
+        external
+        onlyAdministrator
+        returns (address)
     {
-        IFund newFund = new AutoTrader(perpetual, strategy, initialConfiguration);
-        funds[newFund] = true;
+        UpgradableProxy fundProxy = new UpgradableProxy();
+        fundProxy.initialize(
+            name,
+            symbol,
+            strategy,
+            perpetual,
+            collateralDecimals,
+            configuration
+        );
+        AutoTraderFund trader = new AutoTraderFund(strategy);
+        fundProxy.upgradeTo("", address(trader));
 
-        emit CreateAutoTradingFund(perpetual, strategy, initialConfiguration);
-        return newFund.address;
+        address fundProxyAddress = address(fundProxy);
+        _funds[fundProxyAddress] = true;
+        _allFunds.push(fundProxyAddress);
+
+        emit CreateSocialTradingFund(fundProxyAddress);
+        return fundProxyAddress;
     }
 
     /**
      * @dev Shutdown a running fund.
      */
-    function shutdownFund(address fundInstance) external onlyAdministrator {
-        require(funds[fundInstance], "fund not exist");
-        funds[fundInstance] = false;
+    function shutdownFund(address fund) external onlyAdministrator {
+        require(_funds[fund], "fund not exist");
+        _funds[fund] = false;
 
         // TODO: call method to turn fund into emergency shutdown state.
-        emit ShutdownFund(fundInstance)
+        emit ShutdownFund(fund);
     }
 }
