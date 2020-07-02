@@ -1,15 +1,18 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
 import "../lib/LibCollateral.sol";
 import "../lib/LibFundAccount.sol";
 import "../lib/LibFundConfiguration.sol";
 import "../lib/LibFundCore.sol";
-import "../lib/LibFundFees.sol";
+import "../lib/LibFundFee.sol";
 
 contract Storage {
     using LibFundCore for LibFundCore.Core;
 
     LibFundCore.Core internal _core;
+
+    constructor() internal {}
 
     /**
      * @notice Initialize core data.
@@ -19,7 +22,7 @@ contract Storage {
         string calldata symbol,
         address maintainer,
         address perpetual,
-        address collateralDecimals,
+        uint8 collateralDecimals,
         uint256[] calldata configuration
     )
         external
@@ -28,6 +31,7 @@ contract Storage {
             name,
             symbol,
             maintainer,
+            perpetual,
             collateralDecimals,
             configuration
         );

@@ -1,39 +1,44 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
+import "./LibConstant.sol";
 
-interface IDecimals {
-    function decimals() public view returns (uint8);
+interface ITokenWithDecimals {
+    function decimals() external view returns (uint8);
 }
 
 library LibCollateral {
-    using LibMathSigned for int256;
+    using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
     struct Collateral {
-        IERC20 instance;
+        IERC20 token;
         uint256 scaler;
     }
 
-    function initialize(Collateral storage collateral, address instance, uint8 decimals) internal {
+    function initialize(Collateral storage collateral, address token, uint8 decimals) internal {
         require(collateral.scaler == 0, "alreay initialized");
-        require(decimals <= MAX_DECIMALS, "given decimals out of range");
-        if (instance == address(0)) {
+        require(decimals <= LibConstant.MAX_DECIMALS, "given decimals out of range");
+        if (token == address(0)) {
             // ether
             require(decimals == 18, "ether must have decimals of 18");
         } else {
             // erc20 token
-            (uint8 retrievedDecimals, bool ok) = decimals(instance);
+            (uint8 retrievedDecimals, bool ok) = retrieveDecimals(token);
             require(!ok || (ok && retrievedDecimals == decimals), "decimals not match");
         }
-        collateral.instance = instance;
-        collateral.scaler = int256(10**(MAX_DECIMALS - decimals));
+        collateral.token = IERC20(token);
+        collateral.scaler = uint256(10**(LibConstant.MAX_DECIMALS.sub(decimals)));
     }
 
-    function decimals(address instance) internal returns (uint8, false) {
-        try IDecimals(instance).decimals() returns (uint8 retrievedDecimals) {
+    function retrieveDecimals(address token) internal view returns (uint8, bool) {
+        try ITokenWithDecimals(token).decimals() returns (uint8 retrievedDecimals) {
             return (retrievedDecimals, true);
         } catch Error(string memory) {
             return (0, false);
@@ -42,24 +47,24 @@ library LibCollateral {
         }
     }
 
-    // ** All interface call from upper layer use the decimals of the instance, called 'rawAmount'.
+    // ** All interface call from upper layer use the decimals of the token, called 'rawAmount'.
 
     /**
-     * @dev Indicates that whether current instance is an erc20 token.
-     * @return True if current instance is an erc20 token.
+     * @dev Indicates that whether current token is an erc20 token.
+     * @return True if current token is an erc20 token.
      */
     function isToken(Collateral storage collateral) internal view returns (bool) {
-        return collateral.instance.address != address(0);
+        return address(collateral.token) != address(0);
     }
 
     /**
-     * @dev Transfer instance from user if instance is erc20 token.
+     * @dev Transfer token from user if token is erc20 token.
      *
      * @param trader Address of account owner.
-     * @param amount Amount of instance to be transferred into contract.
+     * @param amount Amount of token to be transferred into contract.
      * @return Internal representation of the raw amount.
      */
-    function pull(
+    function pullCollateral(
         Collateral storage collateral,
         address trader,
         uint256 amount
@@ -68,9 +73,9 @@ library LibCollateral {
         returns (uint256)
     {
         require(amount > 0, "amount should not be 0");
-        uint256 rawAmount = toRaw(amount);
+        uint256 rawAmount = toRaw(collateral, amount);
         if (isToken(collateral)) {
-            instance.safeTransferFrom(trader, this.address, rawAmount);
+            collateral.token.safeTransferFrom(trader, address(this), rawAmount);
         } else {
             require(msg.value == rawAmount, "amount not match with sent value");
         }
@@ -78,13 +83,13 @@ library LibCollateral {
     }
 
     /**
-     * @dev Transfer instance to user no matter erc20 token or ether.
+     * @dev Transfer token to user no matter erc20 token or ether.
      *
      * @param trader    Address of account owner.
-     * @param rawAmount Amount of instance to be transferred to user.
+     * @param amount    Amount of token to be transferred to user.
      * @return Internal representation of the raw amount.
      */
-    function push(
+    function pushCollateral(
         Collateral storage collateral,
         address payable trader,
         uint256 amount
@@ -93,9 +98,9 @@ library LibCollateral {
         returns (uint256)
     {
         require(amount > 0, "amount should not be 0");
-        uint256 rawAmount = toRaw(amount);
+        uint256 rawAmount = toRaw(collateral, amount);
         if (isToken(collateral)) {
-            collateral.instance.safeTransfer(trader, rawAmount);
+            collateral.token.safeTransfer(trader, rawAmount);
         } else {
             Address.sendValue(trader, rawAmount);
         }
@@ -105,20 +110,20 @@ library LibCollateral {
     /**
      * @dev Convert the represention of amount from raw to internal.
      *
-     * @param rawAmount Amount with decimals of instance.
+     * @param rawAmount Amount with decimals of token.
      * @return Amount with internal decimals.
      */
-    function toInternal(Collateral storage collateral, uint256 rawAmount) internal view returns (int256) {
-        return rawAmount.toInt256().mul(collateral.scaler);
+    function toInternal(Collateral storage collateral, uint256 rawAmount) internal view returns (uint256) {
+        return rawAmount.mul(collateral.scaler);
     }
 
     /**
      * @dev Convert the represention of amount from internal to raw.
      *
      * @param amount Amount with internal decimals.
-     * @return Amount with decimals of instance.
+     * @return Amount with decimals of token.
      */
-    function toRaw(Collateral storage collateral, int256 amount) internal view returns (uint256) {
-        return amount.div(collateral.scaler).toUint256();
+    function toRaw(Collateral storage collateral, uint256 amount) internal view returns (uint256) {
+        return amount.div(collateral.scaler);
     }
 }

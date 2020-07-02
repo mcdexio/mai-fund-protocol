@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
 library LibOrderbook {
@@ -9,7 +10,7 @@ library LibOrderbook {
         uint256 index;
         uint256 filled;
         address trader;
-        address amount;
+        uint256 amount;
         uint256 slippage;
         uint256 availableAt;
     }

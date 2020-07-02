@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../storage/Storage.sol";
@@ -10,26 +11,21 @@ import "../storage/Storage.sol";
  */
 abstract contract ERC20Wrapper is IERC20 {
 
-    // using fixed decimals 18
-    uint8 constant private DECIMALS = 18;
+    using SafeMath for uint256;
+
     // allowances, deprecated when implementation upgraded
     mapping(address => mapping (address => uint256)) private _allowances;
 
-    function decimals() public view returns (uint8) {
-        return DECIMALS;
-    }
+    // abstract methods
+    function name() public view virtual returns (string memory);
 
-    function name() public view returns (string memory) {
-        return _fundStorage.name;
-    }
+    function symbol() public view virtual returns (string memory);
 
-    function symbol() public view returns (string memory) {
-        return _fundStorage.symbol;
-    }
+    function decimals() public view virtual returns (uint8);
 
-    function balanceOf(address account) public view override returns (uint256) {
-        return _fundStorage.accounts[msg.sender].shareBalance;
-    }
+    function balanceOf(address account) public view virtual override returns (uint256);
+
+    function _transferShare(address sender, address recipient, uint256 amount) internal virtual;
 
     // code below comes from ERC20 by openzepplin
     // "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -85,7 +81,4 @@ abstract contract ERC20Wrapper is IERC20 {
         _transferShare(sender, recipient, amount);
         emit Transfer(sender, recipient, amount);
     }
-
-    // abstract method.
-    function _transferShare(address sender, address recipient, uint256 amount) internal virtual;
 }
