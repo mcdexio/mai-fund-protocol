@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -192,7 +193,6 @@ contract FundOperation is FundBase {
      */
     function redeem(address trader, uint256 shareAmount, uint256 slippageValue)
         internal
-        whenNotPaused
     {
         // steps:
         //  1. calculate fee.
