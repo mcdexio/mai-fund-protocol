@@ -1,0 +1,104 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.6.10;
+
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
+import "../lib/LibCollateral.sol";
+import "../lib/LibConstant.sol";
+import "../lib/LibFundOrder.sol";
+import "../lib/LibMathEx.sol";
+
+import "../storage/FundStorage.sol";
+import "./FundBase.sol";
+
+contract FundOrderbook is FundStorage {
+
+    function getOrder(address trader)
+        internal
+        view
+        returns (LibFundOrder.Order memory order, bool isExist)
+    {
+        
+    }
+
+
+    function placeRedeemingOrder(
+        address trader,
+        address shareAmount,
+        address slippage
+    )
+        internal
+    {
+        (
+            bytes memory orderData
+            bool isExist
+        ) = _redeemingOrders.get(trader);
+        LibOrderbook.FundOrder memory order;
+        uint64 currentTime = uint64(LibUtils.currentTime());
+        if (isExist) {
+            order = LibFundOrder.deocdeFromBytes(orderData);
+            order.amount = order.amount.add(shareAmount);
+            order.slippage = slippage;
+        } else {
+            order = LibOrderbook.FundOrder({
+                trader: trader,
+                filled: 0,
+                amount: shareAmount,
+                slippage: slippage,
+                orderType: uint8(LibOrderbook.OrderType.SHARE_ORDER),
+                createAt: currentTime,
+                availableAt: currentTime
+            });
+        }
+        bytes memory newOrderData = LibOrderbook.encodeToBytes(order);
+        _redeemingOrders.set(bytes32(trader), newOrderData);
+    }
+
+    function takeRedeemingOrder(
+        address trader,
+        uint256 shareAmount,
+        uint256 priceLimit,
+        LibTypes.Side side
+    )
+        internal
+    {
+        (
+            bytes memory orderData
+            bool isExist
+        ) = _redeemingOrders.get(trader);
+
+        require(_redeemingOrders.has(trader), "order not exist");
+        // order
+
+
+        require(shareAmount <= _redeemingBalances, "insufficient shares to take");
+        require(LibUtils.currentTime(), "order not available now");
+
+        // trading price and loss amount equivalent to slippage
+        LibTypes.MarginAccount memory fundMarginAccount = _perpetual.getMarginAccount(self());
+        require(fundMarginAccount.side == side, "unexpected side");
+        (
+            uint256 tradingPrice,
+            uint256 priceLoss
+        ) = calculateTradingPrice(fundMarginAccount.side, order.slippage);
+
+        validatePrice(side, tradingPrice, priceLimit);
+        uint256 redeemPercentage = shareAmount.wdiv(_shareTotalSupply);
+        // TODO: align to tradingLotSize
+        uint256 redeemAmount = fundMarginAccount.size.wmul(redeemPercentage);
+        LibTypes.Side redeemingSide = fundMarginAccount.side == LibTypes.Side.LONG?
+            LibTypes.Side.SHORT : LibTypes.Side.LONG;
+        _perpetual.tradePosition(
+            self(),
+            msg.sender,
+            redeemingSide,
+            tradingPrice,
+            redeemAmount
+        );
+        uint256 lossValue = priceLoss.wmul(redeemAmount);
+        redeem(payable(order.trader), shareAmount, lossValue);
+    }
+
+
+
+}

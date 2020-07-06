@@ -1,31 +1,39 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../storage/Storage.sol";
+import "../storage/FundStorage.sol";
 
 /**
  * @notice Implemetation of ERC20 interfaces.
  */
-abstract contract ERC20Wrapper is IERC20 {
-
+contract FundERC20Wrapper is FundStorage, IERC20 {
     using SafeMath for uint256;
 
-    // allowances, deprecated when implementation upgraded
-    mapping(address => mapping (address => uint256)) private _allowances;
+    // using fixed decimals 18
+    uint8 constant private ERC20_DECIMALS = 18;
 
-    // abstract methods
-    function name() public view virtual returns (string memory);
+    function name() public view virtual returns (string memory) {
+        return _name;
+    }
 
-    function symbol() public view virtual returns (string memory);
+    function symbol() public view virtual returns (string memory) {
+        return _symbol;
+    }
 
-    function decimals() public view virtual returns (uint8);
+    function decimals() public pure virtual returns (uint8) {
+        return ERC20_DECIMALS;
+    }
 
-    function balanceOf(address account) public view virtual override returns (uint256);
+    function balanceOf(address account) public view override virtual returns (uint256) {
+        return _balances[account];
+    }
 
-    function _transferShare(address sender, address recipient, uint256 amount) internal virtual;
+    function totalSupply() public view override virtual returns (uint256) {
+        return _totalSupply;
+    }
 
     // code below comes from ERC20 by openzepplin
     // "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -75,10 +83,19 @@ abstract contract ERC20Wrapper is IERC20 {
         emit Approval(owner, spender, amount);
     }
 
+    function transferrableBalance(address account) internal view returns (uint256) {
+        return _balances[account].sub(_redeemingBalances[account]);
+    }
+
     function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
-        _transferShare(sender, recipient, amount);
+        require(amount <= transferrableBalance(sender), "ERC20: insufficient fund to transfer");
+        require(_lastPurchaseTime[sender].add(_minimalRedeemingPeriod) < now, "need to wait to redeem");
+
+        _balances[sender] = _balances[sender].sub(amount);
+        _balances[recipient] = _balances[recipient].add(amount);
+
         emit Transfer(sender, recipient, amount);
     }
 }

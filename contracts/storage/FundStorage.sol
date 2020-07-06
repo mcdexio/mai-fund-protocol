@@ -1,7 +1,9 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
+// import "../lib/LibEnumarableMap.sol";
 import "../interface/IPerpetual.sol";
+import "./ERC20Storage.sol";
 
 contract FundStorage is ERC20Storage {
     // underlaying perpetual.
@@ -23,9 +25,11 @@ contract FundStorage is ERC20Storage {
 
     // accounts
     mapping(address => uint256) internal _redeemingBalances;
+    mapping(address => uint256) internal _redeemingSlippage;
     mapping(address => uint256) internal _lastPurchaseTime;
 
     // dependencies
+    address internal _factory;
     address internal _maintainer;
     IPerpetual internal _perpetual;
 }

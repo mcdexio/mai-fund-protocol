@@ -1,24 +1,22 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./LibConstant.sol";
-import "./LibFundProperty.sol";
-import "./LibMathEx.sol";
-import "./LibUtils.sol";
+import "../lib/LibConstant.sol";
+import "../lib/LibMathEx.sol";
+import "../lib/LibUtils.sol";
 
 import "../storage/FundStorage.sol";
 
-contract FundFee {
+contract FundFee is FundStorage {
 
     using SafeMath for uint256;
     using LibMathEx for uint256;
-    using LibFundProperty for LibFundCore.Core;
 
     /**
      * @dev calculate purchase fee.
      * @param purchasedAssetValue   Total asset value to purchase.
-     * @return entranceFee Amount of purchase fee.
+     * @return Amount of purchase fee.
      */
     function calculateEntranceFee(uint256 purchasedAssetValue) internal view returns (uint256) {
         if (_entranceFeeRate == 0) {
@@ -30,7 +28,7 @@ contract FundFee {
     /**
      * @dev Claim streaming fee.
      * @param totalAssetValue   Total asset value.
-     * @return streamingFee Amount of streaming fee.
+     * @return Amount of streaming fee.
      */
     function calculateStreamingFee(uint256 totalAssetValue) internal view returns (uint256) {
         if (_streamingFeeRate == 0) {
@@ -50,7 +48,7 @@ contract FundFee {
         if (_performanceFeeRate == 0) {
             return 0;
         }
-        uint256 maxTotalAssetValue = _maxNetAssetValue.wmul(_shareTotalSupply);
+        uint256 maxTotalAssetValue = _maxNetAssetValue.wmul(_totalSupply);
         if (totalAssetValue <= maxTotalAssetValue) {
             return 0;
         }
@@ -59,6 +57,8 @@ contract FundFee {
 
     /**
      * @dev Update fee state, make a checkpoint.
+     * @param fee           Amount of Fee.
+     * @param netAssetValue Value of net asset.
      */
     function updateFeeState(uint256 fee, uint256 netAssetValue) internal {
         if (netAssetValue > _maxNetAssetValue) {

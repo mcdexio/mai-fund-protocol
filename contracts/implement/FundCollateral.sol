@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -6,35 +6,31 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
-import "./LibConstant.sol";
+import "../lib/LibConstant.sol";
+import "../storage/FundStorage.sol";
 
 interface ITokenWithDecimals {
     function decimals() external view returns (uint8);
 }
 
-library LibCollateral {
+contract FundCollateral is FundStorage {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    struct Collateral {
-        IERC20 token;
-        uint256 scaler;
-    }
-
-    function initialize(Collateral storage collateral, address token, uint8 decimals) internal {
-        require(collateral.scaler == 0, "alreay initialized");
-        require(decimals <= LibConstant.MAX_DECIMALS, "given decimals out of range");
-        if (token == address(0)) {
+    function initializedCollateral(address collateral, uint8 decimals) internal {
+        require(_scaler == 0, "alreay initialized");
+        require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "given decimals out of range");
+        if (collateral == address(0)) {
             // ether
             require(decimals == 18, "ether must have decimals of 18");
         } else {
             // erc20 token
-            (uint8 retrievedDecimals, bool ok) = retrieveDecimals(token);
+            (uint8 retrievedDecimals, bool ok) = retrieveDecimals(collateral);
             require(!ok || (ok && retrievedDecimals == decimals), "decimals not match");
         }
-        collateral.token = IERC20(token);
-        collateral.scaler = uint256(10**(LibConstant.MAX_DECIMALS.sub(decimals)));
+        _collateral = collateral;
+        _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
     }
 
     function retrieveDecimals(address token) internal view returns (uint8, bool) {
@@ -53,8 +49,8 @@ library LibCollateral {
      * @dev Indicates that whether current token is an erc20 token.
      * @return True if current token is an erc20 token.
      */
-    function isToken(Collateral storage collateral) internal view returns (bool) {
-        return address(collateral.token) != address(0);
+    function isToken() internal view returns (bool) {
+        return _collateral != address(0);
     }
 
     /**
@@ -64,18 +60,11 @@ library LibCollateral {
      * @param amount Amount of token to be transferred into contract.
      * @return Internal representation of the raw amount.
      */
-    function pullCollateral(
-        Collateral storage collateral,
-        address trader,
-        uint256 amount
-    )
-        internal
-        returns (uint256)
-    {
+    function pullCollateral(address trader, uint256 amount) internal returns (uint256) {
         require(amount > 0, "amount should not be 0");
-        uint256 rawAmount = toRaw(collateral, amount);
-        if (isToken(collateral)) {
-            collateral.token.safeTransferFrom(trader, address(this), rawAmount);
+        uint256 rawAmount = toRaw(amount);
+        if (isToken()) {
+            IERC20(_collateral).safeTransferFrom(trader, address(this), rawAmount);
         } else {
             require(msg.value == rawAmount, "amount not match with sent value");
         }
@@ -89,18 +78,11 @@ library LibCollateral {
      * @param amount    Amount of token to be transferred to user.
      * @return Internal representation of the raw amount.
      */
-    function pushCollateral(
-        Collateral storage collateral,
-        address payable trader,
-        uint256 amount
-    )
-        internal
-        returns (uint256)
-    {
+    function pushCollateral(address payable trader, uint256 amount) internal returns (uint256) {
         require(amount > 0, "amount should not be 0");
-        uint256 rawAmount = toRaw(collateral, amount);
-        if (isToken(collateral)) {
-            collateral.token.safeTransfer(trader, rawAmount);
+        uint256 rawAmount = toRaw(amount);
+        if (isToken()) {
+            IERC20(_collateral).safeTransfer(trader, rawAmount);
         } else {
             Address.sendValue(trader, rawAmount);
         }
@@ -113,8 +95,8 @@ library LibCollateral {
      * @param rawAmount Amount with decimals of token.
      * @return Amount with internal decimals.
      */
-    function toInternal(Collateral storage collateral, uint256 rawAmount) internal view returns (uint256) {
-        return rawAmount.mul(collateral.scaler);
+    function toInternal(uint256 rawAmount) internal view returns (uint256) {
+        return rawAmount.mul(_scaler);
     }
 
     /**
@@ -123,7 +105,7 @@ library LibCollateral {
      * @param amount Amount with internal decimals.
      * @return Amount with decimals of token.
      */
-    function toRaw(Collateral storage collateral, uint256 amount) internal view returns (uint256) {
-        return amount.div(collateral.scaler);
+    function toRaw(uint256 amount) internal view returns (uint256) {
+        return amount.div(_scaler);
     }
 }
