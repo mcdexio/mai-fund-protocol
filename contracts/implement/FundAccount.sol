@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./LibUtils.sol";
+import "../lib/LibUtils.sol";
 
 import "../storage/FundStorage.sol";
 
@@ -38,6 +38,7 @@ contract FundAccount is FundStorage {
         require(shareAmount > 0, "share amount must be greater than 0");
         // update balance
         _balances[trader] = _balances[trader].add(shareAmount);
+        _totalSupply = _totalSupply.add(shareAmount);
         _lastPurchaseTime[trader] = LibUtils.currentTime();
 
         emit IncreaseShareBalance(trader, shareAmount);
@@ -47,6 +48,7 @@ contract FundAccount is FundStorage {
         require(shareAmount > 0, "share amount must be greater than 0");
         // update balance
         _balances[trader] = _balances[trader].sub(shareAmount);
+        _totalSupply = _totalSupply.sub(shareAmount);
 
         emit DecreaseShareBalance(trader, shareAmount);
     }
@@ -56,7 +58,7 @@ contract FundAccount is FundStorage {
         if (_redeemingLockdownPeriod == 0) {
             return true;
         }
-        return _lastPurchaseTime[trader].add(_redeemingLockPeriod) < LibUtils.currentTime();
+        return _lastPurchaseTime[trader].add(_redeemingLockdownPeriod) < LibUtils.currentTime();
     }
 
     /**
@@ -66,11 +68,12 @@ contract FundAccount is FundStorage {
      * @param trader       Address of share owner.
      * @param shareAmount   Amount of share to redeem.
      */
-    function increaseRedeemingAmount(address trader, uint256 shareAmount) internal {
+    function increaseRedeemingAmount(address trader, uint256 shareAmount, uint256 slippage) internal {
         require(shareAmount > 0, "share amount must be greater than 0");
-        require(shareAmount <= redeemableShareBalance(account), "no enough share to redeem");
+        require(shareAmount <= redeemableShareBalance(trader), "no enough share to redeem");
         // set max amount of redeeming amount
         _redeemingBalances[trader] = _redeemingBalances[trader].add(shareAmount);
+        _redeemingSlippage[trader] = slippage;
 
         emit IncreaseRedeemingShareBalance(trader, shareAmount);
     }
@@ -89,21 +92,5 @@ contract FundAccount is FundStorage {
         _redeemingBalances[trader] = _redeemingBalances[trader].sub(shareAmount);
 
         emit DecreaseRedeemingShareBalance(trader, shareAmount);
-    }
-
-    function transferShareBalance(
-        Account storage sender,
-        Account storage recipient,
-        uint256 shareAmount
-    )
-        internal
-    {
-        require(shareAmount > 0, "amount must be greater than 0");
-        require(shareAmount <= redeemableShareBalance(sender), "insufficient share balance to transfer");
-
-        _balances[sender] = _balances[sender].sub(shareAmount);
-        _balances[recipient] = _balances[recipient].add(shareAmount);
-
-        emit TransferShare(sender, recipient, shareAmount);
     }
 }

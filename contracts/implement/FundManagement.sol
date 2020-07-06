@@ -1,14 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/utils/Pausable.sol";
-import "../storage/Storage.sol";
+import "../storage/FundStorage.sol";
 
 interface IOwnable {
     function owner() external view returns (address);
 }
 
-contract FundManagement is Storage, Pausable {
+contract FundManagement is FundStorage, Pausable {
 
     IOwnable _administrator;
 

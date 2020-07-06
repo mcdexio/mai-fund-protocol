@@ -1,17 +1,11 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
-import "../FundBase.sol";
-
-import "../../lib/LibFundFee.sol";
-import "../../lib/LibFundProperty.sol";
 import "../../lib/LibUtils.sol";
+import "../../storage/FundStorage.sol";
+import "../FundOperation.sol";
 
-contract SocialTraderFund is FundBase {
-
-    using LibFundProperty for LibFundCore.Core;
-    using LibFundFee for LibFundCore.Core;
-
+contract SocialTraderFund is FundOperation {
     /**
         for fund manager:
             - claim incentive fee   (manager)
@@ -20,8 +14,10 @@ contract SocialTraderFund is FundBase {
             - pause fund            (manager, administrator)
      */
 
+    event WithdrawIncentiveFee(address indexed maintainer, uint256 totalFee);
+
     modifier onlyMaintainer() {
-        require(msg.sender == _core.maintainer, "call must be maintainer");
+        require(msg.sender == _maintainer, "call must be maintainer");
         _;
     }
 
@@ -30,42 +26,38 @@ contract SocialTraderFund is FundBase {
      * @return Collateral amount of total fee to claim.
      */
     function getIncentiveFees() external returns (uint256) {
-        uint256 totalAssetValue = _core.totalAssetValue();
-        uint256 streamingFee = _core.calculateStreamingFee(totalAssetValue);
-        totalAssetValue = totalAssetValue.sub(streamingFee);
-        uint256 performanceFee = _core.calculatePerformanceFee(totalAssetValue);
-        return streamingFee.add(performanceFee);
+        (, uint256 fee) = calculateFee();
+        return fee;
     }
 
-    function withdrawIncentiveFees() external onlyMaintainer {
-        require(_core.feeState.totalFeeClaimed > 0, "no withdrawable fee");
-        _core.collateral.pushCollateral(msg.sender, _core.feeState.totalFeeClaimed);
-        _core.feeState.totalFeeClaimed = 0;
+    function withdrawIncentiveFee() external onlyMaintainer {
+        claimIncentiveFee();
+        require(_totalFeeClaimed > 0, "no withdrawable fee");
+        pushCollateral(msg.sender, _totalFeeClaimed);
+        emit WithdrawIncentiveFee(_maintainer, _totalFeeClaimed);
+        _totalFeeClaimed = 0;
     }
 
     /**
      * @dev Claim incentive fee (streaming fee + performance fee).
      */
-    function claimIncentiveFee() external onlyMaintainer {
+    function claimIncentiveFee() public onlyMaintainer {
         // ensure claiming period >= feeClaimingPeriod (configuration)
         // require(_core.isCooldown(core), "claiming not cooldown");
         // check time is valid.
         require(
-            _core.feeState.lastActiveClaimingTime < LibUtils.currentTime(),
+            _lastActiveClaimingTime < LibUtils.currentTime(),
             "future claiming time"
         );
         require(
-            _core.feeState.lastActiveClaimingTime.add(_core.configuration.feeClaimingPeriod) < LibUtils.currentTime(),
+            _lastActiveClaimingTime.add(_feeClaimingPeriod) < LibUtils.currentTime(),
             "claiming too frequent"
         );
-        // get fees
-        uint256 totalAssetValue = _core.totalAssetValue();
-        uint256 streamingFee = _core.calculateStreamingFee(totalAssetValue);
-        totalAssetValue = totalAssetValue.sub(streamingFee);
-        uint256 performanceFee = _core.calculatePerformanceFee(totalAssetValue);
-        totalAssetValue = totalAssetValue.sub(performanceFee);
-        uint256 netAssetValue = totalAssetValue.wdiv(_core.shareTotalSupply);
-        // update time and hwm
-        _core.updateFeeState(streamingFee.add(performanceFee), netAssetValue);
+        (
+            uint256 totalAssetValue,
+            uint256 fee
+        ) = calculateFee();
+        uint256 netAssetValue = totalAssetValue.wdiv(_totalSupply);
+        updateFeeState(fee, netAssetValue);
     }
 }

@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
-contract ERC20Storage is Re {
+contract ERC20Storage {
     // ERC20
     string internal _name;
     string internal _symbol;

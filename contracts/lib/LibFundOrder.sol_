@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
+pragma experimental ABIEncoderV2;
+
+library LibFundOrder {
+
+    enum OrderType {
+        SHARE_ORDER,
+        POSITION_ORDER
+    }
+
+    struct Order {
+        uint8 orderType;
+        address trader;
+        uint256 filled;
+        uint256 amount;
+        uint256 slippage;
+        uint64 createAt;
+        uint64 availableAt;
+    }
+
+    /**
+     * @dev Encode order struct to data according to abi specification.
+     * @param order Order to encode.
+     * @return Encode bytes representing order.
+     */
+    function encodeToBytes(Order memory order) internal pure returns (bytes memory data) {
+        data = abi.encode(
+            order.orderType,
+            order.trader,
+            order.filled,
+            order.amount,
+            order.slippage,
+            order.createAt,
+            order.availableAt
+        );
+    }
+
+    /**
+     * @dev Decode order struct from data according to abi specification.
+     * @param data Data bytes to decode
+     * @return Decoded order struct.
+     */
+    function decodeFromBytes(bytes memory data) internal pure returns (Order memory order) {
+        (
+            order.orderType,
+            order.trader,
+            order.filled,
+            order.amount,
+            order.slippage,
+            order.createAt,
+            order.availableAt
+        ) = abi.decode(
+            data,
+            (
+                uint8,
+                address,
+                uint256,
+                uint256,
+                uint256,
+                uint64,
+                uint64
+            )
+        );
+    }
+}
