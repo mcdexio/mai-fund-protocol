@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
 // import "../lib/LibEnumarableMap.sol";
 import "../interface/IPerpetual.sol";
 import "./ERC20Storage.sol";
 
-contract FundStorage is ERC20Storage {
+contract FundStorage is
+    ERC20Storage,
+    Pausable,
+    ReentrancyGuard
+{
     // underlaying perpetual.
     address internal _collateral;
     uint256 internal _scaler;
@@ -18,7 +25,6 @@ contract FundStorage is ERC20Storage {
     // configurations
     uint256 internal _redeemingLockdownPeriod;
     uint256 internal _feeClaimingPeriod;
-    uint256 internal _minimalRedeemingPeriod;
     uint256 internal _entranceFeeRate;
     uint256 internal _streamingFeeRate;
     uint256 internal _performanceFeeRate;
@@ -29,7 +35,7 @@ contract FundStorage is ERC20Storage {
     mapping(address => uint256) internal _lastPurchaseTime;
 
     // dependencies
-    address internal _factory;
+    address internal _creator;
     address internal _maintainer;
     IPerpetual internal _perpetual;
 }

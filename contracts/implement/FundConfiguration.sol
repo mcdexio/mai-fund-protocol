@@ -11,8 +11,8 @@ contract FundConfiguration is FundStorage {
         _feeClaimingPeriod = period;
     }
 
-    function setMinimalRedeemingPeriod(uint256 period) internal {
-        _minimalRedeemingPeriod = period;
+    function setRedeemingLockdownPeriod(uint256 period) internal {
+        _redeemingLockdownPeriod = period;
     }
 
     function setEntranceFeeRate(uint256 newRate) internal {

@@ -4,9 +4,9 @@ pragma experimental ABIEncoderV2;
 
 import "../../lib/LibUtils.sol";
 import "../../storage/FundStorage.sol";
-import "../FundOperation.sol";
+import "../FundBase.sol";
 
-contract SocialTraderFund is FundOperation {
+contract SocialTraderFund is FundStorage, FundBase {
     /**
         for fund manager:
             - claim incentive fee   (manager)

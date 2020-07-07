@@ -15,8 +15,6 @@ contract FundAccount is FundStorage {
     event IncreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
     event DecreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
 
-    event TransferShareBalance(address indexed sender, address indexed recipient, uint256 shareAmount);
-
     /**
      * @dev Share balance to redeem. Before actually sold, the share will still be active.
      *
