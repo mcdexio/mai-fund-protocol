@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -91,7 +91,7 @@ contract FundERC20Wrapper is FundStorage, IERC20 {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
         require(amount <= transferrableBalance(sender), "ERC20: insufficient fund to transfer");
-        require(_lastPurchaseTime[sender].add(_minimalRedeemingPeriod) < now, "need to wait to redeem");
+        require(_lastPurchaseTime[sender].add(_redeemingLockdownPeriod) < now, "need to wait to redeem");
 
         _balances[sender] = _balances[sender].sub(amount);
         _balances[recipient] = _balances[recipient].add(amount);
