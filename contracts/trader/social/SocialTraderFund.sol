@@ -31,10 +31,11 @@ contract SocialTraderFund is FundStorage, FundBase {
         return fee;
     }
 
-    function withdrawIncentiveFee() external onlyMaintainer {
+    function withdrawIncentiveFee() external onlyMaintainer nonReentrant {
         claimIncentiveFee();
         require(_totalFeeClaimed > 0, "no withdrawable fee");
-        pushCollateral(msg.sender, _totalFeeClaimed);
+        pullCollateralFromPerpetual(_totalFeeClaimed);
+        pushCollateralToUser(msg.sender, _totalFeeClaimed);
         emit WithdrawIncentiveFee(_maintainer, _totalFeeClaimed);
         _totalFeeClaimed = 0;
     }

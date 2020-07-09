@@ -4,6 +4,13 @@ pragma solidity 0.6.10;
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "../external/openzeppelin-upgrades/contracts/upgradeability/InitializableAdminUpgradeabilityProxy.sol";
 import "../interface/IGlobalConfig.sol";
+// import "../interface/IDelegate.sol";
+
+interface IDelegateSetter {
+    function setDelegator(address) external;
+    function unsetDelegator(address) external;
+}
+
 
 /**
  * @title Administration module for fund.
@@ -12,12 +19,12 @@ contract FundFactory {
 
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    address internal _implementation;
     IGlobalConfig internal _globalConfig;
+    address internal _implementation;
     EnumerableSet.AddressSet internal _proxies;
 
-    event Register(address indexed proxy, address indexed implementation);
-    event Deregister(address indexed proxy);
+    event Register(address indexed caller, address indexed proxy, address indexed implementation);
+    event Deregister(address indexed caller, address indexed proxy);
     event UpgradeImplementation(address indexed newImplementation);
 
     constructor(address globalConfig) public {
@@ -54,7 +61,7 @@ contract FundFactory {
         emit UpgradeImplementation(newImplementation);
     }
 
-    function createSocialTradingFund(bytes calldata initializeData)
+    function createFundProxy(bytes calldata initializeData)
         external
         onlyAdministrator
         returns (address)
@@ -64,8 +71,16 @@ contract FundFactory {
         return proxy;
     }
 
-    function isRegistered(address fund) external view returns (bool) {
-        return _proxies.contains(fund);
+    function numProxies() external view returns (uint256) {
+        return _proxies.length();
+    }
+
+    function getProxies(uint256 index) external view returns (address) {
+        return _proxies.at(index);
+    }
+
+    function isRegistered(address proxy) external view returns (bool) {
+        return _proxies.contains(proxy);
     }
 
     function createProxy(address implementation, bytes memory initializeData) internal returns (address) {
@@ -76,12 +91,12 @@ contract FundFactory {
 
     function register(address proxy) internal {
         _proxies.add(proxy);
-        emit Register(proxy, _implementation);
+        emit Register(msg.sender, proxy, _implementation);
     }
 
     function deregister(address proxy) internal {
         _proxies.remove(proxy);
-        emit Deregister(proxy);
+        emit Deregister(msg.sender, proxy);
     }
 
 }

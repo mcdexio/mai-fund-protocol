@@ -38,4 +38,28 @@ contract FundStorage is
     address internal _creator;
     address internal _maintainer;
     IPerpetual internal _perpetual;
+
+    function maxNetAssetValue() external view returns (uint256) {
+        return _maxNetAssetValue;
+    }
+
+    function lastPassiveClaimingTime() external view returns (uint256) {
+        return _lastPassiveClaimingTime;
+    }
+
+    function totalFeeClaimed() external view returns (uint256) {
+        return _totalFeeClaimed;
+    }
+
+    function redeemingBalance(address account) external view returns (uint256) {
+        return _redeemingBalances[account];
+    }
+
+    function redeemingSlippage(address account) external view returns (uint256) {
+        return _redeemingSlippage[account];
+    }
+
+    function lastPurchaseTime(address account) external view returns (uint256) {
+        return _lastPurchaseTime[account];
+    }
 }
