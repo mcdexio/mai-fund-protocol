@@ -2,14 +2,15 @@
 pragma solidity 0.6.10;
 
 import "../lib/LibConstant.sol";
-import "../implement/FundConfiguration.sol";
+import "../component/FundConfiguration.sol";
+import "../component/FundProperty.sol";
 import "../storage/FundStorage.sol";
 
 interface IAdministration {
     function administrator() external view returns (address);
 }
 
-contract FundManagement is FundStorage, FundConfiguration {
+contract FundManagement is FundStorage, FundConfiguration, FundProperty {
 
     event SetConfigurationEntry(bytes32 key, bytes32 value);
 
@@ -49,22 +50,26 @@ contract FundManagement is FundStorage, FundConfiguration {
         _unpause();
     }
 
-    function shutdownOnMaxDrawdownReached() external onlyAdministrator {
-        // uint256 netAssetValue = _core.getNetAssetValue();
+    function shutdownOnMaxDrawdownReached() external {
+        // assetValue = totalAssetValue();
+        // // streaming fee, performance fee excluded
+        // uint256 streamingFee = calculateStreamingFee(assetValue);
+        // assetValue = assetValue.sub(streamingFee);
+        // uint256 performanceFee = calculatePerformanceFee(assetValue);
+        // assetValue = assetValue.sub(performanceFee);
+
+
+        // uint256 netAssetValue = assetValue.wdiv;
         // uint256 maxNetAssetValue = _core.manager.maxNetAssetValue;
         // require(maxNetAssetValue > netAssetValue, "no drawdown");
         // require(
         //     maxNetAssetValue.sub(netAssetValue).wdiv(maxNetAssetValue) > _core.configuration.maxDrawdown,
         //     "max drawdown not reached"
         // );
-        _shutdown();
+        _pause();
     }
 
     function shutdown() external onlyAdministrator {
-        _shutdown();
-    }
-
-    function _shutdown() internal {
 
     }
 }

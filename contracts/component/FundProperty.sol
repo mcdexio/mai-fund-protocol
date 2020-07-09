@@ -28,30 +28,26 @@ contract FundProperty is FundStorage {
      * @dev Return total asset value.
      * @return Value of total assets in fund.
      */
-    function totalAssetValue() internal returns (uint256) {
-        int256 marginBalance = _perpetual.marginBalance(address(this));
+    function totalAssetValue() public returns (uint256) {
+        int256 marginBalance = _perpetual.marginBalance(self());
         require(marginBalance > 0, "marginBalance must be greater than 0");
         return marginBalance.toUint256();
-    }
-
-    /**
-     * @dev Return net asset value.
-     * @return Net value of assets in fund.
-     */
-    function netAssetValue() internal returns (uint256) {
-        return _totalSupply == 0? 0: totalAssetValue().wdiv(_totalSupply);
     }
 
     /**
      * @dev Return leverage of perpetual.
      * @return Net value of assets in fund.
      */
-    function leverage() internal returns (uint256) {
+    function leverage() public returns (uint256) {
         uint256 margin = _perpetual.positionMargin(self());
         return margin.wdiv(totalAssetValue());
     }
 
     function marginAccount() internal view returns (LibTypes.MarginAccount memory account) {
         account = _perpetual.getMarginAccount(self());
+    }
+
+    function positionSize() internal view returns (uint256) {
+        return _perpetual.getMarginAccount(self()).size;
     }
 }

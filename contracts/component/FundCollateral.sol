@@ -18,7 +18,7 @@ contract FundCollateral is FundStorage {
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    function initializedCollateral(address collateral, uint8 decimals) internal {
+    function initialize(address collateral, uint8 decimals) internal {
         require(_scaler == 0, "alreay initialized");
         require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "given decimals out of range");
         if (collateral == address(0)) {
@@ -33,15 +33,18 @@ contract FundCollateral is FundStorage {
         _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
     }
 
-    function retrieveDecimals(address token) internal view returns (uint8, bool) {
-        try ITokenWithDecimals(token).decimals() returns (uint8 retrievedDecimals) {
-            return (retrievedDecimals, true);
-        } catch Error(string memory) {
-            return (0, false);
-        } catch (bytes memory) {
-            return (0, false);
+    function retrieveDecimals(address token) public view returns (uint8, bool) {
+        (bool success, bytes memory result) = token.staticcall(abi.encodeWithSignature("decimals()"));
+        if (success && result.length >= 32) {
+            return (abi.decode(result, (uint8)), success);
         }
+        return (0, false);
     }
+
+    function testDecimals(address token) public view returns (bool success, bytes memory result) {
+        (success, result) = token.staticcall(abi.encodeWithSignature("decimals()"));
+    }
+
 
     // ** All interface call from upper layer use the decimals of the token, called 'rawAmount'.
 
@@ -60,7 +63,7 @@ contract FundCollateral is FundStorage {
      * @param amount Amount of token to be transferred into contract.
      * @return Internal representation of the raw amount.
      */
-    function pullCollateral(address trader, uint256 amount) internal returns (uint256) {
+    function pullCollateralFromUser(address trader, uint256 amount) internal returns (uint256) {
         require(amount > 0, "amount should not be 0");
         uint256 rawAmount = toRaw(amount);
         if (isToken()) {
@@ -78,15 +81,24 @@ contract FundCollateral is FundStorage {
      * @param amount    Amount of token to be transferred to user.
      * @return Internal representation of the raw amount.
      */
-    function pushCollateral(address payable trader, uint256 amount) internal returns (uint256) {
+    function pushCollateralToUser(address payable trader, uint256 amount) internal returns (uint256) {
         require(amount > 0, "amount should not be 0");
         uint256 rawAmount = toRaw(amount);
         if (isToken()) {
             IERC20(_collateral).safeTransfer(trader, rawAmount);
         } else {
             Address.sendValue(trader, rawAmount);
+            // trader.transfer(amount);
         }
         return rawAmount;
+    }
+
+    function pullCollateralFromPerpetual(uint256 amount) internal {
+        _perpetual.withdraw(toRaw(amount));
+    }
+
+    function pushCollateralToPerpetual(uint256 amount) internal {
+        _perpetual.deposit{ value: amount }(toRaw(amount));
     }
 
     /**

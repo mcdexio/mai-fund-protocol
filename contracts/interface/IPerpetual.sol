@@ -6,6 +6,8 @@ import "../external/LibTypes.sol";
 
 interface IPerpetual {
 
+    function amm() external view returns (address);
+
     function getMarginAccount(address trader) external view returns (LibTypes.MarginAccount memory);
 
     function status() external view returns (LibTypes.Status);
@@ -47,6 +49,10 @@ interface IPerpetual {
         address to,
         uint256 amount
     ) external;
+
+    function deposit(uint256 amount) external payable;
+
+    function withdraw(uint256 amount) external;
 
     function depositFor(address trader, uint256 amount) external payable;
 
