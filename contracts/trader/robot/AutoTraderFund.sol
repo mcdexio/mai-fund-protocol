@@ -7,17 +7,22 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
-import "../../external/LibTypes.sol";
+import "../../lib/LibTypes.sol";
 import "../../lib/LibUtils.sol";
 import "../../lib/LibMathEx.sol";
 import "../../storage/FundStorage.sol";
 import "../FundBase.sol";
+import "../FundManagement.sol";
 
 interface ITradingStrategy {
-    function getNextTarget() external view returns (int256);
+    function getNextTarget() external returns (int256);
 }
 
-contract AutoTraderFund is FundStorage, FundBase {
+contract AutoTraderFund is
+    FundStorage,
+    FundBase,
+    FundManagement
+{
 
     using Math for uint256;
     using SafeMath for uint256;
@@ -33,13 +38,14 @@ contract AutoTraderFund is FundStorage, FundBase {
     function needRebalancing() public returns (bool) {
         int256 nextTarget = getNextTarget();
         //  deviate from last target
-        int256 currentleverage = leverage().toInt256();
+        int256 currentleverage = getLeverage().toInt256();
         return currentleverage.sub(nextTarget).abs().toUint256() > _rebalancingTolerance;
     }
 
-    function takeRebalanceOrder(uint256 maxPositionAmount, uint256 limitPrice, LibTypes.Side side)
+    function rebalance(uint256 maxPositionAmount, uint256 limitPrice, LibTypes.Side side)
         external
     {
+        require(maxPositionAmount > 0, "position amount must greater than 0");
         require(needRebalancing(), "no need to rebalance");
         (
             uint256 rebalancingAmount,
@@ -47,11 +53,10 @@ contract AutoTraderFund is FundStorage, FundBase {
         ) = calculateRebalancingTarget();
         require(rebalancingAmount > 0, "no amount to rebalance");
         require(rebalancingSide == side, "unexpected side");
-        require(maxPositionAmount > 0, "position amount must greater than 0");
 
-        ( uint256 tradingPrice, ) = calculateTradingPrice(rebalancingSide, _rebalancingSlippage);
+        ( uint256 tradingPrice, ) = getBiddingPrice(rebalancingSide, _rebalancingSlippage);
         uint256 tradingAmount = Math.min(maxPositionAmount, rebalancingAmount);
-        validatePrice(rebalancingSide, tradingPrice, limitPrice);
+        validateBiddingPrice(rebalancingSide, tradingPrice, limitPrice);
         _perpetual.tradePosition(
             self(),
             msg.sender,
@@ -61,22 +66,17 @@ contract AutoTraderFund is FundStorage, FundBase {
         );
     }
 
-    function getNextTarget() internal view returns (int256) {
-        int256 nextTarget = ITradingStrategy(_maintainer).getNextTarget();
-        // TODO: validate range of next target.
-        return nextTarget;
-    }
-
     function calculateRebalancingTarget()
-        internal
+        public
         returns (uint256 amount, LibTypes.Side side)
     {
         uint256 markPrice = _perpetual.markPrice();
         require(markPrice != 0, "mark price cannot be 0");
 
-        LibTypes.MarginAccount memory fundMarginAccount = marginAccount();
+        LibTypes.MarginAccount memory fundMarginAccount = getMarginAccount();
         int256 positionSize = fundMarginAccount.size.toInt256();
-        int256 marginBalance = totalAssetValue().toInt256();
+        (uint256 netAssetValue, ) = getNetAssetValueAndFee();
+        int256 marginBalance = netAssetValue.toInt256();
         int256 nextTarget = getNextTarget();
         int256 expectedMargin = marginBalance.wmul(nextTarget);
         int256 expectedSize = expectedMargin.wdiv(markPrice.toInt256());
@@ -91,5 +91,14 @@ contract AutoTraderFund is FundStorage, FundBase {
         int256 target = expectedSize.sub(positionSize);
         amount = target.abs().toUint256();
         side = target > 0? LibTypes.Side.LONG: LibTypes.Side.SHORT;
+    }
+
+    function getNextTarget()
+        internal
+        returns (int256)
+    {
+        int256 nextTarget = ITradingStrategy(_manager).getNextTarget();
+        // TODO: validate range of next target.
+        return nextTarget;
     }
 }

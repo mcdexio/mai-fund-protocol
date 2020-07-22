@@ -6,25 +6,28 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // import "../lib/LibEnumarableMap.sol";
 import "../interface/IPerpetual.sol";
+import "./Stoppable.sol";
 import "./ERC20Storage.sol";
 
 contract FundStorage is
     ERC20Storage,
     Pausable,
+    Stoppable,
     ReentrancyGuard
 {
     // underlaying perpetual.
     address internal _collateral;
     uint256 internal _scaler;
-    // state
+    // fee state
     uint256 internal _totalFeeClaimed;
-    uint256 internal _maxNetAssetValue;
-    uint256 internal _lastPassiveClaimingTime;
-    uint256 internal _lastActiveClaimingTime;
+    uint256 internal _maxNetAssetValuePerShare;
+    uint256 internal _lastFeeTime;
 
     // configurations
-    uint256 internal _redeemingLockdownPeriod;
-    uint256 internal _feeClaimingPeriod;
+    uint256 internal _shuttingDownSlippage;
+    uint256 internal _drawdownHighWaterMark;
+    uint256 internal _leverageHighWaterMark;
+    uint256 internal _redeemingLockPeriod;
     uint256 internal _entranceFeeRate;
     uint256 internal _streamingFeeRate;
     uint256 internal _performanceFeeRate;
@@ -35,20 +38,44 @@ contract FundStorage is
     mapping(address => uint256) internal _lastPurchaseTime;
 
     // dependencies
-    address internal _creator;
-    address internal _maintainer;
     IPerpetual internal _perpetual;
-
-    function maxNetAssetValue() external view returns (uint256) {
-        return _maxNetAssetValue;
-    }
-
-    function lastPassiveClaimingTime() external view returns (uint256) {
-        return _lastPassiveClaimingTime;
-    }
+    address internal _manager;
+    address internal _creator;
 
     function totalFeeClaimed() external view returns (uint256) {
         return _totalFeeClaimed;
+    }
+
+    function maxNetAssetValuePerShare() external view returns (uint256) {
+        return _maxNetAssetValuePerShare;
+    }
+
+    function lastFeeTime() external view returns (uint256) {
+        return _lastFeeTime;
+    }
+
+    function redeemingLockPeriod() external view returns (uint256) {
+        return _redeemingLockPeriod;
+    }
+
+    function drawdownHighWaterMark() external view returns (uint256) {
+        return _drawdownHighWaterMark;
+    }
+
+    function leverageHighWaterMark() external view returns (uint256) {
+        return _leverageHighWaterMark;
+    }
+
+    function entranceFeeRate() external view returns (uint256) {
+        return _entranceFeeRate;
+    }
+
+    function streamingFeeRate() external view returns (uint256) {
+        return _streamingFeeRate;
+    }
+
+    function performanceFeeRate() external view returns (uint256) {
+        return _performanceFeeRate;
     }
 
     function redeemingBalance(address account) external view returns (uint256) {
@@ -61,5 +88,9 @@ contract FundStorage is
 
     function lastPurchaseTime(address account) external view returns (uint256) {
         return _lastPurchaseTime[account];
+    }
+
+    function manager() external view returns (address) {
+        return _manager;
     }
 }

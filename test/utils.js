@@ -1,3 +1,4 @@
+const assert = require('assert');
 const BigNumber = require('bignumber.js');
 
 const log = (...message) => {
@@ -281,6 +282,15 @@ const printFunding = async (amm, perpetual) => {
     console.log("");
 };
 
+const shouldThrows = async (fn, msg) => {
+    try {
+        await fn;
+        throw new AssertionError("should throw expected msg but acturally not");
+    } catch (e) {
+        assert.ok(e.message.includes(msg), "expect: [ " + msg + " ], got: [ " + e.message + " ]");
+    }
+};
+
 module.exports = {
     log,
     toBytes32,
@@ -306,4 +316,6 @@ module.exports = {
     fromWad,
     infinity,
     Side,
+    shouldThrows,
+    uintToBytes32,
 };

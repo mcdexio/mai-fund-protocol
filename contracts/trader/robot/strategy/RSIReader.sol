@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../../../lib/LibConstant.sol";
 import "../../../lib/LibMathEx.sol";
+import "../../../lib/LibUtils.sol";
 
 interface IPriceSeriesRetriever {
     function retrievePriceSeries(
@@ -34,12 +34,14 @@ contract RSIReader {
     event SetPeriod(uint256 oldValue, uint256 newValue);
     event SetNumPeriod(uint256 oldValue, uint256 newValue);
 
-    constructor(uint256 period, uint256 numPeriod) internal {
+    constructor(address priceSeriesRetriever, uint256 period, uint256 numPeriod) internal {
+        require(priceSeriesRetriever != address(0), "invalid price reader");
         require(period > 0, "period must be greater than 0");
         require(numPeriod > 0, "num period must be greater than 0");
 
         _period = period;
         _numPeriod = _numPeriod;
+        _priceSeriesRetriever = IPriceSeriesRetriever(priceSeriesRetriever);
         _totalPeriod = period.mul(numPeriod);
     }
 
@@ -54,8 +56,8 @@ contract RSIReader {
     function getCurrentRSI() public view returns (uint256) {
         uint256[] memory priceSeries = _priceSeriesRetriever.retrievePriceSeries(
             _period,
-            now.sub(_totalPeriod),
-            now
+            timestamp().sub(_totalPeriod),
+            timestamp()
         );
         require(priceSeries.length > 0, "no price data");
         return calculateRSI(priceSeries);
@@ -82,5 +84,9 @@ contract RSIReader {
         }
         return RSI_UPPERBOUND.wmul(accumulativeGain)
             .wdiv(accumulativeGain.add(accumulativeLoss));
+    }
+
+    function timestamp() internal virtual view returns (uint256) {
+        return LibUtils.currentTime();
     }
 }

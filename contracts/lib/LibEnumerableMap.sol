@@ -2,6 +2,7 @@
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/utils/EnumerableMap.sol";
+import "@openzeppelin/contracts/utils/Arrays.sol";
 
 library LibEnumerableMap {
 
@@ -73,6 +74,31 @@ library LibEnumerableMap {
         return map._indexes[key];
     }
 
+    function previous(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
+        uint256 keyIndex = map._indexes[key];
+        if (keyIndex == 0) {
+            return 0;
+        }
+        return at(map, keyIndex - 1);
+    }
+
+    function findLastNonZeroValue(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
+        if (map._entries.length == 0) {
+            return 0;
+        }
+        uint256 low = 0;
+        uint256 high = map._entries.length;
+        while (low < high - 1) {
+            uint256 mid = (low + high) / 2;
+            if (key < map._entries[mid]._key) {
+                high = mid;
+            } else {
+                low = mid;
+            }
+        }
+        return map._entries[low]._value;
+    }
+
     /**
      * @dev Returns the value associated with `key`.  O(1).
      *
@@ -82,7 +108,6 @@ library LibEnumerableMap {
      */
     function get(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
         uint256 keyIndex = map._indexes[key];
-        require(keyIndex != 0, "key not exist"); // Equivalent to contains(map, key)
-        return map._entries[keyIndex - 1]._value; // All indexes are 1-based
+        return keyIndex != 0? map._entries[keyIndex - 1]._value: 0;
     }
 }
