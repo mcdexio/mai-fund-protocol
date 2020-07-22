@@ -18,8 +18,7 @@ import "../component/FundConfiguration.sol";
 import "../component/FundERC20Wrapper.sol";
 import "../component/FundFee.sol";
 import "../component/FundProperty.sol";
-import "./FundManagement.sol";
-
+import "./FundAuction.sol";
 
 contract FundBase is
     FundStorage,
@@ -29,6 +28,7 @@ contract FundBase is
     FundERC20Wrapper,
     FundFee,
     FundProperty,
+    FundAuction,
     Initializable
 {
     using SafeMath for uint256;
@@ -43,6 +43,7 @@ contract FundBase is
 
 
     receive() external payable {
+        require(msg.sender == address(_perpetual), "only receive ethers from perpetual");
         emit Received(msg.sender, msg.value);
     }
 
@@ -55,26 +56,42 @@ contract FundBase is
         address collataral,
         uint8 collataralDecimals,
         address perpetual,
-        address maintainer
+        address mananger
     )
         external
         initializer
     {
         _name = name;
         _symbol = symbol;
-        _maintainer = maintainer;
+        _manager = mananger;
         _creator = msg.sender;
         _perpetual = IPerpetual(perpetual);
         FundCollateral.initialize(collataral, collataralDecimals);
     }
 
-    function setDelegator(address delegate) external {
-        IDelegate(delegate).setDelegator(address(_perpetual), _maintainer);
+    function getCurrentLeverage()
+        external
+        returns (uint256)
+    {
+        return getLeverage();
     }
 
-    function unsetDelegator(address delegate) external {
-        IDelegate(delegate).unsetDelegator(address(_perpetual));
+    function getNetAssetValue()
+        external
+        returns (uint256)
+    {
+        (uint256 netAssetValue,) = getNetAssetValueAndFee();
+        return netAssetValue;
     }
+
+    function getNetAssetValuePerShare()
+        external
+        returns (uint256)
+    {
+        (uint256 netAssetValuePerShare,) = getNetAssetValuePerShareAndFee();
+        return netAssetValuePerShare;
+    }
+
 
     /**
      * @dev Call once, when NAV is 0 (position size == 0).
@@ -94,7 +111,7 @@ contract FundBase is
         pullCollateralFromUser(msg.sender, collateralRequired);
         pushCollateralToPerpetual(collateralRequired);
         // get share
-        increaseShareBalance(msg.sender, shareAmount);
+        mintShareBalance(msg.sender, shareAmount);
         updateFeeState(0, initialNetAssetValue);
 
         emit Create(msg.sender, initialNetAssetValue, shareAmount);
@@ -102,10 +119,10 @@ contract FundBase is
 
     /**
      * @dev Purchase share, Total collataral required = amount x unit net value.
-     * @param shareAmount           Amount of shares to purchase.
-     * @param netAssetValueLimit    NAV price limit to protect trader's dealing price.
+     * @param shareAmount                   Amount of shares to purchase.
+     * @param netAssetValuePerShareLimit    NAV price limit to protect trader's dealing price.
      */
-    function purchase(uint256 shareAmount, uint256 netAssetValueLimit)
+    function purchase(uint256 shareAmount, uint256 netAssetValuePerShareLimit)
         external
         payable
         whenNotPaused
@@ -113,23 +130,33 @@ contract FundBase is
     {
         require(shareAmount > 0, "share amount must be greater than 0");
         (
-            uint256 totalAssetValue,
+            uint256 netAssetValuePerShare,
             uint256 feeBeforePurchase
-        ) = calculateFee();
-        uint256 netAssetValue = totalAssetValue.wdiv(_totalSupply);
-        require(netAssetValue <= netAssetValueLimit, "unit net value exceeded limit");
+        ) = getNetAssetValuePerShareAndFee();
+        require(netAssetValuePerShare > 0, "unit nav should be greater than 0");
+        // require(netAssetValuePerShare <= netAssetValuePerShareLimit, "unit nav exceeded limit");
+        uint256 collateralLimit = netAssetValuePerShareLimit.wmul(shareAmount);
 
-        uint256 collateralRequired = netAssetValue.wmul(shareAmount);
-        uint256 entranceFee = calculateEntranceFee(collateralRequired);
+        uint256 collateralRequired = netAssetValuePerShare.wmul(shareAmount);
+        uint256 entranceFee = getEntranceFee(collateralRequired);
         // pay collateral + fee, collateral -> perpetual, fee -> fund
-        pullCollateralFromUser(msg.sender, collateralRequired.add(entranceFee));
+        collateralRequired = collateralRequired.add(entranceFee);
+        require(collateralRequired <= collateralLimit, "cost exceeds limit");
+
+        pullCollateralFromUser(msg.sender, collateralLimit);
         pushCollateralToPerpetual(collateralRequired);
         // get share
-        increaseShareBalance(msg.sender, shareAmount);
+        mintShareBalance(msg.sender, shareAmount);
         // - update manager status
-        updateFeeState(entranceFee.add(feeBeforePurchase), netAssetValue);
+        updateFeeState(entranceFee.add(feeBeforePurchase), netAssetValuePerShare);
 
-        emit Purchase(msg.sender, netAssetValue, shareAmount);
+        // change, there is gap between limit and dealing price.
+        // send it back to user.
+        if (collateralRequired < collateralLimit) {
+            pushCollateralToUser(msg.sender, collateralLimit.sub(collateralRequired));
+        }
+
+        emit Purchase(msg.sender, netAssetValuePerShare, shareAmount);
     }
 
     function requestToRedeem(uint256 shareAmount, uint256 slippage)
@@ -148,7 +175,7 @@ contract FundBase is
         increaseRedeemingAmount(msg.sender, shareAmount, slippage);
         emit RequestToRedeem(msg.sender, shareAmount, slippage);
 
-        if (positionSize() == 0) {
+        if (getPositionSize() == 0) {
             redeem(msg.sender, shareAmount, 0);
         }
     }
@@ -162,7 +189,7 @@ contract FundBase is
         emit CancelRedeeming(msg.sender, shareAmount);
     }
 
-    function takeRedeemingShare(
+    function bidRedeemingShare(
         address trader,
         uint256 shareAmount,
         uint256 priceLimit,
@@ -171,37 +198,14 @@ contract FundBase is
         external
         whenNotPaused
     {
-        // order
-        require(shareAmount <= _redeemingBalances[trader], "insufficient shares to take");
-        // trading price and loss amount equivalent to slippage
-        LibTypes.MarginAccount memory fundMarginAccount = marginAccount();
-        require(fundMarginAccount.side == side, "unexpected side");
-        uint256 redeemPercentage = shareAmount.wdiv(_totalSupply);
-        // TODO: align to tradingLotSize
-        uint256 redeemAmount = fundMarginAccount.size.wmul(redeemPercentage);
-        LibTypes.Side redeemingSide = fundMarginAccount.side == LibTypes.Side.LONG?
-            LibTypes.Side.SHORT : LibTypes.Side.LONG;
-        uint256 slippage = _redeemingSlippage[trader];
-        (
-            uint256 tradingPrice,
-            uint256 priceLoss
-        ) = calculateTradingPrice(fundMarginAccount.side, slippage);
-        validatePrice(side, tradingPrice, priceLimit);
-        _perpetual.tradePosition(
-            self(),
-            msg.sender,
-            redeemingSide,
-            tradingPrice,
-            redeemAmount
-        );
-        uint256 slippageValue = priceLoss.wmul(redeemAmount);
-        redeem(trader, shareAmount, slippageValue);
+        uint256 slippageLoss = bidShare(trader, shareAmount, priceLimit, side);
+        redeem(trader, shareAmount, slippageLoss);
     }
 
     /**
      * @dev Redeem shares.
      */
-    function redeem(address trader, uint256 shareAmount, uint256 slippageValue)
+    function redeem(address trader, uint256 shareAmount, uint256 slippageLoss)
         internal
         nonReentrant
     {
@@ -216,51 +220,36 @@ contract FundBase is
         require(shareAmount > 0, "amount must be greater than 0");
         // - calculate decreased amount
         (
-            uint256 totalAssetValue,
-            uint256 fee
-        ) = calculateFee();
-        uint256 netAssetValue = totalAssetValue.wdiv(_totalSupply);
+            uint256 netAssetValuePerShare,
+            uint256 feeBeforeRedeem
+        ) = getNetAssetValuePerShareAndFee();
         // note the loss amount is caused by slippage set by user.
-        uint256 collateralToReturn = netAssetValue.wmul(shareAmount).sub(slippageValue);
+        uint256 collateralToReturn = netAssetValuePerShare.wmul(shareAmount).sub(slippageLoss);
         // pay share
         decreaseRedeemingAmount(trader, shareAmount);
-        decreaseShareBalance(trader, shareAmount);
+        burnShareBalance(trader, shareAmount);
         // get collateral
         pullCollateralFromPerpetual(collateralToReturn);
         pushCollateralToUser(payable(trader), collateralToReturn);
         // - decrease total supply
-        updateFeeState(fee, netAssetValue);
+        updateFeeState(feeBeforeRedeem, netAssetValuePerShare);
 
-        emit Redeem(trader, netAssetValue, shareAmount);
+        emit Redeem(trader, netAssetValuePerShare, shareAmount);
     }
 
-    function calculateFee()
-        internal
-        returns (uint256 assetValue, uint256 fee)
+    function bidShuttingDownShare(
+        uint256 shareAmount,
+        uint256 priceLimit,
+        LibTypes.Side side
+    )
+        external
+        whenStopped
     {
-        assetValue = totalAssetValue();
-        // streaming fee, performance fee excluded
-        uint256 streamingFee = calculateStreamingFee(assetValue);
-        assetValue = assetValue.sub(streamingFee);
-        uint256 performanceFee = calculatePerformanceFee(assetValue);
-        assetValue = assetValue.sub(performanceFee);
-        fee = streamingFee.add(performanceFee);
+        // order
+        address fundAccount = self();
+        bidShare(fundAccount, shareAmount, priceLimit, side);
+        decreaseRedeemingAmount(fundAccount, shareAmount);
+        burnShareBalance(fundAccount, shareAmount);
     }
 
-    function validatePrice(LibTypes.Side side, uint256 price, uint256 priceLimit) internal pure {
-        if (side == LibTypes.Side.LONG) {
-            require(price <= priceLimit, "price too high for long");
-        } else {
-            require(price >= priceLimit, "price too low for short");
-        }
-    }
-
-    function calculateTradingPrice(LibTypes.Side side, uint256 slippage)
-        internal
-        returns (uint256 tradingPrice, uint256 priceLoss)
-    {
-        uint256 markPrice = _perpetual.markPrice();
-        priceLoss = markPrice.wmul(slippage);
-        tradingPrice = side == LibTypes.Side.LONG? markPrice.add(priceLoss): markPrice.sub(priceLoss);
-    }
 }

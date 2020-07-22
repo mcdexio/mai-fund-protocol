@@ -14,11 +14,11 @@ contract FundFee is FundStorage {
     using LibMathEx for uint256;
 
     /**
-     * @dev calculate purchase fee.
-     * @param purchasedAssetValue   Total asset value to purchase.
-     * @return Amount of purchase fee.
+     * @notice  Calculate purchase fee. nav * amount * feerate
+     * @param   purchasedAssetValue   Total asset value to purchase.
+     * @return  Amount of purchase fee.
      */
-    function calculateEntranceFee(uint256 purchasedAssetValue) internal view returns (uint256) {
+    function getEntranceFee(uint256 purchasedAssetValue) internal view returns (uint256) {
         if (_entranceFeeRate == 0) {
             return 0;
         }
@@ -26,49 +26,47 @@ contract FundFee is FundStorage {
     }
 
     /**
-     * @dev Claim streaming fee.
-     * @param totalAssetValue   Total asset value.
-     * @return Amount of streaming fee.
+     * @notice  Claim streaming fee.
+     * @dev     Assume that 1 year == 365 day
+     * @param   netAssetValue   Total asset value.
+     * @return  Amount of streaming fee.
      */
-    function calculateStreamingFee(uint256 totalAssetValue) internal view returns (uint256) {
-        if (_streamingFeeRate == 0) {
+    function getStreamingFee(uint256 netAssetValue) internal view returns (uint256) {
+        // _lastFeeTime == 0 => no initial checkpoint. fee = 0
+        if (_lastFeeTime == 0 || _streamingFeeRate == 0) {
             return 0;
         }
-        // time since last claiming
-        uint256 feeRate = LibUtils.annualizedFeeRate(_streamingFeeRate, _lastPassiveClaimingTime);
-        return totalAssetValue.wmul(feeRate);
+        uint256 feePerYear = netAssetValue.wmul(_streamingFeeRate);
+        uint256 timeElapsed = LibUtils.currentTime().sub(_lastFeeTime);
+        return feePerYear.wfrac(timeElapsed, LibConstant.SECONDS_PER_YEAR);
     }
 
     /**
-     * @dev Calculate performance fee. mature part and immature part are calculated separately.
-     * @param totalAssetValue   Amount of total asset value, streaming fee excluded.
-     * @return Amount of performance fee.
+     * @notice  Calculate performance fee. mature part and immature part are calculated separately.
+     * @param   netAssetValue   Amount of total asset value, streaming fee excluded.
+     * @return  Amount of performance fee.
      */
-    function calculatePerformanceFee(uint256 totalAssetValue) internal view returns (uint256) {
+    function getPerformanceFee(uint256 netAssetValue) internal view returns (uint256) {
         if (_performanceFeeRate == 0) {
             return 0;
         }
-        uint256 maxTotalAssetValue = _maxNetAssetValue.wmul(_totalSupply);
-        if (totalAssetValue <= maxTotalAssetValue) {
+        uint256 maxAssetValue = _maxNetAssetValuePerShare.wmul(_totalSupply);
+        if (netAssetValue <= maxAssetValue) {
             return 0;
         }
-        return totalAssetValue.sub(maxTotalAssetValue).wmul(_performanceFeeRate);
+        return netAssetValue.sub(maxAssetValue).wmul(_performanceFeeRate);
     }
 
     /**
-     * @dev Update fee state, make a checkpoint.
-     * @param fee           Amount of Fee.
-     * @param netAssetValue Value of net asset.
+     * @notice  Update fee state, make a checkpoint for next fee.
+     * @param   fee                   Amount of Fee.
+     * @param   netAssetValuePerShare Value of net asset.
      */
-    function updateFeeState(uint256 fee, uint256 netAssetValue) internal {
-        if (netAssetValue > _maxNetAssetValue) {
-            _maxNetAssetValue = netAssetValue;
+    function updateFeeState(uint256 fee, uint256 netAssetValuePerShare) internal {
+        if (netAssetValuePerShare > _maxNetAssetValuePerShare) {
+            _maxNetAssetValuePerShare = netAssetValuePerShare;
         }
         _totalFeeClaimed = _totalFeeClaimed.add(fee);
-        if (msg.sender == _maintainer) {
-            _lastActiveClaimingTime = LibUtils.currentTime();
-        } else {
-            _lastPassiveClaimingTime = LibUtils.currentTime();
-        }
+        _lastFeeTime = LibUtils.currentTime();
     }
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
+import "../interface/IDelegate.sol";
+
 import "../lib/LibConstant.sol";
 import "../component/FundConfiguration.sol";
 import "../component/FundProperty.sol";
@@ -10,20 +12,37 @@ interface IAdministration {
     function administrator() external view returns (address);
 }
 
-contract FundManagement is FundStorage, FundConfiguration, FundProperty {
+contract FundManagement is
+    FundStorage,
+    FundConfiguration,
+    FundProperty
+{
 
     event SetConfigurationEntry(bytes32 key, bytes32 value);
+    event SetMaintainer(address indexed oldMaintainer, address indexed newMaintainer);
+    event Shutdown(uint256 totalSupply);
 
     modifier onlyAdministrator() {
-        require(msg.sender == IAdministration(_creator).administrator(), "caller must be the administrator");
+        require(msg.sender == administrator(), "caller must be the administrator");
         _;
     }
 
+    function administrator() public view virtual returns (address) {
+        return IAdministration(_creator).administrator();
+    }
+
+    /**
+     * @dev Set value of configuration entry.
+     * @param key   Name string of entry to set.
+     * @param value Value of entry to set.
+     */
     function setConfigurationEntry(bytes32 key, bytes32 value) external onlyAdministrator {
-        if (key == "feeClaimingPeriod") {
-            setFeeClaimingPeriod(uint256(value));
-        } else if (key == "redeemingLockdownPeriod") {
-            setRedeemingLockdownPeriod(uint256(value));
+        if (key == "redeemingLockdownPeriod") {
+            setRedeemingLockPeriod(uint256(value));
+        } else if (key == "drawdownHighWaterMark") {
+            setDrawdownHighWaterMark(uint256(value));
+        } else if (key == "leverageHighWaterMark") {
+            setLeverageHighWaterMark(uint256(value));
         } else if (key == "entranceFeeRate") {
             setEntranceFeeRate(uint256(value));
         } else if (key == "streamingFeeRate") {
@@ -36,10 +55,29 @@ contract FundManagement is FundStorage, FundConfiguration, FundProperty {
         emit SetConfigurationEntry(key, value);
     }
 
+    function setManager(address manager) external onlyAdministrator {
+        require(manager != _manager, "same maintainer");
+        emit SetMaintainer(_manager, manager);
+        _manager = manager;
+    }
+
+
+    function setDelegator(address delegate) external onlyAdministrator {
+        IDelegate(delegate).setDelegator(address(_perpetual), _manager);
+    }
+
+    function unsetDelegator(address delegate) external onlyAdministrator {
+        IDelegate(delegate).unsetDelegator(address(_perpetual));
+    }
+
     /**
      * @dev Pause the fund.
      */
-    function pause() external onlyAdministrator {
+    function pause() external {
+        require(
+            msg.sender == administrator() || msg.sender == _manager,
+            "call must be administrator or maintainer"
+        );
         _pause();
     }
 
@@ -50,26 +88,52 @@ contract FundManagement is FundStorage, FundConfiguration, FundProperty {
         _unpause();
     }
 
-    function shutdownOnMaxDrawdownReached() external {
-        // assetValue = totalAssetValue();
-        // // streaming fee, performance fee excluded
-        // uint256 streamingFee = calculateStreamingFee(assetValue);
-        // assetValue = assetValue.sub(streamingFee);
-        // uint256 performanceFee = calculatePerformanceFee(assetValue);
-        // assetValue = assetValue.sub(performanceFee);
-
-
-        // uint256 netAssetValue = assetValue.wdiv;
-        // uint256 maxNetAssetValue = _core.manager.maxNetAssetValue;
-        // require(maxNetAssetValue > netAssetValue, "no drawdown");
-        // require(
-        //     maxNetAssetValue.sub(netAssetValue).wdiv(maxNetAssetValue) > _core.configuration.maxDrawdown,
-        //     "max drawdown not reached"
-        // );
-        _pause();
+    /**
+     * @notice  Test can shutdown or not.
+     * @dev     1. This is NOT view because method in perpetual.
+     *          2. shutdown conditions:
+     *              - leveraga reaches limit;
+     *              - max drawdown reaches limit.
+     * @return True if any condition is met.
+     */
+    function canShutdown()
+        public
+        returns (bool)
+    {
+        uint256 maxDrawdown = getDrawdown();
+        if (maxDrawdown >= _drawdownHighWaterMark) {
+            return true;
+        }
+        uint256 leverage = getLeverage();
+        if (leverage >= _leverageHighWaterMark) {
+            return true;
+        }
+        return false;
     }
 
-    function shutdown() external onlyAdministrator {
+    /**
+     * @notice  Call by admin, or by anyone when shutdown conditions are met.
+     * @dev     No way back.
+     */
+    function shutdown()
+        external
+        whenNotStopped
+    {
+        require(msg.sender == administrator() || canShutdown(), "caller is not administrator or cannot shutdown");
 
+        address fundAccount = self();
+        // claim fee until shutting down
+        (uint256 netAssetValuePerShare, uint256 fee) = getNetAssetValuePerShareAndFee();
+        // if shut down by admin, nav per share can still be high than max.
+        // TODO: no longer need to update nav per share.
+        updateFeeState(fee, netAssetValuePerShare);
+        // set fund it self in redeeming mode.
+        _balances[fundAccount] = _totalSupply;
+        _redeemingBalances[fundAccount] = _totalSupply;
+        _redeemingSlippage[fundAccount] = _shuttingDownSlippage;
+        // enter shutting down mode.
+        _stop();
+
+        emit Shutdown(_totalSupply);
     }
 }

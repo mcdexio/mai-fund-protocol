@@ -5,61 +5,40 @@ pragma experimental ABIEncoderV2;
 import "../../lib/LibUtils.sol";
 import "../../storage/FundStorage.sol";
 import "../FundBase.sol";
+import "../FundManagement.sol";
 
-contract SocialTraderFund is FundStorage, FundBase {
-    /**
-        for fund manager:
-            - claim incentive fee   (manager)
-                - performance fee
-                - streaming fee
-            - pause fund            (manager, administrator)
-     */
-
+contract SocialTraderFund is
+    FundStorage,
+    FundBase,
+    FundManagement
+{
     event WithdrawIncentiveFee(address indexed maintainer, uint256 totalFee);
-
-    modifier onlyMaintainer() {
-        require(msg.sender == _maintainer, "call must be maintainer");
-        _;
-    }
 
     /**
      * @dev Calculate incentive fee (streaming fee + performance fee)
-     * @return Collateral amount of total fee to claim.
+     * @return incentiveFee IncentiveFee gain since last claiming.
      */
-    function getIncentiveFees() external returns (uint256) {
-        (, uint256 fee) = calculateFee();
-        return fee;
+    function getIncentiveFee() external returns (uint256 incentiveFee) {
+        (, incentiveFee) = getNetAssetValuePerShareAndFee();
     }
 
-    function withdrawIncentiveFee() external onlyMaintainer nonReentrant {
+    function withdrawIncentiveFee() external nonReentrant {
         claimIncentiveFee();
         require(_totalFeeClaimed > 0, "no withdrawable fee");
         pullCollateralFromPerpetual(_totalFeeClaimed);
-        pushCollateralToUser(msg.sender, _totalFeeClaimed);
-        emit WithdrawIncentiveFee(_maintainer, _totalFeeClaimed);
+        pushCollateralToUser(payable(_manager), _totalFeeClaimed);
+        emit WithdrawIncentiveFee(_manager, _totalFeeClaimed);
         _totalFeeClaimed = 0;
     }
 
     /**
      * @dev Claim incentive fee (streaming fee + performance fee).
      */
-    function claimIncentiveFee() public onlyMaintainer {
-        // ensure claiming period >= feeClaimingPeriod (configuration)
-        // require(_core.isCooldown(core), "claiming not cooldown");
-        // check time is valid.
-        require(
-            _lastActiveClaimingTime < LibUtils.currentTime(),
-            "future claiming time"
-        );
-        require(
-            _lastActiveClaimingTime.add(_feeClaimingPeriod) < LibUtils.currentTime(),
-            "claiming too frequent"
-        );
-        (
-            uint256 totalAssetValue,
-            uint256 fee
-        ) = calculateFee();
-        uint256 netAssetValue = totalAssetValue.wdiv(_totalSupply);
-        updateFeeState(fee, netAssetValue);
+    function claimIncentiveFee() public {
+        if (now == _lastFeeTime) {
+            return;
+        }
+        (uint256 netAssetValuePerShare, uint256 fee) = getNetAssetValuePerShareAndFee();
+        updateFeeState(fee, netAssetValuePerShare);
     }
 }

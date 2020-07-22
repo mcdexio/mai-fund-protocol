@@ -16,13 +16,4 @@ library LibUtils {
         // solium-disable-next-line security/no-block-members
         return block.timestamp;
     }
-
-    /**
-     * @dev Annualized fee rate.
-     */
-    function annualizedFeeRate(uint256 feeRate, uint256 lastFeeTime) internal view returns (uint256) {
-        uint256 timeElapsed = LibUtils.currentTime().sub(lastFeeTime);
-        return feeRate.wfrac(timeElapsed, LibConstant.SECONDS_PER_YEAR);
-    }
-
 }

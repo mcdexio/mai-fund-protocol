@@ -197,5 +197,4 @@ module.exports = {
     getDomainSeparator,
     EIP712_DOMAIN_TYPEHASH,
     getEIP712MessageHash
-
 };

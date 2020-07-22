@@ -2,7 +2,7 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "../external/LibTypes.sol";
+import "../lib/LibTypes.sol";
 
 interface IPerpetual {
 
@@ -27,6 +27,8 @@ interface IPerpetual {
     function availableMargin(address trader) external returns (int256);
 
     function positionMargin(address trader) external view returns (uint256);
+
+    function pnl(address trader) external returns (int256);
 
     function isSafe(address trader) external returns (bool);
 

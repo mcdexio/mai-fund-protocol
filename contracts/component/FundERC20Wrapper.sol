@@ -5,11 +5,12 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../storage/FundStorage.sol";
+import "./FundAccount.sol";
 
 /**
  * @notice Implemetation of ERC20 interfaces.
  */
-contract FundERC20Wrapper is FundStorage, IERC20 {
+contract FundERC20Wrapper is FundStorage, FundAccount, IERC20 {
     using SafeMath for uint256;
 
     // using fixed decimals 18
@@ -82,19 +83,23 @@ contract FundERC20Wrapper is FundStorage, IERC20 {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
+    // end of ERC20 by openzepplin
 
+
+    /**
+     * @dev Amount which is transferrable
+     */
     function transferrableBalance(address account) internal view returns (uint256) {
-        return _balances[account].sub(_redeemingBalances[account]);
+        return redeemableShareBalance(account);
     }
 
     function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
         require(amount <= transferrableBalance(sender), "ERC20: insufficient fund to transfer");
-        require(_lastPurchaseTime[sender].add(_redeemingLockdownPeriod) < now, "need to wait to redeem");
 
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
+        decreaseShareBalance(sender, amount);
+        increaseShareBalance(recipient, amount);
 
         emit Transfer(sender, recipient, amount);
     }

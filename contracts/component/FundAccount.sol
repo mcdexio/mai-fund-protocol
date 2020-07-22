@@ -3,9 +3,11 @@ pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../lib/LibUtils.sol";
-
 import "../storage/FundStorage.sol";
 
+/**
+ * @title Implemetation of operations on fund account.
+ */
 contract FundAccount is FundStorage {
 
     using SafeMath for uint256;
@@ -14,59 +16,112 @@ contract FundAccount is FundStorage {
     event DecreaseShareBalance(address indexed trader, uint256 shareAmount);
     event IncreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
     event DecreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
+    event MintShareBalance(address indexed trader, uint256 shareAmount);
+    event BurnShareBalance(address indexed trader, uint256 shareAmount);
 
     /**
-     * @dev Share balance to redeem. Before actually sold, the share will still be active.
-     *
-     * @param trader Address of share owner.
+     * @notice  Share balance to redeem.
+     * @dev     Before actually sold (redeemed), the share will still be active.
+     * @param   trader  Address of share owner.
      * @return Amount of redeemable share balance.
      */
-    function redeemableShareBalance(address trader) internal view returns (uint256) {
+    function redeemableShareBalance(address trader)
+        internal
+        view
+        returns (uint256)
+    {
+        if (!canRedeem(trader)) {
+            return 0;
+        }
         return _balances[trader].sub(_redeemingBalances[trader]);
     }
 
     /**
-     * @dev Purchase share, add to immature share balance.
-     *      Called by user.
-     *
-     * @param trader        Address of share owner.
-     * @param shareAmount   Amount of share to purchase.
+     * @notice  Increase share balance.
+     * @param   trader      Address of share owner.
+     * @param   shareAmount Amount of share to purchase.
      */
-    function increaseShareBalance(address trader, uint256 shareAmount) internal {
+    function increaseShareBalance(address trader, uint256 shareAmount)
+        internal
+    {
         require(shareAmount > 0, "share amount must be greater than 0");
-        // update balance
         _balances[trader] = _balances[trader].add(shareAmount);
-        _totalSupply = _totalSupply.add(shareAmount);
-        _lastPurchaseTime[trader] = LibUtils.currentTime();
 
         emit IncreaseShareBalance(trader, shareAmount);
     }
 
-    function decreaseShareBalance(address trader, uint256 shareAmount) internal {
+    /**
+     * @notice  Decrease share balance.
+     * @param   trader      Address of share owner.
+     * @param   shareAmount Amount of share to purchase.
+     */
+    function decreaseShareBalance(address trader, uint256 shareAmount)
+        internal
+    {
         require(shareAmount > 0, "share amount must be greater than 0");
         // update balance
-        _balances[trader] = _balances[trader].sub(shareAmount);
-        _totalSupply = _totalSupply.sub(shareAmount);
+        _balances[trader] = _balances[trader].sub(shareAmount, "insufficient share balance");
 
         emit DecreaseShareBalance(trader, shareAmount);
     }
 
+    /**
+     * @notice  Increase share balance, also increase the total supply.
+     * @dev     Will update purchase time.
+     * @param   trader      Address of share owner.
+     * @param   shareAmount Amount of share to mint.
+     */
+    function mintShareBalance(address trader, uint256 shareAmount)
+        internal
+    {
+        increaseShareBalance(trader, shareAmount);
+        _lastPurchaseTime[trader] = LibUtils.currentTime();
+        _totalSupply = _totalSupply.add(shareAmount);
 
-    function canRedeem(address trader) internal view returns (bool) {
-        if (_redeemingLockdownPeriod == 0) {
-            return true;
-        }
-        return _lastPurchaseTime[trader].add(_redeemingLockdownPeriod) < LibUtils.currentTime();
+        emit MintShareBalance(trader, shareAmount);
     }
 
     /**
-     * @dev Redeem share balance, to prevent redeemed amount exceed total amount.
-     *      Called by user.
-     *
-     * @param trader       Address of share owner.
-     * @param shareAmount   Amount of share to redeem.
+     * @notice  Decrease share balance,  also decrease the total supply.
+     * @param   trader      Address of share owner.
+     * @param   shareAmount Amount of share to burn.
      */
-    function increaseRedeemingAmount(address trader, uint256 shareAmount, uint256 slippage) internal {
+    function burnShareBalance(address trader, uint256 shareAmount)
+        internal
+    {
+        decreaseShareBalance(trader, shareAmount);
+        _totalSupply = _totalSupply.sub(shareAmount);
+
+        emit BurnShareBalance(trader, shareAmount);
+    }
+
+    /**
+     * @dev     After purchasing, user have to wait for a period to redeem.
+     *          Note that new purchase will refresh the time point.
+     * @param   trader      Address of share owner.
+     * @return  True if shares are unlocked for redeeming.
+     */
+    function canRedeem(address trader)
+        internal
+        view
+        returns (bool)
+    {
+        if (_redeemingLockPeriod == 0) {
+            return true;
+        }
+        return _lastPurchaseTime[trader].add(_redeemingLockPeriod) < LibUtils.currentTime();
+    }
+
+    /**
+     * @notice  Redeem share balance, to prevent redeemed amount exceed total amount.
+     * @dev     Slippage will overwrite previous setting.
+     * @param   trader      Address of share owner.
+     * @param   shareAmount Amount of share to redeem.
+     * @param   slippage    Slipage percent of redeeming price, fixed float in decimals 18.
+     */
+    function increaseRedeemingAmount(address trader, uint256 shareAmount, uint256 slippage)
+        internal
+    {
         require(shareAmount > 0, "share amount must be greater than 0");
         require(shareAmount <= redeemableShareBalance(trader), "no enough share to redeem");
         // set max amount of redeeming amount
@@ -76,18 +131,18 @@ contract FundAccount is FundStorage {
         emit IncreaseRedeemingShareBalance(trader, shareAmount);
     }
 
-
     /**
-     * @dev Redeem share balance, to prevent redeemed amount exceed total amount.
-     *      Called by user.
-     *
-     * @param trader       Address of share owner.
-     * @param shareAmount   Amount of share to redeem.
+     * @notice  Redeem share balance, to prevent redeemed amount exceed total amount.
+     * @param   trader       Address of share owner.
+     * @param   shareAmount   Amount of share to redeem.
      */
-    function decreaseRedeemingAmount(address trader, uint256 shareAmount) internal {
+    function decreaseRedeemingAmount(address trader, uint256 shareAmount)
+        internal
+    {
         require(shareAmount > 0, "share amount must be greater than 0");
         // set max amount of redeeming amount
-        _redeemingBalances[trader] = _redeemingBalances[trader].sub(shareAmount);
+        _redeemingBalances[trader] = _redeemingBalances[trader]
+            .sub(shareAmount, "insufficient redeeming share balance");
 
         emit DecreaseRedeemingShareBalance(trader, shareAmount);
     }
