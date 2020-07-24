@@ -19,6 +19,8 @@ contract FundProperty is
     using Math for uint256;
     using SafeMath for uint256;
     using SafeCast for int256;
+    using SafeCast for uint256;
+    using LibMathEx for int256;
     using LibMathEx for uint256;
 
     /**
@@ -109,13 +111,14 @@ contract FundProperty is
      */
     function getLeverage()
         internal
-        returns (uint256)
+        returns (int256)
     {
         uint256 markPrice = _perpetual.markPrice();
-        uint256 size = getPositionSize();
-        uint256 value = markPrice.wmul(size);
+        LibTypes.MarginAccount memory account = getMarginAccount();
+        uint256 value = markPrice.wmul(account.size);
         (uint256 netAssetValue, ) = getNetAssetValueAndFee();
-        return value.wdiv(netAssetValue);
+        int256 leverage = value.wdiv(netAssetValue).toInt256();
+        return account.side == LibTypes.Side.SHORT? leverage.neg(): leverage;
     }
 
     /**

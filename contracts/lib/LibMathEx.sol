@@ -50,4 +50,9 @@ library LibMathEx {
     function abs(int256 x) internal pure returns (int256) {
         return x >= 0? x: -x;
     }
+
+    function neg(int256 a) internal pure returns (int256) {
+        return SignedSafeMath.sub(int256(0), a);
+    }
+
 }
