@@ -59,6 +59,7 @@ contract FundBase is
         address mananger
     )
         external
+        virtual
         initializer
     {
         _name = name;
@@ -71,7 +72,7 @@ contract FundBase is
 
     function getCurrentLeverage()
         external
-        returns (uint256)
+        returns (int256)
     {
         return getLeverage();
     }
@@ -119,42 +120,34 @@ contract FundBase is
 
     /**
      * @dev Purchase share, Total collataral required = amount x unit net value.
-     * @param shareAmount                   Amount of shares to purchase.
+     * @param minimalShareAmount            At least amount of shares token received by user.
      * @param netAssetValuePerShareLimit    NAV price limit to protect trader's dealing price.
      */
-    function purchase(uint256 shareAmount, uint256 netAssetValuePerShareLimit)
+    function purchase(uint256 minimalShareAmount, uint256 netAssetValuePerShareLimit)
         external
         payable
         whenNotPaused
         nonReentrant
     {
-        require(shareAmount > 0, "share amount must be greater than 0");
+        require(minimalShareAmount > 0, "share amount must be greater than 0");
         (
             uint256 netAssetValuePerShare,
             uint256 feeBeforePurchase
         ) = getNetAssetValuePerShareAndFee();
         require(netAssetValuePerShare > 0, "unit nav should be greater than 0");
         // require(netAssetValuePerShare <= netAssetValuePerShareLimit, "unit nav exceeded limit");
-        uint256 collateralLimit = netAssetValuePerShareLimit.wmul(shareAmount);
-
-        uint256 collateralRequired = netAssetValuePerShare.wmul(shareAmount);
-        uint256 entranceFee = getEntranceFee(collateralRequired);
+        require(netAssetValuePerShare <= netAssetValuePerShareLimit, "nav per share exceeds limit");
+        uint256 collateralLimit = minimalShareAmount.wmul(netAssetValuePerShareLimit);
+        uint256 entranceFee = getEntranceFee(collateralLimit);
+        uint256 shareAmount = collateralLimit.sub(entranceFee).wdiv(netAssetValuePerShare);
+        require(shareAmount >= minimalShareAmount, "minimal share amount is not reached");
         // pay collateral + fee, collateral -> perpetual, fee -> fund
-        collateralRequired = collateralRequired.add(entranceFee);
-        require(collateralRequired <= collateralLimit, "cost exceeds limit");
-
         pullCollateralFromUser(msg.sender, collateralLimit);
-        pushCollateralToPerpetual(collateralRequired);
+        pushCollateralToPerpetual(collateralLimit);
         // get share
         mintShareBalance(msg.sender, shareAmount);
         // - update manager status
         updateFeeState(entranceFee.add(feeBeforePurchase), netAssetValuePerShare);
-
-        // change, there is gap between limit and dealing price.
-        // send it back to user.
-        if (collateralRequired < collateralLimit) {
-            pushCollateralToUser(msg.sender, collateralLimit.sub(collateralRequired));
-        }
 
         emit Purchase(msg.sender, netAssetValuePerShare, shareAmount);
     }

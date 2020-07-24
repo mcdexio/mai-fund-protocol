@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
+pragma experimental ABIEncoderV2;
 
 import "../interface/IDelegate.sol";
 
 import "../lib/LibConstant.sol";
+import "../lib/LibMathEx.sol";
 import "../component/FundConfiguration.sol";
 import "../component/FundProperty.sol";
 import "../storage/FundStorage.sol";
@@ -17,6 +19,8 @@ contract FundManagement is
     FundConfiguration,
     FundProperty
 {
+
+    using LibMathEx for uint256;
 
     event SetConfigurationEntry(bytes32 key, bytes32 value);
     event SetMaintainer(address indexed oldMaintainer, address indexed newMaintainer);
@@ -104,7 +108,7 @@ contract FundManagement is
         if (maxDrawdown >= _drawdownHighWaterMark) {
             return true;
         }
-        uint256 leverage = getLeverage();
+        uint256 leverage = getLeverage().abs().toUint256();
         if (leverage >= _leverageHighWaterMark) {
             return true;
         }

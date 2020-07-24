@@ -72,9 +72,9 @@ contract FundAuction is
 
     function validateBiddingPrice(LibTypes.Side side, uint256 price, uint256 priceLimit) internal pure {
         if (side == LibTypes.Side.LONG) {
-            require(price <= priceLimit, "price too high for long");
+            require(price <= priceLimit, "price too low for long");
         } else {
-            require(price >= priceLimit, "price too low for short");
+            require(price >= priceLimit, "price too high for short");
         }
     }
 }

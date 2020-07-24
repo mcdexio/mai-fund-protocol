@@ -32,13 +32,13 @@ contract AutoTraderFund is
     using LibMathEx for int256;
     using LibMathEx for uint256;
 
+    uint256 internal _inversed;
     uint256 internal _rebalancingSlippage;
     uint256 internal _rebalancingTolerance;
 
     function needRebalancing() public returns (bool) {
         int256 nextTarget = getNextTarget();
-        //  deviate from last target
-        int256 currentleverage = getLeverage().toInt256();
+        int256 currentleverage = getLeverage();
         return currentleverage.sub(nextTarget).abs().toUint256() > _rebalancingTolerance;
     }
 
@@ -51,7 +51,7 @@ contract AutoTraderFund is
             uint256 rebalancingAmount,
             LibTypes.Side rebalancingSide
         ) = calculateRebalancingTarget();
-        require(rebalancingAmount > 0, "no amount to rebalance");
+        require(rebalancingAmount > 0 && rebalancingSide != LibTypes.Side.FLAT, "no need to rebalance");
         require(rebalancingSide == side, "unexpected side");
 
         ( uint256 tradingPrice, ) = getBiddingPrice(rebalancingSide, _rebalancingSlippage);
@@ -66,6 +66,16 @@ contract AutoTraderFund is
         );
     }
 
+    function getSignedSize()
+        public
+        view
+        returns (int256)
+    {
+        LibTypes.MarginAccount memory fundMarginAccount = getMarginAccount();
+        int256 size = fundMarginAccount.size.toInt256();
+        return fundMarginAccount.side == LibTypes.Side.SHORT? size.neg(): size;
+    }
+
     function calculateRebalancingTarget()
         public
         returns (uint256 amount, LibTypes.Side side)
@@ -73,24 +83,28 @@ contract AutoTraderFund is
         uint256 markPrice = _perpetual.markPrice();
         require(markPrice != 0, "mark price cannot be 0");
 
-        LibTypes.MarginAccount memory fundMarginAccount = getMarginAccount();
-        int256 positionSize = fundMarginAccount.size.toInt256();
+        int256 signedSize = getSignedSize();    // -40000
+        int256 nextTarget = getNextTarget();    // -40000 - 40000
+
         (uint256 netAssetValue, ) = getNetAssetValueAndFee();
-        int256 marginBalance = netAssetValue.toInt256();
-        int256 nextTarget = getNextTarget();
-        int256 expectedMargin = marginBalance.wmul(nextTarget);
-        int256 expectedSize = expectedMargin.wdiv(markPrice.toInt256());
+        int256 expectedMarginBalance = netAssetValue.toInt256().wmul(nextTarget);
+        int256 expectedSize = expectedMarginBalance.wdiv(markPrice.toInt256());
         // delta is, eg:
         //  - expected = 1,  current = 1  -->  no adjust
         //  - expected = 2,  current = 1  -->  2 -  1 =  1,   LONG for 1
         //  - expected = 0,  current = 1  -->  0 -  1 = -1,   SHORT for 1
+        //  - expected = 0,  current = -1  -->  0 -  -1 = 1,   LONG for 1
         //  - expected = -1, current = 1  --> -1 -  1 = -2,   SHORT for 2
         //  - expected = 2,  current = -1 -->  2 - -1 =  3,   LONG for 3
         //  - expected = -2, current = -1 --> -2 - -1 = -1,   SHORT for 1
         //  ....
-        int256 target = expectedSize.sub(positionSize);
+        int256 target = expectedSize.sub(signedSize);
         amount = target.abs().toUint256();
-        side = target > 0? LibTypes.Side.LONG: LibTypes.Side.SHORT;
+        if (amount == 0) {
+            side = LibTypes.Side.FLAT;
+        } else {
+            side = target > 0? LibTypes.Side.LONG: LibTypes.Side.SHORT;
+        }
     }
 
     function getNextTarget()
@@ -98,7 +112,10 @@ contract AutoTraderFund is
         returns (int256)
     {
         int256 nextTarget = ITradingStrategy(_manager).getNextTarget();
-        // TODO: validate range of next target.
+        // inverse contract
+        if (_collateral == address(0)) {
+            return nextTarget.neg();
+        }
         return nextTarget;
     }
 }
