@@ -41,14 +41,25 @@ contract FundBase is
     event CancelRedeeming(address indexed trader, uint256 shareAmount);
     event Redeem(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
 
-
+    /**
+     * @notice only accept ether from pereptual when collateral is ether. otherwise, revert.
+     */
     receive() external payable {
+        require(_collateral == address(0), "this contract does not accept ether");
         require(msg.sender == address(_perpetual), "only receive ethers from perpetual");
         emit Received(msg.sender, msg.value);
     }
 
     /**
-     * @dev Initialize function for upgradable proxy.
+     * @dev     Initialize function for upgradable proxy.
+     *          Decimal of erc20 will be verified if available in implementation.
+     * @param   name                Name of fund share erc20 token.
+     * @param   symbol              Symbol of fund share erc20 token.
+     * @param   collataral          Collateral type. zero address for ether or non-zero for erc20 token.
+     * @param   collataralDecimals  Collateral decimal.
+     * @param   perpetual           Address of perpetual contract.
+     * @param   mananger            Address of fund mananger.
+     * @param   capacity            Max net asset value of a fund.
      */
     function initialize(
         string calldata name,
@@ -56,7 +67,8 @@ contract FundBase is
         address collataral,
         uint8 collataralDecimals,
         address perpetual,
-        address mananger
+        address mananger,
+        uint256 capacity
     )
         external
         virtual
@@ -67,6 +79,7 @@ contract FundBase is
         _manager = mananger;
         _creator = msg.sender;
         _perpetual = IPerpetual(perpetual);
+        _capacity = capacity;
         FundCollateral.initialize(collataral, collataralDecimals);
     }
 
@@ -131,14 +144,16 @@ contract FundBase is
     {
         require(minimalShareAmount > 0, "share amount must be greater than 0");
         (
-            uint256 netAssetValuePerShare,
+            uint256 netAssetValue,
             uint256 feeBeforePurchase
-        ) = getNetAssetValuePerShareAndFee();
+        ) = getNetAssetValueAndFee();
+        uint256 collateralLimit = minimalShareAmount.wmul(netAssetValuePerShareLimit);
+        uint256 entranceFee = getEntranceFee(collateralLimit);
+        require(netAssetValue.add(collateralLimit).sub(entranceFee) <= _capacity, "max capacity reached");
+        uint256 netAssetValuePerShare = netAssetValue.wdiv(_totalSupply);
         require(netAssetValuePerShare > 0, "unit nav should be greater than 0");
         // require(netAssetValuePerShare <= netAssetValuePerShareLimit, "unit nav exceeded limit");
         require(netAssetValuePerShare <= netAssetValuePerShareLimit, "nav per share exceeds limit");
-        uint256 collateralLimit = minimalShareAmount.wmul(netAssetValuePerShareLimit);
-        uint256 entranceFee = getEntranceFee(collateralLimit);
         uint256 shareAmount = collateralLimit.sub(entranceFee).wdiv(netAssetValuePerShare);
         require(shareAmount >= minimalShareAmount, "minimal share amount is not reached");
         // pay collateral + fee, collateral -> perpetual, fee -> fund
@@ -230,7 +245,7 @@ contract FundBase is
         emit Redeem(trader, netAssetValuePerShare, shareAmount);
     }
 
-    function bidShuttingDownShare(
+    function bidSettledShare(
         uint256 shareAmount,
         uint256 priceLimit,
         LibTypes.Side side
