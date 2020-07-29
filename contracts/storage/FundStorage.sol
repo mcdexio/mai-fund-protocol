@@ -22,8 +22,8 @@ contract FundStorage is
     uint256 internal _totalFeeClaimed;
     uint256 internal _maxNetAssetValuePerShare;
     uint256 internal _lastFeeTime;
-
     // configurations
+    uint256 internal _capacity;
     uint256 internal _shuttingDownSlippage;
     uint256 internal _drawdownHighWaterMark;
     uint256 internal _leverageHighWaterMark;
@@ -41,6 +41,10 @@ contract FundStorage is
     IPerpetual internal _perpetual;
     address internal _manager;
     address internal _creator;
+
+    function capacity() external view returns (uint256) {
+        return _capacity;
+    }
 
     function totalFeeClaimed() external view returns (uint256) {
         return _totalFeeClaimed;
