@@ -46,6 +46,7 @@ contract('FundAutoTrader', accounts => {
             18,
             deployer.perpetual.address,
             rsistg.address,
+            toWad(1000),
         )
         await deployer.globalConfig.addComponent(deployer.perpetual.address, fund.address);
     }

@@ -3,7 +3,6 @@ pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../external/openzeppelin-upgrades/contracts/Initializable.sol";
 
 import "../interface/IPerpetual.sol";
 import "../interface/IDelegate.sol";
@@ -28,8 +27,7 @@ contract FundBase is
     FundERC20Wrapper,
     FundFee,
     FundProperty,
-    FundAuction,
-    Initializable
+    FundAuction
 {
     using SafeMath for uint256;
     using LibMathEx for uint256;
@@ -77,7 +75,6 @@ contract FundBase is
         _name = name;
         _symbol = symbol;
         _manager = mananger;
-        _creator = msg.sender;
         _perpetual = IPerpetual(perpetual);
         _capacity = capacity;
         FundCollateral.initialize(collataral, collataralDecimals);
@@ -98,6 +95,10 @@ contract FundBase is
         return netAssetValue;
     }
 
+    /**
+     * @notice  Return net asset value per share.
+     * @return  Net asset value per share.
+     */
     function getNetAssetValuePerShare()
         external
         returns (uint256)
@@ -147,18 +148,25 @@ contract FundBase is
             uint256 netAssetValue,
             uint256 feeBeforePurchase
         ) = getNetAssetValueAndFee();
-        uint256 collateralLimit = minimalShareAmount.wmul(netAssetValuePerShareLimit);
-        uint256 entranceFee = getEntranceFee(collateralLimit);
-        require(netAssetValue.add(collateralLimit).sub(entranceFee) <= _capacity, "max capacity reached");
+        require(netAssetValue > 0, "nav should be greater than 0");
+
         uint256 netAssetValuePerShare = netAssetValue.wdiv(_totalSupply);
-        require(netAssetValuePerShare > 0, "unit nav should be greater than 0");
-        // require(netAssetValuePerShare <= netAssetValuePerShareLimit, "unit nav exceeded limit");
-        require(netAssetValuePerShare <= netAssetValuePerShareLimit, "nav per share exceeds limit");
-        uint256 shareAmount = collateralLimit.sub(entranceFee).wdiv(netAssetValuePerShare);
+        uint256 entranceFeePerShare = getEntranceFee(netAssetValuePerShare);
+        require(
+            netAssetValuePerShare.add(entranceFeePerShare) <= netAssetValuePerShareLimit,
+            "nav per share exceeds limit"
+        );
+
+        uint256 collateralPaid = minimalShareAmount.wmul(netAssetValuePerShareLimit);
+        uint256 shareAmount = collateralPaid.wdiv(netAssetValuePerShare.add(entranceFeePerShare));
         require(shareAmount >= minimalShareAmount, "minimal share amount is not reached");
+
+        uint256 entranceFee = entranceFeePerShare.wmul(shareAmount);
+        require(netAssetValue.add(collateralPaid).sub(entranceFee) <= _capacity, "max capacity reached");
+        // require(netAssetValuePerShare <= netAssetValuePerShareLimit, "unit nav exceeded limit");
         // pay collateral + fee, collateral -> perpetual, fee -> fund
-        pullCollateralFromUser(msg.sender, collateralLimit);
-        pushCollateralToPerpetual(collateralLimit);
+        pullCollateralFromUser(msg.sender, collateralPaid);
+        pushCollateralToPerpetual(collateralPaid);
         // get share
         mintShareBalance(msg.sender, shareAmount);
         // - update manager status

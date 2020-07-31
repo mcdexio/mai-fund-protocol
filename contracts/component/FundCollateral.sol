@@ -13,11 +13,20 @@ interface ITokenWithDecimals {
     function decimals() external view returns (uint8);
 }
 
+/**
+ * @title   FundCollateral
+ * @notice  Handle collateral.
+ */
 contract FundCollateral is FundStorage {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
+    /**
+     * @notice  Initialize collateral and decimals.
+     * @param   collateral  Address of collateral, 0x0 for ether, otherwise, erc20 contract.
+     * @param   decimals    Decimals of collateral token, will be verified with a staticcall.
+     */
     function initialize(address collateral, uint8 decimals) internal {
         require(_scaler == 0, "alreay initialized");
         require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "given decimals out of range");
@@ -33,6 +42,11 @@ contract FundCollateral is FundStorage {
         _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
     }
 
+    /**
+     * @notice  Read decimal from erc20 contract.
+     * @param   token Address of erc20 token to read from.
+     * @return  Decimals of token and wether the erc20 contract supports decimals() interface.
+     */
     function retrieveDecimals(address token) public view returns (uint8, bool) {
         (bool success, bytes memory result) = token.staticcall(abi.encodeWithSignature("decimals()"));
         if (success && result.length >= 32) {
@@ -40,11 +54,6 @@ contract FundCollateral is FundStorage {
         }
         return (0, false);
     }
-
-    function testDecimals(address token) public view returns (bool success, bytes memory result) {
-        (success, result) = token.staticcall(abi.encodeWithSignature("decimals()"));
-    }
-
 
     // ** All interface call from upper layer use the decimals of the token, called 'rawAmount'.
 
@@ -93,10 +102,18 @@ contract FundCollateral is FundStorage {
         return rawAmount;
     }
 
+    /**
+     * @notice  Withdraw collateral from perpetual.
+     * @param   amount  Amount of collateral to withdraw(pull).
+     */
     function pullCollateralFromPerpetual(uint256 amount) internal {
         _perpetual.withdraw(toRaw(amount));
     }
 
+    /**
+     * @notice  Deposit collateral into perpetual.
+     * @param   amount  Amount of collateral to deposit.
+     */
     function pushCollateralToPerpetual(uint256 amount) internal {
         _perpetual.deposit{ value: amount }(toRaw(amount));
     }

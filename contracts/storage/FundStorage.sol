@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 // import "../lib/LibEnumarableMap.sol";
 import "../interface/IPerpetual.sol";
 import "./Stoppable.sol";
 import "./ERC20Storage.sol";
 
+
 contract FundStorage is
     ERC20Storage,
     Pausable,
     Stoppable,
+    Initializable,
     ReentrancyGuard
 {
     // underlaying perpetual.
@@ -39,8 +43,8 @@ contract FundStorage is
 
     // dependencies
     IPerpetual internal _perpetual;
+    // Manager of fund, responsing for rebalance / trading strategy.
     address internal _manager;
-    address internal _creator;
 
     function capacity() external view returns (uint256) {
         return _capacity;
