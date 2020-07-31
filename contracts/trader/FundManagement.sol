@@ -10,8 +10,8 @@ import "../component/FundConfiguration.sol";
 import "../component/FundProperty.sol";
 import "../storage/FundStorage.sol";
 
-interface IAdministration {
-    function administrator() external view returns (address);
+interface IOwnable {
+    function owner() external view returns (address);
 }
 
 contract FundManagement is
@@ -32,7 +32,7 @@ contract FundManagement is
     }
 
     function administrator() public view virtual returns (address) {
-        return IAdministration(_creator).administrator();
+        return IOwnable(_perpetual.globalConfig()).owner();
     }
 
     /**

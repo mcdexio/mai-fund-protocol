@@ -3,7 +3,7 @@ const truffleContract = require('truffle-contract');
 const { toWad, fromWad, infinity, Side, toBytes32 } = require('./utils');
 
 const TestToken = truffleContract(require('@mcdex/mai-protocol-v2-build/build/contracts/TestToken.json'));
-const Exchange = truffleContract(require('@mcdex/mai-protocol-v2-build/build/contracts/Exchange.json'));
+const Exchange = truffleContract(require('./external/Exchange.json'));
 const PriceFeeder = truffleContract(require('@mcdex/mai-protocol-v2-build/build/contracts/TestPriceFeeder.json'));
 const GlobalConfig = truffleContract(require('@mcdex/mai-protocol-v2-build/build/contracts/GlobalConfig.json'));
 const ChainlinkAdapter = truffleContract(require('@mcdex/mai-protocol-v2-build/build/contracts/ChainlinkAdapter.json'));

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
@@ -11,7 +12,7 @@ interface IPriceFeeder {
     function price() external view returns (uint256 lastPrice, uint256 lastTimestamp);
 }
 
-contract PeriodicPriceBucket {
+contract PeriodicPriceBucket is Ownable {
 
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -35,21 +36,41 @@ contract PeriodicPriceBucket {
         _priceFeeder = IPriceFeeder(priceFeeder);
     }
 
-    function addBucket(uint256 period) external {
+    /**
+     * @notice  Add time bucket, no duplication.
+     * @param   period  Period of bucket to be added.
+     */
+    function addBucket(uint256 period)
+        external
+        onlyOwner
+    {
         require(period > 0, "period must be greater than 0");
         require(_periods.length() < MAX_BUCKETS, "number of buckets reaches limit");
         require(_periods.add(period), "period is duplicated");
         emit AddBucket(period);
     }
 
-    function removeBucket(uint256 period) external {
+    /**
+     * @notice  Remove time bucket.
+     * @param   period  Period of bucket to be removed.
+     */
+    function removeBucket(uint256 period)
+        external
+        onlyOwner
+    {
         require(_periods.remove(period), "period is not exist");
         delete _buckets[period];
         delete _firstPeriodIndexes[period];
         emit RemoveBucket(period);
     }
 
-    function updatePrice() external {
+    /**
+     * @notice  Read price from oracle, update all buckets.
+     *          The latest price in a bucket will overwrite price in the same segment.
+     */
+    function updatePrice()
+        external
+    {
         require(address(_priceFeeder) != address(0), "no price feeder set");
         (
             uint256 newPrice,
@@ -67,6 +88,13 @@ contract PeriodicPriceBucket {
         }
     }
 
+    /**
+     * @notice  Get time data series.
+     * @param   period          Period of bucket.
+     * @param   beginTimestamp  Begin timestamp of series.
+     * @param   endTimestamp    End timestamp of series.
+     * @return  Array of price for given time span.
+     */
     function retrievePriceSeries(
         uint256 period,
         uint256 beginTimestamp,
