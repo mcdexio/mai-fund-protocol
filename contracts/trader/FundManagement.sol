@@ -22,12 +22,12 @@ contract FundManagement is
 
     using LibMathEx for uint256;
 
-    event SetConfigurationEntry(bytes32 key, bytes32 value);
+    event SetConfigurationEntry(bytes32 key, int256 value);
     event SetMaintainer(address indexed oldMaintainer, address indexed newMaintainer);
     event Shutdown(uint256 totalSupply);
 
     modifier onlyAdministrator() {
-        require(msg.sender == administrator(), "caller must be the administrator");
+        require(msg.sender == administrator(), "caller must be administrator");
         _;
     }
 
@@ -40,8 +40,8 @@ contract FundManagement is
      * @param key   Name string of entry to set.
      * @param value Value of entry to set.
      */
-    function setConfigurationEntry(bytes32 key, bytes32 value) external onlyAdministrator {
-        if (key == "redeemingLockdownPeriod") {
+    function setConfigurationEntry(bytes32 key, int256 value) external onlyAdministrator {
+        if (key == "redeemingLockPeriod") {
             setRedeemingLockPeriod(uint256(value));
         } else if (key == "drawdownHighWaterMark") {
             setDrawdownHighWaterMark(uint256(value));
@@ -59,6 +59,10 @@ contract FundManagement is
         emit SetConfigurationEntry(key, value);
     }
 
+    /**
+     * @notice Set manager of fund.
+     * @param   manager Address of manager.
+     */
     function setManager(address manager) external onlyAdministrator {
         require(manager != _manager, "same maintainer");
         emit SetMaintainer(_manager, manager);
@@ -80,7 +84,7 @@ contract FundManagement is
     function pause() external {
         require(
             msg.sender == administrator() || msg.sender == _manager,
-            "call must be administrator or maintainer"
+            "caller must be administrator or maintainer"
         );
         _pause();
     }
@@ -123,7 +127,7 @@ contract FundManagement is
         external
         whenNotStopped
     {
-        require(msg.sender == administrator() || canShutdown(), "caller is not administrator or cannot shutdown");
+        require(msg.sender == administrator() || canShutdown(), "caller must be administrator or cannot shutdown");
 
         address fundAccount = self();
         // claim fee until shutting down

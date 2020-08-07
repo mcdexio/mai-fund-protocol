@@ -1,7 +1,6 @@
 const { toBytes32, fromBytes32, uintToBytes32, toWad, fromWad } = require("./utils.js");
 const { buildOrder } = require("./order.js");
 const { getPerpetualComponents } = require("./perpetual.js");
-const FundFactory = artifacts.require('FundFactory.sol');
 const FundBase = artifacts.require('FundBase.sol');
 const IGlobalConfig = artifacts.require('IGlobalConfig.sol');
 
@@ -41,7 +40,7 @@ const setConfigurationEntry = async (target, entry, value) => {
 const createTradingContext = (perpetual, exchange, fundProxy, broker) => {
     const delegateTrade = async (taker, maker, side, price, amount) => {
         const takerParam = await buildOrder({
-            trader: fundProxy.address,
+            trader: fundProxy? fundProxy.address: taker,
             amount: amount,
             price: price,
             version: 2,

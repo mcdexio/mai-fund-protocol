@@ -46,6 +46,7 @@ contract FundStorage is
     // Manager of fund, responsing for rebalance / trading strategy.
     address internal _manager;
 
+    // getters
     function capacity() external view returns (uint256) {
         return _capacity;
     }
