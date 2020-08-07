@@ -30,7 +30,7 @@ const toWad = (...xs) => {
 };
 
 const fromWad = x => {
-    return new BigNumber(x).div(_wad).toString();
+    return new BigNumber(x).div(_wad).toFixed(18);
 };
 
 const infinity = '999999999999999999999999999999999999999999';

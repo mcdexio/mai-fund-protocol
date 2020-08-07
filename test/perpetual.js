@@ -99,14 +99,14 @@ class PerpetualDeployer {
         await this.perpetual.setGovernanceParameter(toBytes32("maintenanceMarginRate"), toWad(0.075)); // 7.5%, should < initialMarginRate
         await this.perpetual.setGovernanceParameter(toBytes32("liquidationPenaltyRate"), toWad(0.005)); // 0.5%, should < maintenanceMarginRate
         await this.perpetual.setGovernanceParameter(toBytes32("penaltyFundRate"), toWad(0.005)); // 0.5%, should < maintenanceMarginRate
-        await this.perpetual.setGovernanceParameter(toBytes32("takerDevFeeRate"), toWad(0.00075)); // 0.075%
-        await this.perpetual.setGovernanceParameter(toBytes32("makerDevFeeRate"), toWad(-0.00025)); // -0.025%
+        await this.perpetual.setGovernanceParameter(toBytes32("takerDevFeeRate"), toWad(0)); // 0.075%
+        await this.perpetual.setGovernanceParameter(toBytes32("makerDevFeeRate"), toWad(0)); // -0.025%
 
         await this.perpetual.setGovernanceParameter(toBytes32("tradingLotSize"), 1);
         await this.perpetual.setGovernanceParameter(toBytes32("lotSize"), 1);
 
-        await this.amm.setGovernanceParameter(toBytes32("poolFeeRate"), toWad(0.0006)); // 0.075% * 80%
-        await this.amm.setGovernanceParameter(toBytes32("poolDevFeeRate"), toWad(0.00015)); // 0.075% * 20%
+        await this.amm.setGovernanceParameter(toBytes32("poolFeeRate"), toWad(0)); // 0.075% * 80%
+        await this.amm.setGovernanceParameter(toBytes32("poolDevFeeRate"), toWad(0)); // 0.075% * 20%
         await this.amm.setGovernanceParameter(toBytes32("emaAlpha"), "3327787021630616"); // 2 / (600 + 1)
         await this.amm.setGovernanceParameter(toBytes32("updatePremiumPrize"), toWad(0));
         await this.amm.setGovernanceParameter(toBytes32("markPremiumLimit"), toWad(300000001));
