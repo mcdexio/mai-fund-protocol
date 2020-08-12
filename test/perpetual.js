@@ -122,13 +122,18 @@ class PerpetualDeployer {
     }
 
     async createPool() {
-        const initialAmount = toWad(100 * 0.1 * 2 * 1.5);
-        await this.perpetual.deposit(initialAmount, { value: initialAmount, gas: 1000000 });
-        await this.amm.createPool(toWad(100), { gas: 800000 });
+        if (this.inversed) {
+            const initialAmount = toWad(100 * 0.1 * 2 * 1.5);
+            await this.perpetual.deposit(initialAmount, { value: initialAmount, gas: 1000000 });
+        } else {
+            const initialAmount = toWad(200 * 100 * 0.1 * 1.5);
+            await this.collateral.approve(this.perpetual.address, infinity);
+            await this.perpetual.deposit(initialAmount, { gas: 1000000 });
+        }
+        await this.amm.createPool(toWad(1), { gas: 800000 });
     }
 }
 
 module.exports = {
     PerpetualDeployer
 }
-

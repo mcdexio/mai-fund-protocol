@@ -29,8 +29,8 @@ const toWad = (...xs) => {
     return sum.toFixed();
 };
 
-const fromWad = x => {
-    return new BigNumber(x).div(_wad).toFixed(18);
+const fromWad = (x, prec = 18) => {
+    return new BigNumber(x).div(_wad).toFixed(prec);
 };
 
 const infinity = '999999999999999999999999999999999999999999';

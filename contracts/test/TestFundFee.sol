@@ -17,19 +17,19 @@ contract TestFundFee is FundFee, TestFundConfiguration {
     }
 
     function getEntranceFeePublic(uint256 purchasedAssetValue) external view returns (uint256) {
-        return getEntranceFee(purchasedAssetValue);
+        return _entranceFee(purchasedAssetValue);
     }
 
     function getStreamingFeePublic(uint256 netAssetValue) external view returns (uint256 fee, uint256 timestamp) {
-        return (getStreamingFee(netAssetValue), now);
+        return (_streamingFee(netAssetValue), now);
     }
 
     function getPerformanceFeePublic(uint256 netAssetValue) external view returns (uint256) {
-        return getPerformanceFee(netAssetValue);
+        return _performanceFee(netAssetValue);
     }
 
     function updateFeeStatePublic(uint256 fee, uint256 netAssetValuePerShare) external returns (uint256) {
-        updateFeeState(fee, netAssetValuePerShare);
+        _updateFeeState(fee, netAssetValuePerShare);
         return now;
     }
 

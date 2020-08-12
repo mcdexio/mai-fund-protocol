@@ -20,7 +20,7 @@ contract FundAuction is
      * @param   shareAmount Amount of share to bid.
      * @param   priceLimit  Price limit.
      */
-    function bidShare(
+    function _bidShare(
         address trader,
         uint256 shareAmount,
         uint256 priceLimit,
@@ -31,7 +31,7 @@ contract FundAuction is
     {
         require(shareAmount <= _redeemingBalances[trader], "insufficient shares to take");
         // trading price and loss amount equivalent to slippage
-        LibTypes.MarginAccount memory fundMarginAccount = getMarginAccount();
+        LibTypes.MarginAccount memory fundMarginAccount = _marginAccount();
         require(fundMarginAccount.side == side, "unexpected side");
         uint256 redeemPercentage = shareAmount.wdiv(_totalSupply);
         // TODO: align to tradingLotSize
@@ -42,10 +42,10 @@ contract FundAuction is
         (
             uint256 tradingPrice,
             uint256 priceLoss
-        ) = getBiddingPrice(fundMarginAccount.side, slippage);
-        validateBiddingPrice(side, tradingPrice, priceLimit);
+        ) = _biddingPrice(fundMarginAccount.side, slippage);
+        _validateBiddingPrice(side, tradingPrice, priceLimit);
         _perpetual.tradePosition(
-            self(),
+            _self(),
             msg.sender,
             redeemingSide,
             tradingPrice,
@@ -61,7 +61,7 @@ contract FundAuction is
      * @return  tradingPrice    Price with slippage.
      * @return  priceLoss       Total loss caused by slippage.
      */
-    function getBiddingPrice(LibTypes.Side side, uint256 slippage)
+    function _biddingPrice(LibTypes.Side side, uint256 slippage)
         internal
         returns (uint256 tradingPrice, uint256 priceLoss)
     {
@@ -70,7 +70,7 @@ contract FundAuction is
         tradingPrice = side == LibTypes.Side.LONG? markPrice.add(priceLoss): markPrice.sub(priceLoss);
     }
 
-    function validateBiddingPrice(LibTypes.Side side, uint256 price, uint256 priceLimit) internal pure {
+    function _validateBiddingPrice(LibTypes.Side side, uint256 price, uint256 priceLimit) internal pure {
         if (side == LibTypes.Side.LONG) {
             require(price <= priceLimit, "price too low for long");
         } else {

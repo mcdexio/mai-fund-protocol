@@ -8,10 +8,12 @@ const {
     createEVMSnapshot, restoreEVMSnapshot,
 } = require("./utils.js");
 
+BigNumber.set({ ROUNDING_MODE: BigNumber.ROUND_DOWN })
+
 const MockRSITrendingStrategy = artifacts.require('MockRSITrendingStrategy.sol');
 const SocialTraderFund = artifacts.require('SocialTraderFund.sol');
 
-contract('FundAutoTrader', accounts => {
+contract('FundSocialTrader', accounts => {
 
     const SHORT = 1;
     const LONG = 2;
@@ -24,7 +26,7 @@ contract('FundAutoTrader', accounts => {
     var perpetual;
     var fund;
     var rsistg;
-    var skip;
+    var debug;
 
     const deploy = async () => {
         admin = accounts[0];
@@ -42,7 +44,6 @@ contract('FundAutoTrader', accounts => {
         await fund.initialize(
             "Fund Share Token",
             "FST",
-            "0x0000000000000000000000000000000000000000",
             18,
             deployer.perpetual.address,
             user1,
@@ -173,6 +174,12 @@ contract('FundAutoTrader', accounts => {
     //     console.log(b2, b1);
     // });
 
+    const approximatelyEqual = (a, b, epsilon = 1000) => {
+        var _a = new BigNumber(a);
+        var _b = new BigNumber(b);
+        return _a.minus(_b).abs().toFixed() <= epsilon;
+    }
+
     const getCalculator = (entranceFeeRate, streamingFeeRate, performanceFeeRate) => {
         var eRate = new BigNumber(entranceFeeRate);
         var sRatePerSec = new BigNumber(streamingFeeRate).div(new BigNumber(365)).div(new BigNumber(86400));
@@ -190,40 +197,46 @@ contract('FundAutoTrader', accounts => {
             if (nav.div(totalSupply).gt(maxNAV)) {
                 performanceFee = nav.minus(maxNAV.times(totalSupply)).times(pRate);
             }
+            // var nav = nav.minus(performanceFee);
+            // var entranceFee = nav.times(entranceFeeRate);
+            // var unitPrice = nav.plus(entranceFee).div(totalSupply);
+            // var newAmount = paid.div(unitPrice);
+            // var newFee = streamingFee.plus(performanceFee).plus(entranceFee);
             var nav = nav.minus(performanceFee);
-            var entranceFee = nav.times(entranceFeeRate);
+            var unitPrice = nav.div(totalSupply);
+            var unitEntranceFee = unitPrice.times(entranceFeeRate);
+            var finalUnitPrice = unitPrice.plus(unitEntranceFee);
+            var newAmount = paid.div(finalUnitPrice);
+            var entranceFee = unitEntranceFee.times(newAmount);
+            var newFee = streamingFee.plus(performanceFee).plus(entranceFee);
 
-            // console.log(
-            //     elapsed.toFixed(),
-            //     nav.toFixed(),
-            //     maxNAV.toFixed(),
-            //     paid.toFixed(),
-            //     totalSupply.toFixed(),
-            //     streamingFee.toFixed(),
-            //     performanceFee.toFixed(),
-            //     entranceFee.toFixed(),
-            // )
-
-            var unitPrice = nav.plus(entranceFee).div(totalSupply);
-            return paid.div(unitPrice);
+            return {newAmount, newFee};
         }
     }
 
     const testPurchaseAmount = async (calculator, amount, price, user) => {
-
+        // from contract
         var maxNAV = await fund.maxNetAssetValuePerShare();
-        var fee = await fund.totalFeeClaimed();
+        var feePrev = await fund.totalFeeClaimed();
         var marginBalance = await deployer.perpetual.marginBalance.call(fund.address);
         var totalSupply = await fund.totalSupply();
 
         var purchased = await fund.balanceOf(user);
         var t1 = await fund.lastFeeTime();
+
         await fund.purchase(toWad(amount), toWad(price), { from: user, value: toWad(amount*price) });
         var t2 = await fund.lastFeeTime();
-        var purchased = (await fund.balanceOf(user)).sub(purchased);
 
-        var amount = calculator(t2.sub(t1).toString(), fromWad(marginBalance.sub(fee)), fromWad(maxNAV), amount*price, fromWad(totalSupply));
-        assert.equal(fromWad(purchased), amount.toFixed(18));
+        var purchased = (await fund.balanceOf(user)).sub(purchased);
+        var feePost = await fund.totalFeeClaimed();
+        var feeClaimed = feePost.sub(feePrev);
+
+        // from calc
+        var { newAmount, newFee } = calculator(t2.sub(t1).toString(), fromWad(marginBalance.sub(feePrev)), fromWad(maxNAV), amount*price, fromWad(totalSupply));
+
+        // ignore lowest digit
+        approximatelyEqual(fromWad(purchased), newAmount, 1000);
+        approximatelyEqual(fromWad(feeClaimed), newFee, 1000);
     }
 
     it("normal case - entrance fee + performance fee + streaming fee", async () => {
@@ -247,11 +260,9 @@ contract('FundAutoTrader', accounts => {
         await testPurchaseAmount(calr, 100, 210, user2);
 
         await deployer.setIndex(400);
-
         await testPurchaseAmount(calr, 10, 1000, user2);
 
         await deployer.setIndex(200);
-
         await testPurchaseAmount(calr, 15, 1000, user2);
     });
 });

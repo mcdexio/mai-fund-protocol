@@ -26,7 +26,7 @@ contract FundProperty is
     /**
      * @notice  Return address of self.
      */
-    function self()
+    function _self()
         internal
         view
         virtual
@@ -39,26 +39,26 @@ contract FundProperty is
      * @notice  Return margin account of fund.
      * @return  account   Margin account structure.
      */
-    function getMarginAccount()
+    function _marginAccount()
         internal
         view
         virtual
         returns (LibTypes.MarginAccount memory account)
     {
-        account = _perpetual.getMarginAccount(self());
+        account = _perpetual.getMarginAccount(_self());
     }
 
     /**
      * @notice  Return position size of margin account
      * @return  Size of position, 1e18.
      */
-    function getPositionSize()
+    function _positionSize()
         internal
         view
         virtual
         returns (uint256)
     {
-        return _perpetual.getMarginAccount(self()).size;
+        return _perpetual.getMarginAccount(_self()).size;
     }
 
     /**
@@ -66,12 +66,12 @@ contract FundProperty is
      * @dev     This is NOT a view function because [marginBalance]
      * @return  Value of total collateral in fund.
      */
-    function getTotalAssetValue()
+    function _totalAssetValue()
         internal
         virtual
         returns (uint256)
     {
-        int256 marginBalance = _perpetual.marginBalance(self());
+        int256 marginBalance = _perpetual.marginBalance(_self());
         require(marginBalance > 0, "marginBalance must be greater than 0");
         return marginBalance.toUint256();
     }
@@ -81,18 +81,18 @@ contract FundProperty is
      * @return netAssetValue    Net asset value.
      * @return managementFee    Fee to claimed by manager since last claiming.
      */
-    function getNetAssetValueAndFee()
+    function _netAssetValueAndFee()
         internal
         virtual
         returns (uint256 netAssetValue, uint256 managementFee)
     {
-        uint256 totalAssetValue = getTotalAssetValue();
+        uint256 totalAssetValue = _totalAssetValue();
         // claimed fee excluded
         netAssetValue = totalAssetValue.sub(_totalFeeClaimed, "total asset value less than fee");
         // streaming totalFee, performance totalFee excluded
-        uint256 streamingFee = getStreamingFee(netAssetValue);
+        uint256 streamingFee = _streamingFee(netAssetValue);
         netAssetValue = netAssetValue.sub(streamingFee, "incorrect streaming fee rate");
-        uint256 performanceFee = getPerformanceFee(netAssetValue);
+        uint256 performanceFee = _performanceFee(netAssetValue);
         netAssetValue = netAssetValue.sub(performanceFee, "incorrect performance fee rate");
         managementFee = streamingFee.add(performanceFee);
     }
@@ -102,13 +102,13 @@ contract FundProperty is
      * @return  netAssetValuePerShare   Net asset value per share.
      * @return  managementFee           Fee to claimed by manager since last claiming.
      */
-    function getNetAssetValuePerShareAndFee()
+    function _netAssetValuePerShareAndFee()
         internal
         virtual
         returns (uint256 netAssetValuePerShare, uint256 managementFee)
     {
         require(_totalSupply != 0, "no share supplied yet");
-        (netAssetValuePerShare, managementFee) = getNetAssetValueAndFee();
+        (netAssetValuePerShare, managementFee) = _netAssetValueAndFee();
         netAssetValuePerShare = netAssetValuePerShare.wdiv(_totalSupply);
     }
 
@@ -116,15 +116,15 @@ contract FundProperty is
      * @dev     leverage = margin / (asset value - fee)
      * @return  Leverage of fund positon account.
      */
-    function getLeverage()
+    function _leverage()
         internal
         virtual
         returns (int256)
     {
         uint256 markPrice = _perpetual.markPrice();
-        LibTypes.MarginAccount memory account = getMarginAccount();
+        LibTypes.MarginAccount memory account = _marginAccount();
         uint256 value = markPrice.wmul(account.size);
-        (uint256 netAssetValue, ) = getNetAssetValueAndFee();
+        (uint256 netAssetValue, ) = _netAssetValueAndFee();
         int256 leverage = value.wdiv(netAssetValue).toInt256();
         return account.side == LibTypes.Side.SHORT? leverage.neg(): leverage;
     }
@@ -133,12 +133,12 @@ contract FundProperty is
      * @notice  Get drawdown to max net asset value per share in history.
      * @return  A percentage represents drawdown, fixed float in decimals 18.
      */
-    function getDrawdown()
+    function _drawdown()
         internal
         virtual
         returns (uint256)
     {
-        (uint256 netAssetValuePerShare,) = getNetAssetValuePerShareAndFee();
+        (uint256 netAssetValuePerShare,) = _netAssetValuePerShareAndFee();
         if (netAssetValuePerShare >= _maxNetAssetValuePerShare) {
             return 0;
         }

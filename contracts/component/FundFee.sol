@@ -18,7 +18,7 @@ contract FundFee is FundStorage {
      * @param   purchasedAssetValue   Total asset value to purchase.
      * @return  Amount of purchase fee.
      */
-    function getEntranceFee(uint256 purchasedAssetValue)
+    function _entranceFee(uint256 purchasedAssetValue)
         internal
         view
         virtual
@@ -36,7 +36,7 @@ contract FundFee is FundStorage {
      * @param   netAssetValue   Total asset value.
      * @return  Amount of streaming fee.
      */
-    function getStreamingFee(uint256 netAssetValue)
+    function _streamingFee(uint256 netAssetValue)
         internal
         view
         virtual
@@ -56,7 +56,7 @@ contract FundFee is FundStorage {
      * @param   netAssetValue   Amount of total asset value, streaming fee excluded.
      * @return  Amount of performance fee.
      */
-    function getPerformanceFee(uint256 netAssetValue)
+    function _performanceFee(uint256 netAssetValue)
         internal
         view
         virtual
@@ -77,7 +77,7 @@ contract FundFee is FundStorage {
      * @param   fee                   Amount of Fee.
      * @param   netAssetValuePerShare Value of net asset.
      */
-    function updateFeeState(uint256 fee, uint256 netAssetValuePerShare)
+    function _updateFeeState(uint256 fee, uint256 netAssetValuePerShare)
         internal
     {
         if (netAssetValuePerShare > _maxNetAssetValuePerShare) {

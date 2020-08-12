@@ -25,12 +25,12 @@ contract FundAccount is FundStorage {
      * @param   trader  Address of share owner.
      * @return Amount of redeemable share balance.
      */
-    function redeemableShareBalance(address trader)
+    function _redeemableShareBalance(address trader)
         internal
         view
         returns (uint256)
     {
-        if (!canRedeem(trader)) {
+        if (!_canRedeem(trader)) {
             return 0;
         }
         return _balances[trader].sub(_redeemingBalances[trader]);
@@ -41,7 +41,7 @@ contract FundAccount is FundStorage {
      * @param   trader      Address of share owner.
      * @param   shareAmount Amount of share to purchase.
      */
-    function increaseShareBalance(address trader, uint256 shareAmount)
+    function _increaseShareBalance(address trader, uint256 shareAmount)
         internal
     {
         require(shareAmount > 0, "share amount must be greater than 0");
@@ -55,7 +55,7 @@ contract FundAccount is FundStorage {
      * @param   trader      Address of share owner.
      * @param   shareAmount Amount of share to purchase.
      */
-    function decreaseShareBalance(address trader, uint256 shareAmount)
+    function _decreaseShareBalance(address trader, uint256 shareAmount)
         internal
     {
         require(shareAmount > 0, "share amount must be greater than 0");
@@ -71,10 +71,10 @@ contract FundAccount is FundStorage {
      * @param   trader      Address of share owner.
      * @param   shareAmount Amount of share to mint.
      */
-    function mintShareBalance(address trader, uint256 shareAmount)
+    function _mintShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        increaseShareBalance(trader, shareAmount);
+        _increaseShareBalance(trader, shareAmount);
         _lastPurchaseTime[trader] = LibUtils.currentTime();
         _totalSupply = _totalSupply.add(shareAmount);
 
@@ -86,10 +86,10 @@ contract FundAccount is FundStorage {
      * @param   trader      Address of share owner.
      * @param   shareAmount Amount of share to burn.
      */
-    function burnShareBalance(address trader, uint256 shareAmount)
+    function _burnShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        decreaseShareBalance(trader, shareAmount);
+        _decreaseShareBalance(trader, shareAmount);
         _totalSupply = _totalSupply.sub(shareAmount);
 
         emit BurnShareBalance(trader, shareAmount);
@@ -101,7 +101,7 @@ contract FundAccount is FundStorage {
      * @param   trader      Address of share owner.
      * @return  True if shares are unlocked for redeeming.
      */
-    function canRedeem(address trader)
+    function _canRedeem(address trader)
         internal
         view
         returns (bool)
@@ -119,11 +119,11 @@ contract FundAccount is FundStorage {
      * @param   shareAmount Amount of share to redeem.
      * @param   slippage    Slipage percent of redeeming price, fixed float in decimals 18.
      */
-    function increaseRedeemingAmount(address trader, uint256 shareAmount, uint256 slippage)
+    function _increaseRedeemingAmount(address trader, uint256 shareAmount, uint256 slippage)
         internal
     {
         require(shareAmount > 0, "share amount must be greater than 0");
-        require(shareAmount <= redeemableShareBalance(trader), "no enough share to redeem");
+        require(shareAmount <= _redeemableShareBalance(trader), "no enough share to redeem");
         // set max amount of redeeming amount
         _redeemingBalances[trader] = _redeemingBalances[trader].add(shareAmount);
         _redeemingSlippage[trader] = slippage;
@@ -136,7 +136,7 @@ contract FundAccount is FundStorage {
      * @param   trader       Address of share owner.
      * @param   shareAmount   Amount of share to redeem.
      */
-    function decreaseRedeemingAmount(address trader, uint256 shareAmount)
+    function _decreaseRedeemingAmount(address trader, uint256 shareAmount)
         internal
     {
         require(shareAmount > 0, "share amount must be greater than 0");

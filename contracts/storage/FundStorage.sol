@@ -47,6 +47,14 @@ contract FundStorage is
     address internal _manager;
 
     // getters
+    function collateral() external view returns (address) {
+        return _collateral;
+    }
+
+    function scaler() external view returns (uint256) {
+        return _scaler;
+    }
+
     function capacity() external view returns (uint256) {
         return _capacity;
     }

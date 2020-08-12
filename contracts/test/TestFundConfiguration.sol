@@ -8,36 +8,36 @@ contract TestFundConfiguration is FundConfiguration {
     function setRedeemingLockPeriodPublic(uint256 period)
         public
     {
-        setRedeemingLockPeriod(period);
+        _setRedeemingLockPeriod(period);
     }
 
     function setDrawdownHighWaterMarkPublic(uint256 hwm)
         public
     {
-        setDrawdownHighWaterMark(hwm);
+        _setDrawdownHighWaterMark(hwm);
     }
 
     function setLeverageHighWaterMarkPublic(uint256 hwm)
         public
     {
-        setLeverageHighWaterMark(hwm);
+        _setLeverageHighWaterMark(hwm);
     }
 
     function setEntranceFeeRatePublic(uint256 newRate)
         public
     {
-        setEntranceFeeRate(newRate);
+        _setEntranceFeeRate(newRate);
     }
 
     function setStreamingFeeRatePublic(uint256 newRate)
         public
     {
-        setStreamingFeeRate(newRate);
+        _setStreamingFeeRate(newRate);
     }
 
     function setPerformanceFeeRatePublic(uint256 newRate)
         public
     {
-        setPerformanceFeeRate(newRate);
+        _setPerformanceFeeRate(newRate);
     }
 }

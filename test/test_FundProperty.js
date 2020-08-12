@@ -9,7 +9,7 @@ const {
 
 const TestFundProperty = artifacts.require('TestFundProperty.sol');
 
-contract('FundBase', accounts => {
+contract('FundProperty', accounts => {
 
     const SHORT = 1;
     const LONG = 2;

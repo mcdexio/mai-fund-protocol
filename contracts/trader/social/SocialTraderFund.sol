@@ -18,15 +18,16 @@ contract SocialTraderFund is
      * @dev Calculate incentive fee (streaming fee + performance fee)
      * @return incentiveFee IncentiveFee gain since last claiming.
      */
-    function getIncentiveFee() external returns (uint256 incentiveFee) {
-        (, incentiveFee) = getNetAssetValuePerShareAndFee();
+    function incentiveFee() external returns (uint256 incentiveFee) {
+        (, incentiveFee) = _netAssetValuePerShareAndFee();
+        incentiveFee = incentiveFee.add(_totalFeeClaimed);
     }
 
     function withdrawIncentiveFee() external nonReentrant {
         claimIncentiveFee();
         require(_totalFeeClaimed > 0, "no withdrawable fee");
-        pullCollateralFromPerpetual(_totalFeeClaimed);
-        pushCollateralToUser(payable(_manager), _totalFeeClaimed);
+        _pullCollateralFromPerpetual(_totalFeeClaimed);
+        _pushCollateralToUser(payable(_manager), _totalFeeClaimed);
         emit WithdrawIncentiveFee(_manager, _totalFeeClaimed);
         _totalFeeClaimed = 0;
     }
@@ -38,7 +39,7 @@ contract SocialTraderFund is
         if (now == _lastFeeTime) {
             return;
         }
-        (uint256 netAssetValuePerShare, uint256 fee) = getNetAssetValuePerShareAndFee();
-        updateFeeState(fee, netAssetValuePerShare);
+        (uint256 netAssetValuePerShare, uint256 fee) = _netAssetValuePerShareAndFee();
+        _updateFeeState(fee, netAssetValuePerShare);
     }
 }

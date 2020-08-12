@@ -31,9 +31,41 @@ contract PeriodicPriceBucket is Ownable {
     event UpdatePrice(address indexed feeder, uint256 price, uint256 timestamp, uint256 priceIndex);
     event AddBucket(uint256 period);
     event RemoveBucket(uint256 period);
+    event UpdatePriceFeeder(address indexed previousPriceFeeder, address indexed newPriceFeeder);
 
     constructor(address priceFeeder) public {
-        _priceFeeder = IPriceFeeder(priceFeeder);
+        _setPriceFeeder(priceFeeder);
+    }
+
+    /**
+     * @notice  Return all available period as an array.
+     * @dev     According to the implementation of EnumerableSet,
+     *          order of data may change after remove.
+     * @return  Array of all available period.
+     */
+    function buckets()
+        external
+        view
+        returns (uint256[] memory)
+    {
+        uint256 bucketCount = _periods.length();
+        uint256[] memory bucketList = new uint256[](bucketCount);
+        for (uint256 i = 0; i < _periods.length(); i++) {
+            bucketList[i] = _periods.at(i);
+        }
+        return bucketList;
+    }
+
+    /**
+     * @notice  Test a period is exist.
+     * @return  Return true if a bucket is already existed.
+     */
+    function hasBucket(uint256 period)
+        external
+        view
+        returns (bool)
+    {
+        return _periods.contains(period);
     }
 
     /**
@@ -64,6 +96,13 @@ contract PeriodicPriceBucket is Ownable {
         emit RemoveBucket(period);
     }
 
+    function setPriceFeeder(address newPriceFeeder)
+        external
+        onlyOwner
+    {
+        _setPriceFeeder(newPriceFeeder);
+    }
+
     /**
      * @notice  Read price from oracle, update all buckets.
      *          The latest price in a bucket will overwrite price in the same segment.
@@ -71,17 +110,22 @@ contract PeriodicPriceBucket is Ownable {
     function updatePrice()
         external
     {
-        require(address(_priceFeeder) != address(0), "no price feeder set");
         (
             uint256 newPrice,
             uint256 newTimestamp
         ) =  _priceFeeder.price();
+        require(newPrice != 0, "invalid price");
+
         for (uint256 i = 0; i < _periods.length(); i++) {
             uint256 period = _periods.at(i);
             uint256 periodIndex  = newTimestamp.div(period);
             _buckets[period].set(periodIndex , newPrice);
             if (_firstPeriodIndexes[period] == 0) {
-                _firstPeriodIndexes[period] = periodIndex ;
+                // here, when the periodIndex == 0
+                // the _firstPeriodIndexes will be overrided.
+                // but this is not possible in production environment
+                // so let's ignore it.
+                _firstPeriodIndexes[period] = periodIndex;
                 emit FirstIndex(period, periodIndex);
             }
             emit UpdatePrice(address(_priceFeeder), newPrice, newTimestamp, periodIndex);
@@ -105,7 +149,6 @@ contract PeriodicPriceBucket is Ownable {
         returns (uint256[] memory)
     {
         require(beginTimestamp <= endTimestamp, "begin must be earlier than end");
-        require(endTimestamp <= LibUtils.currentTime(), "end is in the future");
         require(_periods.contains(period), "period is not exist");
 
         uint256 beginIndex = beginTimestamp.div(period);
@@ -135,5 +178,14 @@ contract PeriodicPriceBucket is Ownable {
             pos++;
         }
         return series;
+    }
+
+    function _setPriceFeeder(address newPriceFeeder)
+        internal
+    {
+        require(newPriceFeeder != address(0), "invalid price feeder address");
+        require(newPriceFeeder != address(_priceFeeder), "price feeder duplicated");
+        emit UpdatePriceFeeder(address(_priceFeeder), newPriceFeeder);
+        _priceFeeder = IPriceFeeder(newPriceFeeder);
     }
 }
