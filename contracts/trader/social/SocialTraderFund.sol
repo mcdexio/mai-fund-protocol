@@ -16,11 +16,11 @@ contract SocialTraderFund is
 
     /**
      * @dev Calculate incentive fee (streaming fee + performance fee)
-     * @return incentiveFee IncentiveFee gain since last claiming.
+     * @return fee  IncentiveFee gain since last claiming.
      */
-    function incentiveFee() external returns (uint256 incentiveFee) {
-        (, incentiveFee) = _netAssetValuePerShareAndFee();
-        incentiveFee = incentiveFee.add(_totalFeeClaimed);
+    function incentiveFee() external returns (uint256 fee) {
+        (, fee) = _netAssetValuePerShareAndFee();
+        fee = fee.add(_totalFeeClaimed);
     }
 
     function withdrawIncentiveFee() external nonReentrant {
