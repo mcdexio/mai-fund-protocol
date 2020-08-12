@@ -11,7 +11,7 @@ contract FundConfiguration is FundStorage {
      * @notice  Set redeeming lock period.
      * @param   period  Lock period in seconds.
      */
-    function setRedeemingLockPeriod(uint256 period) internal {
+    function _setRedeemingLockPeriod(uint256 period) internal {
         _redeemingLockPeriod = period;
     }
 
@@ -19,7 +19,7 @@ contract FundConfiguration is FundStorage {
      * @notice  Set drawdonw high water mark. Exceeding hwm will cause emergency shutdown.
      * @param   hwm     High water mark for drawdown.
      */
-    function setDrawdownHighWaterMark(uint256 hwm) internal {
+    function _setDrawdownHighWaterMark(uint256 hwm) internal {
         require(hwm <= LibConstant.MAX_DRAWDOWN, "hwm exceeds drawdown limit");
         _drawdownHighWaterMark = hwm;
     }
@@ -28,7 +28,7 @@ contract FundConfiguration is FundStorage {
      * @notice  Set leverage high water mark. Exceeding hwm will cause emergency shutdown.
      * @param   hwm     High water mark for drawdown.
      */
-    function setLeverageHighWaterMark(uint256 hwm) internal {
+    function _setLeverageHighWaterMark(uint256 hwm) internal {
         require(hwm <= LibConstant.MAX_LEVERAGE, "hwm exceeds leverage limit");
         _leverageHighWaterMark = hwm;
     }
@@ -37,7 +37,7 @@ contract FundConfiguration is FundStorage {
      * @notice  Set entrance fee rete.
      * @param   newRate Rate of entrance fee. 0 < rate <= 100%
      */
-    function setEntranceFeeRate(uint256 newRate) internal {
+    function _setEntranceFeeRate(uint256 newRate) internal {
         require(newRate <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
         _entranceFeeRate = newRate;
     }
@@ -46,7 +46,7 @@ contract FundConfiguration is FundStorage {
      * @notice  Set streaming fee rete.
      * @param   newRate Rate of streaming fee. 0 < rate <= 100%
      */
-    function setStreamingFeeRate(uint256 newRate) internal {
+    function _setStreamingFeeRate(uint256 newRate) internal {
         require(newRate <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
         _streamingFeeRate = newRate;
     }
@@ -55,7 +55,7 @@ contract FundConfiguration is FundStorage {
      * @notice  Set performance fee rete.
      * @param   newRate Rate of performance fee. 0 < rate <= 100%
      */
-    function setPerformanceFeeRate(uint256 newRate) internal {
+    function _setPerformanceFeeRate(uint256 newRate) internal {
         require(newRate <= LibConstant.RATE_UPPERBOUND, "performance fee rate must be less than 100%");
         _performanceFeeRate = newRate;
     }

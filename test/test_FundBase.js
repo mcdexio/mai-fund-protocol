@@ -40,7 +40,6 @@ contract('FundBase', accounts => {
         await fund.initialize(
             "Fund Share Token",
             "FST",
-            "0x0000000000000000000000000000000000000000",
             18,
             deployer.perpetual.address,
             admin,
@@ -87,6 +86,12 @@ contract('FundBase', accounts => {
         console.log("");
     };
 
+    it("base info", async () => {
+        assert.equal(await fund.name(), "Fund Share Token");
+        assert.equal(await fund.symbol(), "FST");
+        assert.equal(await fund.decimals(), 18);
+        assert.equal(await fund.capacity(), toWad(1000));
+    });
 
     it("user purchase - redeem", async () => {
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
@@ -153,8 +158,7 @@ contract('FundBase', accounts => {
 
         await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
         const lastFeeTimeB = Number((await fund.lastFeeTime()).toString());
-        assert.equal(fromWad(await fund.totalFeeClaimed()),  (lastFeeTimeB-lastFeeTimeA) * 0.00000001);
-
+        assert.equal(fromWad(await fund.totalFeeClaimed()),  (lastFeeTimeB-lastFeeTimeA) * 0.00000001 * 200);
 
         // assert.equal(fromWad(await fund.balanceOf(user1)), 1);
         await printFundState(deployer, fund, user1);
@@ -187,7 +191,7 @@ contract('FundBase', accounts => {
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
         await printFundState(deployer, fund, user1);
 
-        await fund.purchase(toWad(1), toWad(220), { from: user1, value: toWad(220) });
+        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
         await printFundState(deployer, fund, user1);
 

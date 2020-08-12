@@ -37,8 +37,8 @@ contract AutoTraderFund is
     uint256 internal _rebalancingTolerance;
 
     function needRebalancing() public returns (bool) {
-        int256 nextTarget = getNextTarget();
-        int256 currentleverage = getLeverage();
+        int256 nextTarget = _nextTarget();
+        int256 currentleverage = _leverage();
         return currentleverage.sub(nextTarget).abs().toUint256() > _rebalancingTolerance;
     }
 
@@ -54,26 +54,16 @@ contract AutoTraderFund is
         require(rebalancingAmount > 0 && rebalancingSide != LibTypes.Side.FLAT, "no need to rebalance");
         require(rebalancingSide == side, "unexpected side");
 
-        ( uint256 tradingPrice, ) = getBiddingPrice(rebalancingSide, _rebalancingSlippage);
+        ( uint256 tradingPrice, ) = _biddingPrice(rebalancingSide, _rebalancingSlippage);
         uint256 tradingAmount = Math.min(maxPositionAmount, rebalancingAmount);
-        validateBiddingPrice(rebalancingSide, tradingPrice, limitPrice);
+        _validateBiddingPrice(rebalancingSide, tradingPrice, limitPrice);
         _perpetual.tradePosition(
-            self(),
+            _self(),
             msg.sender,
             rebalancingSide,
             tradingPrice,
             tradingAmount
         );
-    }
-
-    function getSignedSize()
-        public
-        view
-        returns (int256)
-    {
-        LibTypes.MarginAccount memory fundMarginAccount = getMarginAccount();
-        int256 size = fundMarginAccount.size.toInt256();
-        return fundMarginAccount.side == LibTypes.Side.SHORT? size.neg(): size;
     }
 
     function calculateRebalancingTarget()
@@ -83,10 +73,10 @@ contract AutoTraderFund is
         uint256 markPrice = _perpetual.markPrice();
         require(markPrice != 0, "mark price cannot be 0");
 
-        int256 signedSize = getSignedSize();    // -40000
-        int256 nextTarget = getNextTarget();    // -40000 - 40000
+        int256 signedSize = _signedSize();    // -40000
+        int256 nextTarget = _nextTarget();    // -40000 - 40000
 
-        (uint256 netAssetValue, ) = getNetAssetValueAndFee();
+        (uint256 netAssetValue, ) = _netAssetValueAndFee();
         int256 expectedMarginBalance = netAssetValue.toInt256().wmul(nextTarget);
         int256 expectedSize = expectedMarginBalance.wdiv(markPrice.toInt256());
         // delta is, eg:
@@ -107,7 +97,17 @@ contract AutoTraderFund is
         }
     }
 
-    function getNextTarget()
+    function _signedSize()
+        internal
+        view
+        returns (int256)
+    {
+        LibTypes.MarginAccount memory fundMarginAccount = _marginAccount();
+        int256 size = fundMarginAccount.size.toInt256();
+        return fundMarginAccount.side == LibTypes.Side.SHORT? size.neg(): size;
+    }
+
+    function _nextTarget()
         internal
         returns (int256)
     {

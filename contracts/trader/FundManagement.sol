@@ -2,6 +2,9 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+
 import "../interface/IDelegate.sol";
 
 import "../lib/LibConstant.sol";
@@ -9,6 +12,7 @@ import "../lib/LibMathEx.sol";
 import "../component/FundConfiguration.sol";
 import "../component/FundProperty.sol";
 import "../storage/FundStorage.sol";
+import "../component/FundCollateral.sol";
 
 interface IOwnable {
     function owner() external view returns (address);
@@ -16,14 +20,15 @@ interface IOwnable {
 
 contract FundManagement is
     FundStorage,
+    FundCollateral,
     FundConfiguration,
     FundProperty
 {
-
+    using SafeERC20 for IERC20;
     using LibMathEx for uint256;
 
     event SetConfigurationEntry(bytes32 key, int256 value);
-    event SetMaintainer(address indexed oldMaintainer, address indexed newMaintainer);
+    event SetManager(address indexed oldMaintainer, address indexed newMaintainer);
     event Shutdown(uint256 totalSupply);
 
     modifier onlyAdministrator() {
@@ -31,7 +36,12 @@ contract FundManagement is
         _;
     }
 
-    function administrator() public view virtual returns (address) {
+    function administrator()
+        public
+        view
+        virtual
+        returns (address)
+    {
         return IOwnable(_perpetual.globalConfig()).owner();
     }
 
@@ -42,17 +52,17 @@ contract FundManagement is
      */
     function setConfigurationEntry(bytes32 key, int256 value) external onlyAdministrator {
         if (key == "redeemingLockPeriod") {
-            setRedeemingLockPeriod(uint256(value));
+            _setRedeemingLockPeriod(uint256(value));
         } else if (key == "drawdownHighWaterMark") {
-            setDrawdownHighWaterMark(uint256(value));
+            _setDrawdownHighWaterMark(uint256(value));
         } else if (key == "leverageHighWaterMark") {
-            setLeverageHighWaterMark(uint256(value));
+            _setLeverageHighWaterMark(uint256(value));
         } else if (key == "entranceFeeRate") {
-            setEntranceFeeRate(uint256(value));
+            _setEntranceFeeRate(uint256(value));
         } else if (key == "streamingFeeRate") {
-            setStreamingFeeRate(uint256(value));
+            _setStreamingFeeRate(uint256(value));
         } else if (key == "performanceFeeRate") {
-            setPerformanceFeeRate(uint256(value));
+            _setPerformanceFeeRate(uint256(value));
         } else {
             revert("unrecognized key");
         }
@@ -63,25 +73,44 @@ contract FundManagement is
      * @notice Set manager of fund.
      * @param   manager Address of manager.
      */
-    function setManager(address manager) external onlyAdministrator {
+    function setManager(address manager)
+        external
+        onlyAdministrator
+    {
         require(manager != _manager, "same maintainer");
-        emit SetMaintainer(_manager, manager);
+        emit SetManager(_manager, manager);
         _manager = manager;
     }
 
 
-    function setDelegator(address delegate) external onlyAdministrator {
+    function setDelegator(address delegate)
+        external
+        onlyAdministrator
+    {
         IDelegate(delegate).setDelegator(address(_perpetual), _manager);
     }
 
-    function unsetDelegator(address delegate) external onlyAdministrator {
+    function unsetDelegator(address delegate)
+        external
+        onlyAdministrator
+    {
         IDelegate(delegate).unsetDelegator(address(_perpetual));
+    }
+
+    function approvePerpetual(uint256 amount)
+        external
+        onlyAdministrator
+    {
+        // IERC20(_collateral).safeApprove(address(_perpetual), amount);
+        _approvePerpetual(amount);
     }
 
     /**
      * @dev Pause the fund.
      */
-    function pause() external {
+    function pause()
+        external
+    {
         require(
             msg.sender == administrator() || msg.sender == _manager,
             "caller must be administrator or maintainer"
@@ -92,7 +121,10 @@ contract FundManagement is
     /**
      * @dev Unpause the fund.
      */
-    function unpause() external onlyAdministrator {
+    function unpause()
+        external
+        onlyAdministrator
+    {
         _unpause();
     }
 
@@ -108,11 +140,11 @@ contract FundManagement is
         public
         returns (bool)
     {
-        uint256 maxDrawdown = getDrawdown();
+        uint256 maxDrawdown = _drawdown();
         if (maxDrawdown >= _drawdownHighWaterMark) {
             return true;
         }
-        uint256 leverage = getLeverage().abs().toUint256();
+        uint256 leverage = _leverage().abs().toUint256();
         if (leverage >= _leverageHighWaterMark) {
             return true;
         }
@@ -129,12 +161,12 @@ contract FundManagement is
     {
         require(msg.sender == administrator() || canShutdown(), "caller must be administrator or cannot shutdown");
 
-        address fundAccount = self();
+        address fundAccount = _self();
         // claim fee until shutting down
-        (uint256 netAssetValuePerShare, uint256 fee) = getNetAssetValuePerShareAndFee();
+        (uint256 netAssetValuePerShare, uint256 fee) = _netAssetValuePerShareAndFee();
         // if shut down by admin, nav per share can still be high than max.
         // TODO: no longer need to update nav per share.
-        updateFeeState(fee, netAssetValuePerShare);
+        _updateFeeState(fee, netAssetValuePerShare);
         // set fund it self in redeeming mode.
         _balances[fundAccount] = _totalSupply;
         _redeemingBalances[fundAccount] = _totalSupply;

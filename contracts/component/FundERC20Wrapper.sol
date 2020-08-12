@@ -89,17 +89,17 @@ contract FundERC20Wrapper is FundStorage, FundAccount, IERC20 {
     /**
      * @dev Amount which is transferrable
      */
-    function transferrableBalance(address account) internal view returns (uint256) {
-        return redeemableShareBalance(account);
+    function _transferrableBalance(address account) internal view returns (uint256) {
+        return _redeemableShareBalance(account);
     }
 
     function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
-        require(amount <= transferrableBalance(sender), "ERC20: insufficient fund to transfer");
+        require(amount <= _transferrableBalance(sender), "ERC20: insufficient fund to transfer");
 
-        decreaseShareBalance(sender, amount);
-        increaseShareBalance(recipient, amount);
+        _decreaseShareBalance(sender, amount);
+        _increaseShareBalance(recipient, amount);
 
         emit Transfer(sender, recipient, amount);
     }

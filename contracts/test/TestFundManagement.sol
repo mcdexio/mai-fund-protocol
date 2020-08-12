@@ -9,9 +9,9 @@ import "../trader/FundManagement.sol";
 contract TestFundManagement is
     FundManagement
 {
-    uint256 private _drawdown;
-    uint256 private _totalAssetValue;
-    int256 private _leverage;
+    uint256 private _mockDrawdown;
+    uint256 private _mockTotalAssetValue;
+    int256 private _mockLeverage;
 
     constructor(address perpetual) public {
         _perpetual = IPerpetual(perpetual);
@@ -20,13 +20,13 @@ contract TestFundManagement is
     function setDrawdown(uint256 drawdown)
         external
     {
-        _drawdown = drawdown;
+        _mockDrawdown = drawdown;
     }
 
     function setLeverage(int256 leverage)
         external
     {
-        _leverage = leverage;
+        _mockLeverage = leverage;
     }
 
     function setTotalSupply(uint256 totalSupply)
@@ -41,34 +41,7 @@ contract TestFundManagement is
         external
         returns (uint256)
     {
-        _totalAssetValue = totalAssetValue;
-    }
-
-    function getTotalAssetValue()
-        internal
-        virtual
-        override
-        returns (uint256)
-    {
-        return _totalAssetValue;
-    }
-
-    function getDrawdown()
-        internal
-        virtual
-        override
-        returns (uint256)
-    {
-        return _drawdown;
-    }
-
-    function getLeverage()
-        internal
-        virtual
-        override
-        returns (int256)
-    {
-        return _leverage;
+        _mockTotalAssetValue = totalAssetValue;
     }
 
     function balance(address account) external view returns (uint256) {
@@ -97,5 +70,32 @@ contract TestFundManagement is
 
     function getPerformanceFeeRate() external view returns (uint256) {
         return _performanceFeeRate;
+    }
+
+    function _totalAssetValue()
+        internal
+        virtual
+        override
+        returns (uint256)
+    {
+        return _mockTotalAssetValue;
+    }
+
+    function _drawdown()
+        internal
+        virtual
+        override
+        returns (uint256)
+    {
+        return _mockDrawdown;
+    }
+
+    function _leverage()
+        internal
+        virtual
+        override
+        returns (int256)
+    {
+        return _mockLeverage;
     }
 }

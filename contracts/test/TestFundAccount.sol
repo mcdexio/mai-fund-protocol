@@ -4,7 +4,10 @@ pragma solidity 0.6.10;
 import "../component/FundAccount.sol";
 import "./TestFundConfiguration.sol";
 
-contract TestFundAccount is FundAccount, TestFundConfiguration {
+contract TestFundAccount is
+    FundAccount,
+    TestFundConfiguration
+{
 
     function balance(address trader)
         public
@@ -28,31 +31,31 @@ contract TestFundAccount is FundAccount, TestFundConfiguration {
         view
         returns (uint256)
     {
-        return redeemableShareBalance(trader);
+        return _redeemableShareBalance(trader);
     }
 
     function increaseShareBalancePublic(address trader, uint256 shareAmount)
         public
     {
-        increaseShareBalance(trader, shareAmount);
+        _increaseShareBalance(trader, shareAmount);
     }
 
     function decreaseShareBalancePublic(address trader, uint256 shareAmount)
         public
     {
-        decreaseShareBalance(trader, shareAmount);
+        _decreaseShareBalance(trader, shareAmount);
     }
 
     function mintShareBalancePublic(address trader, uint256 shareAmount)
         public
     {
-        mintShareBalance(trader, shareAmount);
+        _mintShareBalance(trader, shareAmount);
     }
 
     function burnShareBalancePublic(address trader, uint256 shareAmount)
         public
     {
-        burnShareBalance(trader, shareAmount);
+        _burnShareBalance(trader, shareAmount);
     }
 
     function canRedeemPublic(address trader)
@@ -60,18 +63,31 @@ contract TestFundAccount is FundAccount, TestFundConfiguration {
         view
         returns (bool)
     {
-        return canRedeem(trader);
+        return _canRedeem(trader);
     }
 
     function increaseRedeemingAmountPublic(address trader, uint256 shareAmount, uint256 slippage)
         public
     {
-        increaseRedeemingAmount(trader, shareAmount, slippage);
+        _increaseRedeemingAmount(trader, shareAmount, slippage);
     }
 
     function decreaseRedeemingAmountPublic(address trader, uint256 shareAmount)
         public
     {
-        decreaseRedeemingAmount(trader, shareAmount);
+        _decreaseRedeemingAmount(trader, shareAmount);
+    }
+
+    function currentTime()
+        public
+        view
+        returns (uint256)
+    {
+        return LibUtils.currentTime();
+    }
+
+    function doNothing()
+        public
+    {
     }
 }

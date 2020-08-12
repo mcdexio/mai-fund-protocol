@@ -12,7 +12,41 @@ contract('TestFundAccount', accounts => {
         accountOPs = await TestFundAccount.new();
     }
 
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
     beforeEach(deploy);
+
+    it("can / cannot redeem", async () => {
+        await accountOPs.setRedeemingLockPeriodPublic(0);
+        await accountOPs.mintShareBalancePublic(user, toWad(1));
+        assert.ok(await accountOPs.canRedeemPublic(user));
+        assert.equal(fromWad(await accountOPs.redeemableShareBalancePublic(user)), 1);
+
+        await accountOPs.setRedeemingLockPeriodPublic(5);
+        await accountOPs.mintShareBalancePublic(user, toWad(1));
+        assert.ok(!(await accountOPs.canRedeemPublic(user)));
+        assert.equal(fromWad(await accountOPs.redeemableShareBalancePublic(user)), 0);
+
+        await sleep(6000);
+        await accountOPs.doNothing();   // make testnode mine
+        assert.ok(await accountOPs.canRedeemPublic(user));
+        assert.equal(fromWad(await accountOPs.redeemableShareBalancePublic(user)), 2);
+
+        await accountOPs.mintShareBalancePublic(user, toWad(1));
+        assert.ok(!(await accountOPs.canRedeemPublic(user)));
+        await sleep(2000);
+        await accountOPs.mintShareBalancePublic(user, toWad(1));
+        await sleep(4000);
+        await accountOPs.doNothing();   // make testnode mine
+        assert.ok(!(await accountOPs.canRedeemPublic(user)));
+        await sleep(2000);
+        await accountOPs.doNothing();   // make testnode mine
+        assert.ok(await accountOPs.canRedeemPublic(user));
+        assert.equal(fromWad(await accountOPs.redeemableShareBalancePublic(user)), 4);
+    });
+
 
     it("increase / decrease share balance", async () => {
         assert.equal(await accountOPs.balance(user), 0);
@@ -70,10 +104,9 @@ contract('TestFundAccount', accounts => {
         var purchaseTime = (await accountOPs.lastPurchaseTime(user)).toString();
         assert.ok(purchaseTime > 0);
 
-
         await accountOPs.mintShareBalancePublic(user, toWad(10));
         assert.equal(await accountOPs.balance(user), toWad(20));
         assert.equal(await accountOPs.totalSupply(), toWad(20));
-        assert.ok((await accountOPs.lastPurchaseTime(user)).toString() > purchaseTime);
+        assert.ok((await accountOPs.lastPurchaseTime(user)).toString() >= purchaseTime);
     });
 });

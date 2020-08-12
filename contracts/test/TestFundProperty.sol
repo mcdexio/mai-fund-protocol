@@ -12,9 +12,9 @@ contract TestFundProperty is
     FundProperty,
     TestFundConfiguration
 {
-    address private _self;
-    uint256 private _streamingFee;
-    uint256 private _performanceFee;
+    address private _mockSelf;
+    uint256 private _mockStreamingFee;
+    uint256 private _mockPerformanceFee;
 
     constructor(address perpetual) public {
         _perpetual = IPerpetual(perpetual);
@@ -32,52 +32,52 @@ contract TestFundProperty is
         _totalSupply = totalSupply;
     }
 
-    function setSelf(address fakeSelf)
+    function setSelf(address mockSelf)
         external
     {
-        _self = fakeSelf;
+        _mockSelf = mockSelf;
     }
 
-    function self()
+    function _self()
         internal
         view
         virtual
         override
         returns (address)
     {
-        return _self;
+        return _mockSelf;
     }
 
     function setStreamingFee(uint256 streamingFee)
         external
     {
-        _streamingFee = streamingFee;
+        _mockStreamingFee = streamingFee;
     }
 
-    function getStreamingFee(uint256)
+    function _streamingFee(uint256)
         internal
         view
         virtual
         override
         returns (uint256)
     {
-        return _streamingFee;
+        return _mockStreamingFee;
     }
 
     function setPerformanceFee(uint256 performanceFee)
         external
     {
-        _performanceFee = performanceFee;
+        _mockPerformanceFee = performanceFee;
     }
 
-    function getPerformanceFee(uint256)
+    function _performanceFee(uint256)
         internal
         view
         virtual
         override
         returns (uint256)
     {
-        return _performanceFee;
+        return _mockPerformanceFee;
     }
 
     function setMaxNetAssetValuePerShare(uint256 maxNetAssetValuePerShare)
@@ -86,20 +86,20 @@ contract TestFundProperty is
         _maxNetAssetValuePerShare = maxNetAssetValuePerShare;
     }
 
-    function getMarginAccountPublic()
+    function marginAccountPublic()
         external
         view
         returns (LibTypes.MarginAccount memory account)
     {
-        return getMarginAccount();
+        return _marginAccount();
     }
 
-    function getPositionSizePublic()
+    function positionSizePublic()
         external
         view
         returns (uint256)
     {
-        return getPositionSize();
+        return _positionSize();
     }
 
 
@@ -107,35 +107,43 @@ contract TestFundProperty is
         external
         returns (uint256)
     {
-        return getTotalAssetValue();
+        return _totalAssetValue();
     }
 
     function getNetAssetValueAndFeePublic()
         external
         returns (uint256 netAssetValue, uint256 managementFee)
     {
-        return getNetAssetValueAndFee();
+        return _netAssetValueAndFee();
     }
 
     function getNetAssetValuePerShareAndFeePublic()
         external
         returns (uint256 netAssetValuePerShare, uint256 managementFee)
     {
-        return getNetAssetValuePerShareAndFee();
+        return _netAssetValuePerShareAndFee();
     }
 
     function getLeveragePublic()
         external
         returns (int256)
     {
-        return getLeverage();
+        return _leverage();
     }
 
     function getDrawdownPublic()
         external
         returns (uint256)
     {
-        return getDrawdown();
+        return _drawdown();
+    }
+
+    function getPositionSizePublic()
+        external
+        view
+        returns (uint256)
+    {
+        return _positionSize();
     }
 }
 

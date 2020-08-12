@@ -56,6 +56,9 @@ contract('TestRSIReader', accounts => {
         ])
         await assertArray(3600, 1595174400, 1595192400, [10, 10, 11, 12, 10, 4]);
 
+        // assert.equal(await reader.period(), 3600);
+        // assert.equal(await reader.numPeriod(), 3);
+
         await reader.setTimestamp(1595185200);
         console.log(await reader.retrieveData());
         assert.equal(fromWad(await reader.getCurrentRSI()), 100);

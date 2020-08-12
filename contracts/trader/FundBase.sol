@@ -53,8 +53,7 @@ contract FundBase is
      *          Decimal of erc20 will be verified if available in implementation.
      * @param   name                Name of fund share erc20 token.
      * @param   symbol              Symbol of fund share erc20 token.
-     * @param   collataral          Collateral type. zero address for ether or non-zero for erc20 token.
-     * @param   collataralDecimals  Collateral decimal.
+     * @param   collateralDecimals  Collateral decimal.
      * @param   perpetual           Address of perpetual contract.
      * @param   mananger            Address of fund mananger.
      * @param   capacity            Max net asset value of a fund.
@@ -62,8 +61,7 @@ contract FundBase is
     function initialize(
         string calldata name,
         string calldata symbol,
-        address collataral,
-        uint8 collataralDecimals,
+        uint8 collateralDecimals,
         address perpetual,
         address mananger,
         uint256 capacity
@@ -72,26 +70,28 @@ contract FundBase is
         virtual
         initializer
     {
+        _perpetual = IPerpetual(perpetual);
         _name = name;
         _symbol = symbol;
         _manager = mananger;
-        _perpetual = IPerpetual(perpetual);
         _capacity = capacity;
-        FundCollateral.initialize(collataral, collataralDecimals);
+
+        address collateral = address(_perpetual.collateral());
+        FundCollateral._initialize(collateral, collateralDecimals);
     }
 
     function getCurrentLeverage()
         external
         returns (int256)
     {
-        return getLeverage();
+        return _leverage();
     }
 
     function getNetAssetValue()
         external
         returns (uint256)
     {
-        (uint256 netAssetValue,) = getNetAssetValueAndFee();
+        (uint256 netAssetValue,) = _netAssetValueAndFee();
         return netAssetValue;
     }
 
@@ -103,7 +103,7 @@ contract FundBase is
         external
         returns (uint256)
     {
-        (uint256 netAssetValuePerShare,) = getNetAssetValuePerShareAndFee();
+        (uint256 netAssetValuePerShare,) = _netAssetValuePerShareAndFee();
         return netAssetValuePerShare;
     }
 
@@ -123,11 +123,11 @@ contract FundBase is
         require(_totalSupply == 0, "share supply is not 0");
         uint256 collateralRequired = initialNetAssetValue.wmul(shareAmount);
         // pay collateral
-        pullCollateralFromUser(msg.sender, collateralRequired);
-        pushCollateralToPerpetual(collateralRequired);
+        _pullCollateralFromUser(msg.sender, collateralRequired);
+        _pushCollateralToPerpetual(collateralRequired);
         // get share
-        mintShareBalance(msg.sender, shareAmount);
-        updateFeeState(0, initialNetAssetValue);
+        _mintShareBalance(msg.sender, shareAmount);
+        _updateFeeState(0, initialNetAssetValue);
 
         emit Create(msg.sender, initialNetAssetValue, shareAmount);
     }
@@ -147,11 +147,11 @@ contract FundBase is
         (
             uint256 netAssetValue,
             uint256 feeBeforePurchase
-        ) = getNetAssetValueAndFee();
+        ) = _netAssetValueAndFee();
         require(netAssetValue > 0, "nav should be greater than 0");
 
         uint256 netAssetValuePerShare = netAssetValue.wdiv(_totalSupply);
-        uint256 entranceFeePerShare = getEntranceFee(netAssetValuePerShare);
+        uint256 entranceFeePerShare = _entranceFee(netAssetValuePerShare);
         require(
             netAssetValuePerShare.add(entranceFeePerShare) <= netAssetValuePerShareLimit,
             "nav per share exceeds limit"
@@ -165,12 +165,12 @@ contract FundBase is
         require(netAssetValue.add(collateralPaid).sub(entranceFee) <= _capacity, "max capacity reached");
         // require(netAssetValuePerShare <= netAssetValuePerShareLimit, "unit nav exceeded limit");
         // pay collateral + fee, collateral -> perpetual, fee -> fund
-        pullCollateralFromUser(msg.sender, collateralPaid);
-        pushCollateralToPerpetual(collateralPaid);
+        _pullCollateralFromUser(msg.sender, collateralPaid);
+        _pushCollateralToPerpetual(collateralPaid);
         // get share
-        mintShareBalance(msg.sender, shareAmount);
+        _mintShareBalance(msg.sender, shareAmount);
         // - update manager status
-        updateFeeState(entranceFee.add(feeBeforePurchase), netAssetValuePerShare);
+        _updateFeeState(entranceFee.add(feeBeforePurchase), netAssetValuePerShare);
 
         emit Purchase(msg.sender, netAssetValuePerShare, shareAmount);
     }
@@ -185,14 +185,14 @@ contract FundBase is
 
         require(shareAmount > 0, "amount must be greater than 0");
         require(slippage < LibConstant.RATE_UPPERBOUND, "slippage must be less then 100%");
-        require(canRedeem(msg.sender), "cannot redeem now");
+        require(_canRedeem(msg.sender), "cannot redeem now");
 
         // update user account
-        increaseRedeemingAmount(msg.sender, shareAmount, slippage);
+        _increaseRedeemingAmount(msg.sender, shareAmount, slippage);
         emit RequestToRedeem(msg.sender, shareAmount, slippage);
 
-        if (getPositionSize() == 0) {
-            redeem(msg.sender, shareAmount, 0);
+        if (_positionSize() == 0) {
+            _redeem(msg.sender, shareAmount, 0);
         }
     }
 
@@ -201,7 +201,7 @@ contract FundBase is
         whenNotPaused
     {
         require(_redeemingBalances[msg.sender] > 0, "no share to redeem");
-        decreaseRedeemingAmount(msg.sender, shareAmount);
+        _decreaseRedeemingAmount(msg.sender, shareAmount);
         emit CancelRedeeming(msg.sender, shareAmount);
     }
 
@@ -214,14 +214,14 @@ contract FundBase is
         external
         whenNotPaused
     {
-        uint256 slippageLoss = bidShare(trader, shareAmount, priceLimit, side);
-        redeem(trader, shareAmount, slippageLoss);
+        uint256 slippageLoss = _bidShare(trader, shareAmount, priceLimit, side);
+        _redeem(trader, shareAmount, slippageLoss);
     }
 
     /**
      * @dev Redeem shares.
      */
-    function redeem(address trader, uint256 shareAmount, uint256 slippageLoss)
+    function _redeem(address trader, uint256 shareAmount, uint256 slippageLoss)
         internal
         nonReentrant
     {
@@ -238,17 +238,17 @@ contract FundBase is
         (
             uint256 netAssetValuePerShare,
             uint256 feeBeforeRedeem
-        ) = getNetAssetValuePerShareAndFee();
+        ) = _netAssetValuePerShareAndFee();
         // note the loss amount is caused by slippage set by user.
         uint256 collateralToReturn = netAssetValuePerShare.wmul(shareAmount).sub(slippageLoss);
         // pay share
-        decreaseRedeemingAmount(trader, shareAmount);
-        burnShareBalance(trader, shareAmount);
+        _decreaseRedeemingAmount(trader, shareAmount);
+        _burnShareBalance(trader, shareAmount);
         // get collateral
-        pullCollateralFromPerpetual(collateralToReturn);
-        pushCollateralToUser(payable(trader), collateralToReturn);
+        _pullCollateralFromPerpetual(collateralToReturn);
+        _pushCollateralToUser(payable(trader), collateralToReturn);
         // - decrease total supply
-        updateFeeState(feeBeforeRedeem, netAssetValuePerShare);
+        _updateFeeState(feeBeforeRedeem, netAssetValuePerShare);
 
         emit Redeem(trader, netAssetValuePerShare, shareAmount);
     }
@@ -262,10 +262,10 @@ contract FundBase is
         whenStopped
     {
         // order
-        address fundAccount = self();
-        bidShare(fundAccount, shareAmount, priceLimit, side);
-        decreaseRedeemingAmount(fundAccount, shareAmount);
-        burnShareBalance(fundAccount, shareAmount);
+        address fundAccount = _self();
+        _bidShare(fundAccount, shareAmount, priceLimit, side);
+        _decreaseRedeemingAmount(fundAccount, shareAmount);
+        _burnShareBalance(fundAccount, shareAmount);
     }
 
 }
