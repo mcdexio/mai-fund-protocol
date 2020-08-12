@@ -13,41 +13,37 @@ contract FundAuction is
     FundProperty
 {
     using SafeMath for uint256;
+    using LibTypes for LibTypes.Side;
 
     /**
      * @notice bid share from redeeming or shutdown account.
-     * @param   trader      Address of redeeming account.
      * @param   shareAmount Amount of share to bid.
      * @param   priceLimit  Price limit.
      */
     function _bidShare(
-        address trader,
         uint256 shareAmount,
         uint256 priceLimit,
-        LibTypes.Side side
+        LibTypes.Side side,
+        uint256 slippage
     )
         internal
         returns (uint256 slippageValue)
     {
-        require(shareAmount <= _redeemingBalances[trader], "insufficient shares to take");
         // trading price and loss amount equivalent to slippage
-        LibTypes.MarginAccount memory fundMarginAccount = _marginAccount();
-        require(fundMarginAccount.side == side, "unexpected side");
-        uint256 redeemPercentage = shareAmount.wdiv(_totalSupply);
+        LibTypes.MarginAccount memory marginAccount = _marginAccount();
+        require(marginAccount.side == side, "unexpected side");
         // TODO: align to tradingLotSize
-        uint256 redeemAmount = fundMarginAccount.size.wmul(redeemPercentage);
-        LibTypes.Side redeemingSide = fundMarginAccount.side == LibTypes.Side.LONG?
-            LibTypes.Side.SHORT : LibTypes.Side.LONG;
-        uint256 slippage = _redeemingSlippage[trader];
+        uint256 redeemAmount = marginAccount.size.wfrac(shareAmount, _totalSupply);
+        // LibTypes.Side redeemingSide = marginAccount.side.counterSide();
         (
             uint256 tradingPrice,
             uint256 priceLoss
-        ) = _biddingPrice(fundMarginAccount.side, slippage);
+        ) = _biddingPrice(marginAccount.side, slippage);
         _validateBiddingPrice(side, tradingPrice, priceLimit);
         _perpetual.tradePosition(
-            _self(),
             msg.sender,
-            redeemingSide,
+            _self(),
+            side,
             tradingPrice,
             redeemAmount
         );
@@ -67,7 +63,7 @@ contract FundAuction is
     {
         uint256 markPrice = _perpetual.markPrice();
         priceLoss = markPrice.wmul(slippage);
-        tradingPrice = side == LibTypes.Side.LONG? markPrice.add(priceLoss): markPrice.sub(priceLoss);
+        tradingPrice = side == LibTypes.Side.LONG? markPrice.sub(priceLoss): markPrice.add(priceLoss);
     }
 
     function _validateBiddingPrice(LibTypes.Side side, uint256 price, uint256 priceLimit) internal pure {

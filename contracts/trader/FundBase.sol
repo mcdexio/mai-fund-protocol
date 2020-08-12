@@ -70,6 +70,9 @@ contract FundBase is
         virtual
         initializer
     {
+        require(perpetual != address(0), "invalid perpetual address");
+        require(capacity > 0, "capacity cannot be 0");
+
         _perpetual = IPerpetual(perpetual);
         _name = name;
         _symbol = symbol;
@@ -80,19 +83,11 @@ contract FundBase is
         FundCollateral._initialize(collateral, collateralDecimals);
     }
 
-    function getCurrentLeverage()
+    function getLeverage()
         external
         returns (int256)
     {
         return _leverage();
-    }
-
-    function getNetAssetValue()
-        external
-        returns (uint256)
-    {
-        (uint256 netAssetValue,) = _netAssetValueAndFee();
-        return netAssetValue;
     }
 
     /**
@@ -214,7 +209,9 @@ contract FundBase is
         external
         whenNotPaused
     {
-        uint256 slippageLoss = _bidShare(trader, shareAmount, priceLimit, side);
+        require(shareAmount <= _redeemingBalances[trader], "insufficient shares to bid");
+        uint256 slippage = _redeemingSlippage[trader];
+        uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, slippage);
         _redeem(trader, shareAmount, slippageLoss);
     }
 
@@ -263,7 +260,8 @@ contract FundBase is
     {
         // order
         address fundAccount = _self();
-        _bidShare(fundAccount, shareAmount, priceLimit, side);
+        uint256 slippage = _redeemingSlippage[fundAccount];
+        _bidShare(shareAmount, priceLimit, side, slippage);
         _decreaseRedeemingAmount(fundAccount, shareAmount);
         _burnShareBalance(fundAccount, shareAmount);
     }
