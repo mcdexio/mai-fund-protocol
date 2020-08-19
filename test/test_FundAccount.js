@@ -64,9 +64,6 @@ contract('TestFundAccount', accounts => {
 
         await accountOPs.decreaseShareBalancePublic(user, toWad(1.2));
         assert.equal(await accountOPs.balance(user), toWad(0));
-
-        await shouldThrows(accountOPs.increaseShareBalancePublic(user, 0), "share amount must be greater than 0");
-        await shouldThrows(accountOPs.decreaseShareBalancePublic(user, 0), "share amount must be greater than 0");
     });
 
     it("increase / decrease redeeming share balance", async () => {
@@ -74,26 +71,25 @@ contract('TestFundAccount', accounts => {
 
         await accountOPs.increaseShareBalancePublic(user, toWad(10));
 
-        await accountOPs.increaseRedeemingAmountPublic(user, toWad(1.1), toWad(0.01));
+        await accountOPs.increaseRedeemingShareBalancePublic(user, toWad(1.1));
         assert.equal(await accountOPs.redeemingBalance(user), toWad(1.1));
+        await accountOPs.setRedeemingSlippagePublic(user, toWad(0.01));
         assert.equal(await accountOPs.redeemingSlippage(user), toWad(0.01));
 
-        await accountOPs.increaseRedeemingAmountPublic(user, toWad(1.21), toWad(0.02));
+        await accountOPs.increaseRedeemingShareBalancePublic(user, toWad(1.21));
         assert.equal(await accountOPs.redeemingBalance(user), toWad(2.31));
+        await accountOPs.setRedeemingSlippagePublic(user, toWad(0.02));
         assert.equal(await accountOPs.redeemingSlippage(user), toWad(0.02));
 
-        await accountOPs.decreaseRedeemingAmountPublic(user, toWad(1.11));
+        await accountOPs.decreaseRedeemingShareBalancePublic(user, toWad(1.11));
         assert.equal(await accountOPs.redeemingBalance(user), toWad(1.2));
 
-        await shouldThrows(accountOPs.decreaseRedeemingAmountPublic(user, toWad(1.21)), "insufficient redeeming share balance");
+        await shouldThrows(accountOPs.decreaseRedeemingShareBalancePublic(user, toWad(1.21)), "insufficient redeeming share balance");
 
-        await accountOPs.decreaseRedeemingAmountPublic(user, toWad(1.2));
+        await accountOPs.decreaseRedeemingShareBalancePublic(user, toWad(1.2));
         assert.equal(await accountOPs.redeemingBalance(user), toWad(0));
 
-        await shouldThrows(accountOPs.increaseRedeemingAmountPublic(user, toWad(10.01), toWad(0.02)), "no enough share to redeem");
-
-        await shouldThrows(accountOPs.increaseRedeemingAmountPublic(user, 0, toWad(0.02)), "share amount must be greater than 0");
-        await shouldThrows(accountOPs.decreaseRedeemingAmountPublic(user, 0), "share amount must be greater than 0");
+        await shouldThrows(accountOPs.increaseRedeemingShareBalancePublic(user, toWad(10.01)), "no enough share to redeem");
     });
 
 

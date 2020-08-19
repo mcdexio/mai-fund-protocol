@@ -63,6 +63,9 @@ contract FundManagement is
             _setStreamingFeeRate(uint256(value));
         } else if (key == "performanceFeeRate") {
             _setPerformanceFeeRate(uint256(value));
+        } else if (key == "settledRedeemingSlippage") {
+            // TODO: test range.
+            _redeemingSlippages[_self()] = uint256(value);
         } else {
             revert("unrecognized key");
         }
@@ -70,7 +73,7 @@ contract FundManagement is
     }
 
     /**
-     * @notice Set manager of fund.
+     * @notice  Set manager of fund.
      * @param   manager Address of manager.
      */
     function setManager(address manager)
@@ -82,7 +85,11 @@ contract FundManagement is
         _manager = manager;
     }
 
-
+    /**
+     * @notice  Set manager as delegator of fund.
+     *          A delegator is able to perform trading on fund margin account.
+     * @param   delegate    Address of delegator.
+     */
     function setDelegator(address delegate)
         external
         onlyAdministrator
@@ -90,6 +97,10 @@ contract FundManagement is
         IDelegate(delegate).setDelegator(address(_perpetual), _manager);
     }
 
+    /**
+     * @notice  Cancel manager as delegator of fund.
+     * @param   delegate    Address of delegator.
+     */
     function unsetDelegator(address delegate)
         external
         onlyAdministrator
@@ -110,6 +121,7 @@ contract FundManagement is
      */
     function pause()
         external
+        whenNotStopped
     {
         require(
             msg.sender == administrator() || msg.sender == _manager,
@@ -161,16 +173,13 @@ contract FundManagement is
     {
         require(msg.sender == administrator() || canShutdown(), "caller must be administrator or cannot shutdown");
 
-        address fundAccount = _self();
         // claim fee until shutting down
         (uint256 netAssetValuePerShare, uint256 fee) = _netAssetValuePerShareAndFee();
         // if shut down by admin, nav per share can still be high than max.
         // TODO: no longer need to update nav per share.
         _updateFeeState(fee, netAssetValuePerShare);
         // set fund it self in redeeming mode.
-        _balances[fundAccount] = _totalSupply;
-        _redeemingBalances[fundAccount] = _totalSupply;
-        _redeemingSlippage[fundAccount] = _shuttingDownSlippage;
+        _redeemingBalances[_self()] = _totalSupply;
         // enter shutting down mode.
         _stop();
 

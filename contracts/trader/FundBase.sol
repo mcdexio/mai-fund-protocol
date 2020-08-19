@@ -36,8 +36,11 @@ contract FundBase is
     event Create(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
     event Purchase(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
     event RequestToRedeem(address indexed trader, uint256 shareAmount, uint256 slippage);
-    event CancelRedeeming(address indexed trader, uint256 shareAmount);
-    event Redeem(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
+    event CancelRedeem(address indexed trader, uint256 shareAmount);
+    event Withdraw(address indexed trader, uint256 amount);
+    event Settle(address indexed trader, uint256 shareAmount);
+    event Redeem(address indexed trader, uint256 shareAmount, uint256 collateralReturned);
+    event BidShare(address indexed bidder, address indexed account, uint256 shareAmount, uint256 slippage);
 
     /**
      * @notice only accept ether from pereptual when collateral is ether. otherwise, revert.
@@ -102,7 +105,6 @@ contract FundBase is
         return netAssetValuePerShare;
     }
 
-
     /**
      * @dev Call once, when NAV is 0 (position size == 0).
      * @param shareAmount           Amount of shares to purchase.
@@ -112,6 +114,7 @@ contract FundBase is
         external
         payable
         whenNotPaused
+        whenNotStopped
         nonReentrant
     {
         require(shareAmount > 0, "share amount must be greater than 0");
@@ -136,6 +139,7 @@ contract FundBase is
         external
         payable
         whenNotPaused
+        whenNotStopped
         nonReentrant
     {
         require(minimalShareAmount > 0, "share amount must be greater than 0");
@@ -170,36 +174,90 @@ contract FundBase is
         emit Purchase(msg.sender, netAssetValuePerShare, shareAmount);
     }
 
-    function requestToRedeem(uint256 shareAmount, uint256 slippage)
+    /**
+     * @notice  Request to redeem share for collateral with a slippage.
+     *          An off-chain keeper will bid the underlaying position then push collateral back to redeeming trader.
+     * @param   shareAmount At least amount of shares token received by user.
+     * @param   slippage    NAV price limit to protect trader's dealing price.
+     */
+    function redeem(uint256 shareAmount, uint256 slippage)
         external
         whenNotPaused
+        whenNotStopped
+        nonReentrant
     {
         // steps:
         //  1. update redeeming amount in account
         //  2.. create order, push order to list
-
-        require(shareAmount > 0, "amount must be greater than 0");
-        require(slippage < LibConstant.RATE_UPPERBOUND, "slippage must be less then 100%");
+        require(shareAmount > 0, "share amount must be greater than 0");
+        require(shareAmount <= _balances[msg.sender], "insufficient share to redeem");
         require(_canRedeem(msg.sender), "cannot redeem now");
-
-        // update user account
-        _increaseRedeemingAmount(msg.sender, shareAmount, slippage);
-        emit RequestToRedeem(msg.sender, shareAmount, slippage);
-
-        if (_positionSize() == 0) {
-            _redeem(msg.sender, shareAmount, 0);
+        _setRedeemingSlippage(msg.sender, slippage);
+        if (_positionSize() > 0) {
+            _increaseRedeemingShareBalance(msg.sender, shareAmount);
+        } else {
+            _redeemImmediately(msg.sender, shareAmount);
         }
+        emit Redeem(msg.sender, shareAmount, slippage);
     }
 
-    function cancelRedeeming(uint256 shareAmount)
+    /**
+     * @notice  Like 'redeem' method but only available on stopped status.
+     * @param   shareAmount At least amount of shares token received by user.
+     */
+    function settle(uint256 shareAmount)
+        external
+        whenNotPaused
+        whenStopped
+        nonReentrant
+    {
+        // steps:
+        //  1. update redeeming amount in account
+        //  2.. create order, push order to list
+        require(shareAmount > 0, "share amount must be greater than 0");
+        require(shareAmount <= _balances[msg.sender], "insufficient share to redeem");
+        require(_redeemingBalances[_self()] == 0, "cannot redeem now");
+        _redeemImmediately(msg.sender, shareAmount);
+        emit Settle(msg.sender, shareAmount);
+    }
+
+    /**
+     * @notice  Withdraw redeemed collateral.
+     * @param   collateralAmount    Amount of collateral to withdraw.
+     */
+    function withdrawCollateral(uint256 collateralAmount)
+        external
+        nonReentrant
+        whenNotPaused
+    {
+        _decreaseWithdrawableCollateral(msg.sender, collateralAmount);
+        _pushCollateralToUser(payable(msg.sender), collateralAmount);
+        emit Withdraw(msg.sender, collateralAmount);
+    }
+
+    /**
+     * @notice  Cancel redeeming share.
+     * @param   shareAmount Amount of redeeming share to cancel.
+     */
+    function cancelRedeem(uint256 shareAmount)
         external
         whenNotPaused
     {
+        require(shareAmount > 0, "share amount must be greater than 0");
         require(_redeemingBalances[msg.sender] > 0, "no share to redeem");
-        _decreaseRedeemingAmount(msg.sender, shareAmount);
-        emit CancelRedeeming(msg.sender, shareAmount);
+        _decreaseRedeemingShareBalance(msg.sender, shareAmount);
+        emit CancelRedeem(msg.sender, shareAmount);
     }
 
+    /**
+     * @notice  Take underlaying position from fund. Size of position to bid is measured by the ratio
+     *          of share amount and total share supply.
+     * @dev     size = position size * share / total share supply.
+     * @param   trader      Amount of collateral to withdraw.
+     * @param   shareAmount Amount of share balance to bid.
+     * @param   priceLimit  Price limit of dealing price. Calculated differently for long and short.
+     * @param   side        Side of underlaying position held by fund margin account.
+     */
     function bidRedeemingShare(
         address trader,
         uint256 shareAmount,
@@ -207,63 +265,71 @@ contract FundBase is
         LibTypes.Side side
     )
         external
+        nonReentrant
         whenNotPaused
+        whenNotStopped
     {
+        require(shareAmount > 0, "share amount must be greater than 0");
         require(shareAmount <= _redeemingBalances[trader], "insufficient shares to bid");
-        uint256 slippage = _redeemingSlippage[trader];
+        // update fee status
+        ( uint256 netAssetValue, uint256 fee ) = _netAssetValueAndFee();
+        _updateFeeState(fee, netAssetValue.wdiv(_totalSupply));
+        // bid shares
+        uint256 slippage = _redeemingSlippages[trader];
         uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, slippage);
-        _redeem(trader, shareAmount, slippageLoss);
+        // this is the finally collateral returned to user.
+        // calculate collateral to return
+        uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, _totalSupply).sub(slippageLoss);
+        // withdraw collateral from perp
+        _pullCollateralFromPerpetual(collateralToReturn);
+        _increaseWithdrawableCollateral(trader, collateralToReturn);
+        _decreaseRedeemingShareBalance(trader, shareAmount);
+        _burnShareBalance(trader, shareAmount);
+        // emit Redeem(trader, shareAmount, collateralToReturn);
+        emit BidShare(msg.sender, trader, shareAmount, slippage);
     }
 
     /**
-     * @dev Redeem shares.
+     * @notice  Almost be the same with bidRedeemingShare but only works when stopped.
+     * @param   shareAmount Amount of share balance to bid.
+     * @param   priceLimit  Price limit of dealing price. Calculated differently for long and short.
+     * @param   side        Side of underlaying position held by fund margin account.
      */
-    function _redeem(address trader, uint256 shareAmount, uint256 slippageLoss)
-        internal
-        nonReentrant
-    {
-        // steps:
-        //  1. calculate fee.
-        //  2. caluclate fee excluded nav
-        //  3. collateral return = nav * share amount
-        //  4. push collateral -> user
-        //  4. push fee -> maintainer
-        // 6. streaming fee + performance fee -> maintainer
-
-        require(shareAmount > 0, "amount must be greater than 0");
-        // - calculate decreased amount
-        (
-            uint256 netAssetValuePerShare,
-            uint256 feeBeforeRedeem
-        ) = _netAssetValuePerShareAndFee();
-        // note the loss amount is caused by slippage set by user.
-        uint256 collateralToReturn = netAssetValuePerShare.wmul(shareAmount).sub(slippageLoss);
-        // pay share
-        _decreaseRedeemingAmount(trader, shareAmount);
-        _burnShareBalance(trader, shareAmount);
-        // get collateral
-        _pullCollateralFromPerpetual(collateralToReturn);
-        _pushCollateralToUser(payable(trader), collateralToReturn);
-        // - decrease total supply
-        _updateFeeState(feeBeforeRedeem, netAssetValuePerShare);
-
-        emit Redeem(trader, netAssetValuePerShare, shareAmount);
-    }
-
     function bidSettledShare(
         uint256 shareAmount,
         uint256 priceLimit,
         LibTypes.Side side
     )
         external
+        nonReentrant
+        whenNotPaused
         whenStopped
     {
-        // order
-        address fundAccount = _self();
-        uint256 slippage = _redeemingSlippage[fundAccount];
-        _bidShare(shareAmount, priceLimit, side, slippage);
-        _decreaseRedeemingAmount(fundAccount, shareAmount);
-        _burnShareBalance(fundAccount, shareAmount);
+        address account = _self();
+        require(shareAmount > 0, "share amount must be greater than 0");
+        uint256 redeemingShareBalance = _redeemingBalances[account];
+        require(shareAmount <= redeemingShareBalance, "insufficient shares to bid");
+
+        // ( uint256 netAssetValue, ) = _netAssetValueAndFee();
+        uint256 slippage = _redeemingSlippages[account];
+        uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, slippage);
+        // uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, _totalSupply).sub(slippageLoss);
+        // _pullCollateralFromPerpetual(collateralToReturn);
+        _decreaseRedeemingShareBalance(account, shareAmount);
+        // emit Settle(shareAmount);
+        emit BidShare(msg.sender, account, shareAmount, slippageLoss);
     }
 
+
+    function _redeemImmediately(address account, uint256 shareAmount)
+        internal
+        returns (uint256 collateralToReturn)
+    {
+        ( uint256 netAssetValue, uint fee ) = _netAssetValueAndFee();
+        _updateFeeState(fee, netAssetValue.wdiv(_totalSupply));
+        collateralToReturn = netAssetValue.wfrac(shareAmount, _totalSupply);
+        _burnShareBalance(account, shareAmount);
+        _pullCollateralFromPerpetual(collateralToReturn);
+        _pushCollateralToUser(payable(account), collateralToReturn);
+    }
 }

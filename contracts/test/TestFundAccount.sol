@@ -66,16 +66,22 @@ contract TestFundAccount is
         return _canRedeem(trader);
     }
 
-    function increaseRedeemingAmountPublic(address trader, uint256 shareAmount, uint256 slippage)
+    function increaseRedeemingShareBalancePublic(address trader, uint256 shareAmount)
         public
     {
-        _increaseRedeemingAmount(trader, shareAmount, slippage);
+        _increaseRedeemingShareBalance(trader, shareAmount);
     }
 
-    function decreaseRedeemingAmountPublic(address trader, uint256 shareAmount)
+    function decreaseRedeemingShareBalancePublic(address trader, uint256 shareAmount)
         public
     {
-        _decreaseRedeemingAmount(trader, shareAmount);
+        _decreaseRedeemingShareBalance(trader, shareAmount);
+    }
+
+    function setRedeemingSlippagePublic(address trader, uint256 slippage)
+        public
+    {
+        _setRedeemingSlippage(trader, slippage);
     }
 
     function currentTime()
@@ -83,7 +89,7 @@ contract TestFundAccount is
         view
         returns (uint256)
     {
-        return LibUtils.currentTime();
+        return _now();
     }
 
     function doNothing()

@@ -28,7 +28,6 @@ contract FundStorage is
     uint256 internal _lastFeeTime;
     // configurations
     uint256 internal _capacity;
-    uint256 internal _shuttingDownSlippage;
     uint256 internal _drawdownHighWaterMark;
     uint256 internal _leverageHighWaterMark;
     uint256 internal _redeemingLockPeriod;
@@ -38,8 +37,9 @@ contract FundStorage is
 
     // accounts
     mapping(address => uint256) internal _redeemingBalances;
-    mapping(address => uint256) internal _redeemingSlippage;
-    mapping(address => uint256) internal _lastPurchaseTime;
+    mapping(address => uint256) internal _redeemingSlippages;
+    mapping(address => uint256) internal _lastPurchaseTimes;
+    mapping(address => uint256) internal _withdrawableCollaterals;
 
     // dependencies
     IPerpetual internal _perpetual;
@@ -100,14 +100,22 @@ contract FundStorage is
     }
 
     function redeemingSlippage(address account) external view returns (uint256) {
-        return _redeemingSlippage[account];
+        return _redeemingSlippages[account];
     }
 
     function lastPurchaseTime(address account) external view returns (uint256) {
-        return _lastPurchaseTime[account];
+        return _lastPurchaseTimes[account];
+    }
+
+    function withdrawableCollateral(address account) external view returns (uint256) {
+        return _withdrawableCollaterals[account];
     }
 
     function manager() external view returns (address) {
         return _manager;
+    }
+
+    function _now() internal view virtual returns (uint256) {
+        return block.timestamp;
     }
 }

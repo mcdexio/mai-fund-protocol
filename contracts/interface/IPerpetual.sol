@@ -10,6 +10,8 @@ interface IPerpetual {
 
     function getMarginAccount(address trader) external view returns (LibTypes.MarginAccount memory);
 
+    function getGovernance() external view returns (LibTypes.PerpGovernanceConfig memory);
+
     function status() external view returns (LibTypes.Status);
 
     function paused() external view returns (bool);

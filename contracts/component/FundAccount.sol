@@ -2,7 +2,8 @@
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../lib/LibUtils.sol";
+
+import "../lib/LibConstant.sol";
 import "../storage/FundStorage.sol";
 
 /**
@@ -18,6 +19,9 @@ contract FundAccount is FundStorage {
     event DecreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
     event MintShareBalance(address indexed trader, uint256 shareAmount);
     event BurnShareBalance(address indexed trader, uint256 shareAmount);
+    event IncreaseWithdrawableCollateral(address indexed trader, uint256 amount);
+    event DecreaseWithdrawableCollateral(address indexed trader, uint256 amount);
+    event SetRedeemingSlippage(address indexed trader, uint256 slippage);
 
     /**
      * @notice  Share balance to redeem.
@@ -44,9 +48,7 @@ contract FundAccount is FundStorage {
     function _increaseShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        require(shareAmount > 0, "share amount must be greater than 0");
         _balances[trader] = _balances[trader].add(shareAmount);
-
         emit IncreaseShareBalance(trader, shareAmount);
     }
 
@@ -58,10 +60,8 @@ contract FundAccount is FundStorage {
     function _decreaseShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        require(shareAmount > 0, "share amount must be greater than 0");
         // update balance
         _balances[trader] = _balances[trader].sub(shareAmount, "insufficient share balance");
-
         emit DecreaseShareBalance(trader, shareAmount);
     }
 
@@ -75,7 +75,7 @@ contract FundAccount is FundStorage {
         internal
     {
         _increaseShareBalance(trader, shareAmount);
-        _lastPurchaseTime[trader] = LibUtils.currentTime();
+        _lastPurchaseTimes[trader] = _now();
         _totalSupply = _totalSupply.add(shareAmount);
 
         emit MintShareBalance(trader, shareAmount);
@@ -90,7 +90,7 @@ contract FundAccount is FundStorage {
         internal
     {
         _decreaseShareBalance(trader, shareAmount);
-        _totalSupply = _totalSupply.sub(shareAmount);
+        _totalSupply = _totalSupply.sub(shareAmount, "insufficient share balance");
 
         emit BurnShareBalance(trader, shareAmount);
     }
@@ -109,7 +109,23 @@ contract FundAccount is FundStorage {
         if (_redeemingLockPeriod == 0) {
             return true;
         }
-        return _lastPurchaseTime[trader].add(_redeemingLockPeriod) < LibUtils.currentTime();
+        return _lastPurchaseTimes[trader].add(_redeemingLockPeriod) < _now();
+    }
+
+    /**
+     * @notice  Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
+     * @param   trader      Address of share owner.
+     * @param   slippage    Slipage percent of redeeming rate.
+     */
+    function _setRedeemingSlippage(address trader, uint256 slippage)
+        internal
+    {
+        if (slippage == _redeemingSlippages[trader]) {
+            return;
+        }
+        require(slippage < LibConstant.RATE_UPPERBOUND, "slippage must be less then 100%");
+        _redeemingSlippages[trader] = slippage;
+        emit SetRedeemingSlippage(trader, slippage);
     }
 
     /**
@@ -117,17 +133,13 @@ contract FundAccount is FundStorage {
      * @dev     Slippage will overwrite previous setting.
      * @param   trader      Address of share owner.
      * @param   shareAmount Amount of share to redeem.
-     * @param   slippage    Slipage percent of redeeming price, fixed float in decimals 18.
      */
-    function _increaseRedeemingAmount(address trader, uint256 shareAmount, uint256 slippage)
+    function _increaseRedeemingShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        require(shareAmount > 0, "share amount must be greater than 0");
         require(shareAmount <= _redeemableShareBalance(trader), "no enough share to redeem");
         // set max amount of redeeming amount
         _redeemingBalances[trader] = _redeemingBalances[trader].add(shareAmount);
-        _redeemingSlippage[trader] = slippage;
-
         emit IncreaseRedeemingShareBalance(trader, shareAmount);
     }
 
@@ -136,14 +148,37 @@ contract FundAccount is FundStorage {
      * @param   trader       Address of share owner.
      * @param   shareAmount   Amount of share to redeem.
      */
-    function _decreaseRedeemingAmount(address trader, uint256 shareAmount)
+    function _decreaseRedeemingShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        require(shareAmount > 0, "share amount must be greater than 0");
         // set max amount of redeeming amount
         _redeemingBalances[trader] = _redeemingBalances[trader]
             .sub(shareAmount, "insufficient redeeming share balance");
-
         emit DecreaseRedeemingShareBalance(trader, shareAmount);
+    }
+
+    /**
+     * @notice  Increase collateral amount which can be withdraw by user.
+     * @param   trader      Address of share owner.
+     * @param   amount      Amount of collateral to increase.
+     */
+    function _increaseWithdrawableCollateral(address trader, uint256 amount)
+        internal
+    {
+        _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader].add(amount);
+        emit IncreaseWithdrawableCollateral(trader, amount);
+    }
+
+    /**
+     * @notice  Decrease collateral amount which can be withdraw by user.
+     * @param   trader      Address of share owner.
+     * @param   amount      Amount of collateral to decrease.
+     */
+    function _decreaseWithdrawableCollateral(address trader, uint256 amount)
+        internal
+    {
+        _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader]
+            .sub(amount, "insufficient withdrawable collateral");
+        emit DecreaseWithdrawableCollateral(trader, amount);
     }
 }

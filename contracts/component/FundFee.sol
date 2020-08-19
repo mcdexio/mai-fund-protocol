@@ -4,7 +4,6 @@ pragma solidity 0.6.10;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../lib/LibConstant.sol";
 import "../lib/LibMathEx.sol";
-import "../lib/LibUtils.sol";
 
 import "../storage/FundStorage.sol";
 
@@ -47,7 +46,7 @@ contract FundFee is FundStorage {
             return 0;
         }
         uint256 feePerYear = netAssetValue.wmul(_streamingFeeRate);
-        uint256 timeElapsed = LibUtils.currentTime().sub(_lastFeeTime);
+        uint256 timeElapsed = _now().sub(_lastFeeTime);
         return feePerYear.wfrac(timeElapsed, LibConstant.SECONDS_PER_YEAR);
     }
 
@@ -80,10 +79,13 @@ contract FundFee is FundStorage {
     function _updateFeeState(uint256 fee, uint256 netAssetValuePerShare)
         internal
     {
+        if (stopped()) {
+            return;
+        }
         if (netAssetValuePerShare > _maxNetAssetValuePerShare) {
             _maxNetAssetValuePerShare = netAssetValuePerShare;
         }
         _totalFeeClaimed = _totalFeeClaimed.add(fee);
-        _lastFeeTime = LibUtils.currentTime();
+        _lastFeeTime = _now();
     }
 }

@@ -2,11 +2,11 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "../trader/robot/strategy/RSITrendingStrategy.sol";
+import "../oracle/RSITrendingStrategy.sol";
 
 contract TestRSITrendingStrategy is RSITrendingStrategy {
 
-    uint256 internal _timestamp;
+    uint256 private _mockTimestamp;
 
     constructor(
         address priceReader,
@@ -22,11 +22,11 @@ contract TestRSITrendingStrategy is RSITrendingStrategy {
     }
 
     function setTimestamp(uint256 newTimestamp) external {
-        _timestamp = newTimestamp;
+        _mockTimestamp = newTimestamp;
     }
 
-    function timestamp() internal virtual override view returns (uint256) {
-        return _timestamp;
+    function _now() internal virtual override view returns (uint256) {
+        return _mockTimestamp;
     }
 
     function lastSegment() external view returns (uint256) {

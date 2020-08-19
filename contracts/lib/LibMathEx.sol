@@ -37,16 +37,6 @@ library LibMathEx {
         r = x.mul(y).div(z);
     }
 
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts with custom message when dividing by zero.
-     * see https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.0.1/contracts/math/SafeMath.sol#L146
-     */
-    function mod(uint256 x, uint256 m) internal pure returns (uint256) {
-        require(m != 0, "mod by zero");
-        return x % m;
-    }
-
     function abs(int256 x) internal pure returns (int256) {
         return x >= 0? x: -x;
     }

@@ -2,7 +2,6 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "../../lib/LibUtils.sol";
 import "../../storage/FundStorage.sol";
 import "../FundBase.sol";
 import "../FundManagement.sol";
@@ -16,30 +15,41 @@ contract SocialTraderFund is
 
     /**
      * @dev Calculate incentive fee (streaming fee + performance fee)
-     * @return fee  IncentiveFee gain since last claiming.
+     * @return totalFee IncentiveFee gain since last claiming.
      */
-    function incentiveFee() external returns (uint256 fee) {
-        (, fee) = _netAssetValuePerShareAndFee();
-        fee = fee.add(_totalFeeClaimed);
+    function incentiveFee()
+        external
+        returns (uint256 totalFee)
+    {
+        (, totalFee) = _netAssetValueAndFee();
+        totalFee = totalFee.add(_totalFeeClaimed);
     }
 
-    function withdrawIncentiveFee() external nonReentrant {
+    /**
+     * @dev     In extreme case, there will not be enough collateral (may be liquidated) to withdraw.
+     * @param   collateralAmount    Amount of collateral to withdraw.
+     */
+    function withdrawIncentiveFee(uint256 collateralAmount)
+        external
+        nonReentrant
+    {
         claimIncentiveFee();
         require(_totalFeeClaimed > 0, "no withdrawable fee");
-        _pullCollateralFromPerpetual(_totalFeeClaimed);
-        _pushCollateralToUser(payable(_manager), _totalFeeClaimed);
-        emit WithdrawIncentiveFee(_manager, _totalFeeClaimed);
-        _totalFeeClaimed = 0;
+        require(collateralAmount <= _totalFeeClaimed, "insufficient fee to withdraw");
+        _totalFeeClaimed = _totalFeeClaimed.sub(collateralAmount);
+        _pullCollateralFromPerpetual(collateralAmount);
+        _pushCollateralToUser(payable(_manager), collateralAmount);
+        emit WithdrawIncentiveFee(_manager, collateralAmount);
     }
 
     /**
      * @dev Claim incentive fee (streaming fee + performance fee).
      */
     function claimIncentiveFee() public {
-        if (now == _lastFeeTime) {
+        if (_now() == _lastFeeTime || _totalSupply == 0) {
             return;
         }
-        (uint256 netAssetValuePerShare, uint256 fee) = _netAssetValuePerShareAndFee();
-        _updateFeeState(fee, netAssetValuePerShare);
+        (uint256 netAssetValue, uint256 fee) = _netAssetValueAndFee();
+        _updateFeeState(fee, netAssetValue.wdiv(_totalSupply));
     }
 }
