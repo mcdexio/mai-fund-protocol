@@ -72,7 +72,7 @@ contract FundProperty is
         returns (uint256)
     {
         int256 marginBalance = _perpetual.marginBalance(_self());
-        require(marginBalance > 0, "marginBalance must be greater than 0");
+        require(marginBalance >= 0, "marginBalance must be possitive");
         return marginBalance.toUint256();
     }
 
@@ -89,12 +89,14 @@ contract FundProperty is
         uint256 totalAssetValue = _totalAssetValue();
         // claimed fee excluded
         netAssetValue = totalAssetValue.sub(_totalFeeClaimed, "total asset value less than fee");
-        // streaming totalFee, performance totalFee excluded
-        uint256 streamingFee = _streamingFee(netAssetValue);
-        netAssetValue = netAssetValue.sub(streamingFee, "incorrect streaming fee rate");
-        uint256 performanceFee = _performanceFee(netAssetValue);
-        netAssetValue = netAssetValue.sub(performanceFee, "incorrect performance fee rate");
-        managementFee = streamingFee.add(performanceFee);
+        if (!stopped() || _totalSupply == 0) {
+            // streaming totalFee, performance totalFee excluded
+            uint256 streamingFee = _streamingFee(netAssetValue);
+            netAssetValue = netAssetValue.sub(streamingFee, "incorrect streaming fee rate");
+            uint256 performanceFee = _performanceFee(netAssetValue);
+            netAssetValue = netAssetValue.sub(performanceFee, "incorrect performance fee rate");
+            managementFee = streamingFee.add(performanceFee);
+        }
     }
 
     /**

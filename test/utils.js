@@ -41,6 +41,23 @@ const Side = {
     LONG: 2,
 }
 
+const approximatelyEqual = (a, b, epsilon = 1000) => {
+    var _a = new BigNumber(a);
+    var _b = new BigNumber(b);
+    return _a.minus(_b).abs().toFixed() <= epsilon;
+}
+
+const checkEtherBalance = async (doSomething, account, balanceDelta) => {
+    var prev = new BigNumber(await web3.eth.getBalance(account));
+    // console.log(prev.toFixed());
+    var tx = await doSomething;
+    var gas = new BigNumber(tx.receipt.cumulativeGasUsed).times(new BigNumber("20000000000"));
+    var post = new BigNumber(await web3.eth.getBalance(account));
+    // console.log(post.toFixed());
+    assert.equal(prev.minus(post).minus(gas).toFixed(), balanceDelta);
+}
+
+
 const addLeadingZero = (str, length) => {
     let len = str.length;
     return '0'.repeat(length - len) + str;
@@ -318,4 +335,6 @@ module.exports = {
     Side,
     shouldThrows,
     uintToBytes32,
+    approximatelyEqual,
+    checkEtherBalance
 };

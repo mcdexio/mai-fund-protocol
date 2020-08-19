@@ -23,4 +23,15 @@ library LibTypes {
         int256 entryFundingLoss;
         int256 cashBalance;
     }
+
+    struct PerpGovernanceConfig {
+        uint256 initialMarginRate;
+        uint256 maintenanceMarginRate;
+        uint256 liquidationPenaltyRate;
+        uint256 penaltyFundRate;
+        int256 takerDevFeeRate;
+        int256 makerDevFeeRate;
+        uint256 lotSize;
+        uint256 tradingLotSize;
+    }
 }

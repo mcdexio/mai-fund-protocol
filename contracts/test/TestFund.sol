@@ -20,4 +20,8 @@ contract TestFund is
     function administrator() public view override virtual returns (address) {
         return _owner;
     }
+
+    function setRedeemingSlippage(address account, uint256 slippage) public {
+        _redeemingSlippages[account] = slippage;
+    }
 }

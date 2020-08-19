@@ -4,9 +4,8 @@ pragma solidity 0.6.10;
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../../../lib/LibConstant.sol";
-import "../../../lib/LibMathEx.sol";
-import "../../../lib/LibUtils.sol";
+import "../lib/LibConstant.sol";
+import "../lib/LibMathEx.sol";
 
 interface IPriceSeriesRetriever {
     function retrievePriceSeries(
@@ -40,7 +39,7 @@ contract RSIReader {
         require(numPeriod > 0, "num period must be greater than 0");
 
         _period = period;
-        _numPeriod = _numPeriod;
+        _numPeriod = numPeriod;
         _priceSeriesRetriever = IPriceSeriesRetriever(priceSeriesRetriever);
         _totalPeriod = period.mul(numPeriod);
     }
@@ -56,14 +55,14 @@ contract RSIReader {
     function getCurrentRSI() public view returns (uint256) {
         uint256[] memory priceSeries = _priceSeriesRetriever.retrievePriceSeries(
             _period,
-            timestamp().sub(_totalPeriod),
-            timestamp()
+            _now().sub(_totalPeriod),
+            _now()
         );
         require(priceSeries.length > 0, "no price data");
-        return calculateRSI(priceSeries);
+        return _calculateRSI(priceSeries);
     }
 
-    function calculateRSI(uint256[] memory prices) internal pure returns (uint256) {
+    function _calculateRSI(uint256[] memory prices) internal pure returns (uint256) {
         require(prices.length > 0, "no price to be calculated");
         uint256 accumulativeGain;
         uint256 accumulativeLoss;
@@ -86,7 +85,7 @@ contract RSIReader {
             .wdiv(accumulativeGain.add(accumulativeLoss));
     }
 
-    function timestamp() internal virtual view returns (uint256) {
-        return LibUtils.currentTime();
+    function _now() internal view virtual returns (uint256) {
+        return block.timestamp;
     }
 }

@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "../lib/LibEnumerableMap.sol";
-import "../lib/LibUtils.sol";
 
 interface IPriceFeeder {
     function price() external view returns (uint256 lastPrice, uint256 lastTimestamp);

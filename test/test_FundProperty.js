@@ -82,10 +82,6 @@ contract('FundProperty', accounts => {
         assert.equal(drawdown, 0);
     });
 
-    it('getTotalAssetValue', async () => {
-        await shouldThrows(property.getTotalAssetValuePublic.call(), "marginBalance must be greater than 0");
-    });
-
     it('getNetAssetValueAndFeePublic', async () => {
         await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});

@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "../lib/LibMathEx.sol";
 import "../lib/LibTypes.sol";
 import "../storage/FundStorage.sol";
 import "../component/FundProperty.sol";
@@ -13,6 +14,7 @@ contract FundAuction is
     FundProperty
 {
     using SafeMath for uint256;
+    // using LibMathEx for uint256;
     using LibTypes for LibTypes.Side;
 
     /**
@@ -31,10 +33,14 @@ contract FundAuction is
     {
         // trading price and loss amount equivalent to slippage
         LibTypes.MarginAccount memory marginAccount = _marginAccount();
+        if (marginAccount.size == 0) {
+            return 0;
+        }
         require(marginAccount.side == side, "unexpected side");
-        // TODO: align to tradingLotSize
+        // redeeming amount aligned to lotSize.
+        uint256 lotSize = _perpetual.getGovernance().lotSize;
         uint256 redeemAmount = marginAccount.size.wfrac(shareAmount, _totalSupply);
-        // LibTypes.Side redeemingSide = marginAccount.side.counterSide();
+        redeemAmount = redeemAmount.sub(redeemAmount.mod(lotSize));
         (
             uint256 tradingPrice,
             uint256 priceLoss
@@ -66,6 +72,12 @@ contract FundAuction is
         tradingPrice = side == LibTypes.Side.LONG? markPrice.sub(priceLoss): markPrice.add(priceLoss);
     }
 
+    /**
+     * @notice Validate bidding price for given side and pricelimit.
+     * @param   side        Bidding side.
+     * @param   price       Bidding price.
+     * @param   priceLimit  Limit of bidding price.
+     */
     function _validateBiddingPrice(LibTypes.Side side, uint256 price, uint256 priceLimit) internal pure {
         if (side == LibTypes.Side.LONG) {
             require(price <= priceLimit, "price too low for long");

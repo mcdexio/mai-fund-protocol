@@ -34,16 +34,16 @@ contract TestFundAuction is FundAuction {
         _totalSupply = totalSupply;
     }
 
-    function setRedeemingBalances(address account, uint256 amount) 
+    function setRedeemingBalances(address account, uint256 amount)
         external
     {
         _redeemingBalances[account] = amount;
     }
 
-    function setRedeemingSlippage(address account, uint256 slippage) 
+    function setRedeemingSlippage(address account, uint256 slippage)
         external
     {
-        _redeemingSlippage[account] = slippage;
+        _redeemingSlippages[account] = slippage;
     }
 
     function bidShare(
@@ -51,7 +51,7 @@ contract TestFundAuction is FundAuction {
         uint256 priceLimit,
         LibTypes.Side side,
         uint256 slippage
-    ) 
+    )
         external
         returns (uint256 slippageValue)
     {
@@ -66,8 +66,8 @@ contract TestFundAuction is FundAuction {
         return _biddingPrice(side, slippage);
     }
 
-    function validateBiddingPrice(LibTypes.Side side, uint256 price, uint256 priceLimit) 
-        external 
+    function validateBiddingPrice(LibTypes.Side side, uint256 price, uint256 priceLimit)
+        external
         pure
     {
         return _validateBiddingPrice(side, price, priceLimit);

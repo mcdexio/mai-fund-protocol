@@ -1,4 +1,5 @@
-const { toBytes32, fromBytes32, uintToBytes32, toWad, fromWad } = require("./utils.js");
+const BN = require("bn.js");
+const { toBytes32, fromBytes32, uintToBytes32, toWad, fromWad, shouldThrows } = require("./utils.js");
 const { buildOrder } = require("./order.js");
 const { getPerpetualComponents } = require("./perpetual.js");
 
@@ -37,6 +38,49 @@ contract('TestRSIReader', accounts => {
         }
     }
 
+    const assertN = async (result, expect) => {
+        assert.equal(result.length, expect.length);
+        for (var i = 0; i < expect.length; i++) {
+            assert.equal(result[i], expect[i]);
+        }
+    }
+
+    it("property", async () => {
+        assert.equal(await reader.period(), 3600);
+        assert.equal(await reader.numPeriod(), 3);
+    });
+
+    it("constructor", async () => {
+        await shouldThrows(TestRSIReader.new("0x0000000000000000000000000000000000000000", 3600, 3), "invalid price reader");
+        await shouldThrows(TestRSIReader.new("0x0000000000000000000000000000000000000000", 3600, 3), "invalid price reader");
+        await shouldThrows(TestRSIReader.new(bucket.address, 0, 3), "period must be greater than 0");
+        await shouldThrows(TestRSIReader.new(bucket.address, 3600, 0), "num period must be greater than 0");
+    });
+
+    it("calculateRSI", async () => {
+        // 100 100 100 100  50  11
+        var rsi = await reader.calculateRSI([
+            toWad(10), toWad(10), toWad(11)
+        ]);
+        assert.equal(fromWad(rsi), 100);
+
+        var rsi = await reader.calculateRSI([
+            toWad(10), toWad(10), toWad(11), toWad(12)
+        ]);
+        assert.equal(fromWad(rsi), 100);
+
+        var rsi = await reader.calculateRSI([
+            toWad(10), toWad(11), toWad(12), toWad(10)
+        ]);
+        assert.equal(fromWad(rsi), 50);
+
+        var rsi = await reader.calculateRSI([
+            toWad(11), toWad(12), toWad(10), toWad(4)
+        ]);
+        assert.equal(fromWad(rsi), 11.111111111111111111);
+
+    })
+
     it("set value", async () => {
         // 10, 1595174400
         // 10, 1595178000
@@ -60,15 +104,16 @@ contract('TestRSIReader', accounts => {
         // assert.equal(await reader.numPeriod(), 3);
 
         await reader.setTimestamp(1595185200);
-        console.log(await reader.retrieveData());
+        assertN(await reader.retrieveData(), [10, 10, 11, 12]);
         assert.equal(fromWad(await reader.getCurrentRSI()), 100);
 
         await reader.setTimestamp(1595188800);
-        console.log(await reader.retrieveData());
+        // console.log(await reader.retrieveData());
+        assertN(await reader.retrieveData(), [10, 11, 12, 10]);
         assert.equal(fromWad(await reader.getCurrentRSI()), 50);
 
         await reader.setTimestamp(1595192400);
-        console.log(await reader.retrieveData());
+        assertN(await reader.retrieveData(), [11, 12, 10, 4]);
         assert.equal(fromWad(await reader.getCurrentRSI()), 11.111111111111111111);
     });
 });

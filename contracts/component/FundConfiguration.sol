@@ -2,7 +2,8 @@
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../lib/LibUtils.sol";
+
+import "../lib/LibConstant.sol";
 import "../storage/FundStorage.sol";
 
 contract FundConfiguration is FundStorage {
