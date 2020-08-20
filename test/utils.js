@@ -302,7 +302,7 @@ const printFunding = async (amm, perpetual) => {
 const shouldThrows = async (fn, msg) => {
     try {
         await fn;
-        throw new AssertionError("should throw expected msg but acturally not");
+        throw new AssertionError("should throw expected msg but actually not");
     } catch (e) {
         assert.ok(e.message.includes(msg), "expect: [ " + msg + " ], got: [ " + e.message + " ]");
     }

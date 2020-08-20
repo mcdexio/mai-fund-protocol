@@ -32,8 +32,9 @@ contract SocialTraderFund is
     function withdrawIncentiveFee(uint256 collateralAmount)
         external
         nonReentrant
+        whenNotPaused
     {
-        claimIncentiveFee();
+        _claimIncentiveFee();
         require(_totalFeeClaimed > 0, "no withdrawable fee");
         require(collateralAmount <= _totalFeeClaimed, "insufficient fee to withdraw");
         _totalFeeClaimed = _totalFeeClaimed.sub(collateralAmount);
@@ -45,7 +46,19 @@ contract SocialTraderFund is
     /**
      * @dev Claim incentive fee (streaming fee + performance fee).
      */
-    function claimIncentiveFee() public {
+    function claimIncentiveFee()
+        public
+        whenNotPaused
+    {
+        _claimIncentiveFee();
+    }
+
+    /**
+     * @dev Claim incentive fee (streaming fee + performance fee).
+     */
+    function _claimIncentiveFee()
+        internal
+    {
         if (_now() == _lastFeeTime || _totalSupply == 0) {
             return;
         }
