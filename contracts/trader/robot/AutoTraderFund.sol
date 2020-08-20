@@ -43,6 +43,8 @@ contract AutoTraderFund is
 
     function rebalance(uint256 maxPositionAmount, uint256 limitPrice, LibTypes.Side side)
         external
+        whenNotPaused
+        whenNotStopped
     {
         require(maxPositionAmount > 0, "position amount must greater than 0");
         require(needRebalancing(), "no need to rebalance");

@@ -108,70 +108,67 @@ contract('FundSocialTrader', accounts => {
         console.log("next, we should", toSide(side), "for", fromWad(amount));
     }
 
-    // it("normal case - user", async () => {
+    it("normal case - user", async () => {
 
-    //     await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
-    //     assert.equal(fromWad(await fund.balanceOf(user1)), 1);
+        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-    //     await fund.purchase(toWad(1), toWad(200), { from: user2, value: toWad(200) });
-    //     assert.equal(fromWad(await fund.balanceOf(user2)), 1);
+        await fund.purchase(toWad(1), toWad(200), { from: user2, value: toWad(200) });
+        assert.equal(fromWad(await fund.balanceOf(user2)), 1);
 
-    //     await fund.setDelegator(deployer.exchange.address);
-    //     const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
-    //     await printFundState(deployer, fund, user2);
+        await fund.setDelegator(deployer.exchange.address);
+        const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
+        await printFundState(deployer, fund, user2);
 
-    //     await deployer.perpetual.deposit(toWad(1000), {from: user3, value: toWad(1000)});
-    //     // +0.3x -> 0.005 * n / 400 = 0.3 -> n = sell 24,000
-    //     // entry = 0.005,
-    //     await delegateTrade(user1, user3, 'buy', toWad(200), toWad(24000));
-    //     await printFundState(deployer, fund, user2);
+        await deployer.perpetual.deposit(toWad(1000), {from: user3, value: toWad(1000)});
+        // +0.3x -> 0.005 * n / 400 = 0.3 -> n = sell 24,000
+        // entry = 0.005,
+        await delegateTrade(user1, user3, 'buy', toWad(200), toWad(24000));
+        await printFundState(deployer, fund, user2);
 
-    //     // console.log(await deployer.perpetual.getMarginAccount(fund.address));
-    //     // console.log(await deployer.perpetual.getMarginAccount(user2));
-    //     // price + 100%
-    //     // 0.005 -> 0.0025 | 0.0025 * 24000 = 60.  60 / 460 = 0.13
-    //     await deployer.setIndex(400);
-    //     await printFundState(deployer, fund, user2);
-    // });
+        // console.log(await deployer.perpetual.getMarginAccount(fund.address));
+        // console.log(await deployer.perpetual.getMarginAccount(user2));
+        // price + 100%
+        // 0.005 -> 0.0025 | 0.0025 * 24000 = 60.  60 / 460 = 0.13
+        await deployer.setIndex(400);
+        await printFundState(deployer, fund, user2);
+    });
 
-    // it("normal case - performance fee", async () => {
+    it("normal case - performance fee", async () => {
 
-    //     await fund.setConfigurationEntry(toBytes32("performanceFeeRate"), toWad(0.5));
+        await fund.setConfigurationEntry(toBytes32("performanceFeeRate"), toWad(0.5));
 
-    //     await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
-    //     assert.equal(fromWad(await fund.balanceOf(user1)), 1);
+        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-    //     await fund.purchase(toWad(1), toWad(200), { from: user2, value: toWad(200) });
-    //     assert.equal(fromWad(await fund.balanceOf(user2)), 1);
+        await fund.purchase(toWad(1), toWad(200), { from: user2, value: toWad(200) });
+        assert.equal(fromWad(await fund.balanceOf(user2)), 1);
 
-    //     await fund.setDelegator(deployer.exchange.address);
-    //     const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
-    //     await printFundState(deployer, fund, user2);
+        await fund.setDelegator(deployer.exchange.address);
+        const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
+        await printFundState(deployer, fund, user2);
 
-    //     await deployer.perpetual.deposit(toWad(1000), {from: user3, value: toWad(1000)});
-    //     // +0.3x -> 0.005 * n / 400 = 0.3 -> n = sell 24,000
-    //     // entry = 0.005,
-    //     await delegateTrade(user1, user3, 'buy', toWad(200), toWad(24000));
-    //     await printFundState(deployer, fund, user2);
+        await deployer.perpetual.deposit(toWad(1000), {from: user3, value: toWad(1000)});
+        // +0.3x -> 0.005 * n / 400 = 0.3 -> n = sell 24,000
+        // entry = 0.005,
+        await delegateTrade(user1, user3, 'buy', toWad(200), toWad(24000));
+        await printFundState(deployer, fund, user2);
 
-    //     // console.log(await deployer.perpetual.getMarginAccount(fund.address));
-    //     // console.log(await deployer.perpetual.getMarginAccount(user2));
-    //     // price + 100%
-    //     // 0.005 -> 0.0025 | 0.0025 * 24000 = 60.  60 / 460 = 0.13
-    //     await deployer.setIndex(400);
-    //     await printFundState(deployer, fund, user2);
-    //     assert.equal(fromWad(await fund.getLeverage.call()), -0.13953488372093023255813953488372);
+        // console.log(await deployer.perpetual.getMarginAccount(fund.address));
+        // console.log(await deployer.perpetual.getMarginAccount(user2));
+        // price + 100%
+        // 0.005 -> 0.0025 | 0.0025 * 24000 = 60.  60 / 460 = 0.13
+        await deployer.setIndex(400);
+        await printFundState(deployer, fund, user2);
+        assert.equal(fromWad(await fund.getLeverage.call()), -0.13953488372093023255813953488372);
 
-    //     await fund.claimIncentiveFee();
-    //     await printFundState(deployer, fund, user2);
-    //     console.log(fromWad(await fund.totalFeeClaimed()));
+        await fund.claimIncentiveFee();
+        await printFundState(deployer, fund, user2);
+        console.log(fromWad(await fund.totalFeeClaimed()));
 
-    //     var b1 = await web3.eth.getBalance(user1);
-    //     await fund.withdrawIncentiveFee();
-    //     console.log(fromWad(await fund.totalFeeClaimed()));
-    //     var b2 = await web3.eth.getBalance(user1);
-    //     console.log(b2, b1);
-    // });
+        await fund.withdrawIncentiveFee(await fund.totalFeeClaimed());
+        assert.equal(fromWad(await fund.totalFeeClaimed()), 0);
+    });
 
 
     const getCalculator = (entranceFeeRate, streamingFeeRate, performanceFeeRate) => {
@@ -235,117 +232,117 @@ contract('FundSocialTrader', accounts => {
         approximatelyEqual(feePost, totalFee, 0);
     }
 
-    // it("normal case - entrance fee + performance fee + streaming fee - 1", async () => {
-    //     await fund.setConfigurationEntry(toBytes32("entranceFeeRate"), toWad(0.05));
-    //     // assume 0.00000001 per sec, 0.00000001 * 86400 * 365 = 0.31536 = 31.536%
-    //     await fund.setConfigurationEntry(toBytes32("streamingFeeRate"), toWad(0.31536));
-    //     await fund.setConfigurationEntry(toBytes32("performanceFeeRate"), toWad(0.2));
+    it("normal case - entrance fee + performance fee + streaming fee - 1", async () => {
+        await fund.setConfigurationEntry(toBytes32("entranceFeeRate"), toWad(0.05));
+        // assume 0.00000001 per sec, 0.00000001 * 86400 * 365 = 0.31536 = 31.536%
+        await fund.setConfigurationEntry(toBytes32("streamingFeeRate"), toWad(0.31536));
+        await fund.setConfigurationEntry(toBytes32("performanceFeeRate"), toWad(0.2));
 
-    //     await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
 
-    //     await fund.setDelegator(deployer.exchange.address);
-    //     const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
-    //     const calr = getCalculator(0.05, 0.31536, 0.2);
+        await fund.setDelegator(deployer.exchange.address);
+        const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
+        const calr = getCalculator(0.05, 0.31536, 0.2);
 
-    //     var t1 = await fund.lastFeeTime();
-    //     // 200 * 1.05 = 210,  21000 / 210 = 100.
-    //     await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
-    //     var t2 = await fund.lastFeeTime();
+        var t1 = await fund.lastFeeTime();
+        // 200 * 1.05 = 210,  21000 / 210 = 100.
+        await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
+        var t2 = await fund.lastFeeTime();
 
-    //     await testPurchaseAmount(calr, 100, 210, user2);
+        await testPurchaseAmount(calr, 100, 210, user2);
 
-    //     await deployer.setIndex(400);
-    //     await testPurchaseAmount(calr, 10, 1000, user2);
+        await deployer.setIndex(400);
+        await testPurchaseAmount(calr, 10, 1000, user2);
 
-    //     await deployer.setIndex(200);
-    //     await testPurchaseAmount(calr, 15, 1000, user2);
+        await deployer.setIndex(200);
+        await testPurchaseAmount(calr, 15, 1000, user2);
 
-    //     await fund.redeem(await fund.balanceOf(user2), toWad(0), { from: user2 });
-    //     await fund.redeem(await fund.balanceOf(user1), toWad(0), { from: user1 });
+        await fund.redeem(await fund.balanceOf(user2), toWad(0), { from: user2 });
+        await fund.redeem(await fund.balanceOf(user1), toWad(0), { from: user1 });
 
-    //     var fee = fromWad(await fund.incentiveFee.call());
-    //     await fund.claimIncentiveFee();
-    //     assert.equal(fromWad(await fund.incentiveFee.call()), fee);
+        var fee = fromWad(await fund.incentiveFee.call());
+        await fund.claimIncentiveFee();
+        assert.equal(fromWad(await fund.incentiveFee.call()), fee);
 
-    //     await fund.withdrawIncentiveFee(await fund.incentiveFee.call());
-    // });
+        await fund.withdrawIncentiveFee(await fund.incentiveFee.call());
+    });
 
-    // it("normal case - entrance fee + performance fee + streaming fee - 2", async () => {
-    //     // await fund.setConfigurationEntry(toBytes32("entranceFeeRate"), toWad(0.05));
-    //     // assume 0.00000001 per sec, 0.00000001 * 86400 * 365 = 0.31536 = 31.536%
-    //     await fund.setConfigurationEntry(toBytes32("streamingFeeRate"), toWad(0.31536));
-    //     // await fund.setConfigurationEntry(toBytes32("performanceFeeRate"), toWad(0.2));
+    it("normal case - entrance fee + performance fee + streaming fee - 2", async () => {
+        // await fund.setConfigurationEntry(toBytes32("entranceFeeRate"), toWad(0.05));
+        // assume 0.00000001 per sec, 0.00000001 * 86400 * 365 = 0.31536 = 31.536%
+        await fund.setConfigurationEntry(toBytes32("streamingFeeRate"), toWad(0.31536));
+        // await fund.setConfigurationEntry(toBytes32("performanceFeeRate"), toWad(0.2));
 
-    //     await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
 
-    //     await fund.setDelegator(deployer.exchange.address);
-    //     const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
-    //     const calr = getCalculator(0.05, 0.31536, 0.2);
+        await fund.setDelegator(deployer.exchange.address);
+        const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
+        const calr = getCalculator(0.05, 0.31536, 0.2);
 
-    //     var t1 = await fund.lastFeeTime();
-    //     // 200 * 1.05 = 210,  21000 / 210 = 100.
-    //     await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
-    //     var t2 = await fund.lastFeeTime();
+        var t1 = await fund.lastFeeTime();
+        // 200 * 1.05 = 210,  21000 / 210 = 100.
+        await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
+        var t2 = await fund.lastFeeTime();
 
-    //     await testPurchaseAmount(calr, 100, 210, user2);
+        await testPurchaseAmount(calr, 100, 210, user2);
 
-    //     await deployer.setIndex(400);
-    //     await testPurchaseAmount(calr, 10, 1000, user2);
+        await deployer.setIndex(400);
+        await testPurchaseAmount(calr, 10, 1000, user2);
 
-    //     await fund.claimIncentiveFee();
-    //     console.log(await deployer.perpetual.getMarginAccount(fund.address));
-    //     console.log(fromWad(await fund.incentiveFee.call()));
+        await fund.claimIncentiveFee();
+        console.log(await deployer.perpetual.getMarginAccount(fund.address));
+        console.log(fromWad(await fund.incentiveFee.call()));
 
-    //     await fund.withdrawIncentiveFee(await fund.incentiveFee.call());
-    //     console.log(await deployer.perpetual.getMarginAccount(fund.address));
-    //     console.log((await fund.lastFeeTime()).toString());
+        await fund.withdrawIncentiveFee(await fund.incentiveFee.call());
+        console.log(await deployer.perpetual.getMarginAccount(fund.address));
+        console.log((await fund.lastFeeTime()).toString());
 
-    //     await deployer.setIndex(200);
-    //     await testPurchaseAmount(calr, 15, 1000, user2);
+        await deployer.setIndex(200);
+        await testPurchaseAmount(calr, 15, 1000, user2);
 
-    //     await fund.redeem(await fund.balanceOf(user2), toWad(0), { from: user2 });
-    //     await fund.redeem(await fund.balanceOf(user1), toWad(0), { from: user1 });
+        await fund.redeem(await fund.balanceOf(user2), toWad(0), { from: user2 });
+        await fund.redeem(await fund.balanceOf(user1), toWad(0), { from: user1 });
 
-    //     console.log((await fund.lastFeeTime()).toString());
-    //     console.log(fromWad(await fund.incentiveFee.call()));
-    // });
+        console.log((await fund.lastFeeTime()).toString());
+        console.log(fromWad(await fund.incentiveFee.call()));
+    });
 
-    // it("normal case - entrance fee + performance fee + streaming fee - 3", async () => {
+    it("normal case - entrance fee + performance fee + streaming fee - 3", async () => {
 
-    //     await fund.setConfigurationEntry(toBytes32("streamingFeeRate"), toWad(0.31536));
+        await fund.setConfigurationEntry(toBytes32("streamingFeeRate"), toWad(0.31536));
 
-    //     // ---------------- 1 ---------------------
-    //     await fund.setTimestamp(1);
-    //     await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        // ---------------- 1 ---------------------
+        await fund.setTimestamp(1);
+        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
 
-    //     await fund.setDelegator(deployer.exchange.address);
-    //     const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
-    //     const calr = getCalculator(0.05, 0.31536, 0.2);
+        await fund.setDelegator(deployer.exchange.address);
+        const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
+        const calr = getCalculator(0.05, 0.31536, 0.2);
 
-    //     // 200 * 1.05 = 210,  21000 / 210 = 100.
-    //     await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
-    //     await testPurchaseAmount(calr, 100, 210, user2);
+        // 200 * 1.05 = 210,  21000 / 210 = 100.
+        await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
+        await testPurchaseAmount(calr, 100, 210, user2);
 
-    //     await deployer.setIndex(400);
-    //     await testPurchaseAmount(calr, 10, 1000, user2);
+        await deployer.setIndex(400);
+        await testPurchaseAmount(calr, 10, 1000, user2);
 
-    //     // ---------------- 5 ---------------------
-    //     await fund.setTimestamp(5);
+        // ---------------- 5 ---------------------
+        await fund.setTimestamp(5);
 
-    //     await fund.claimIncentiveFee();
-    //     var marginBalance = new BigNumber(await deployer.perpetual.marginBalance.call(fund.address));
-    //     assert.equal((await fund.incentiveFee.call()).toString(), marginBalance.times(new BigNumber(0.00000004)).toFixed());
+        await fund.claimIncentiveFee();
+        var marginBalance = new BigNumber(await deployer.perpetual.marginBalance.call(fund.address));
+        assert.equal((await fund.incentiveFee.call()).toString(), marginBalance.times(new BigNumber(0.00000004)).toFixed());
 
-    //     await fund.withdrawIncentiveFee(await fund.incentiveFee.call());
-    //     assert.equal((await fund.incentiveFee.call()).toString(), "0");
+        await fund.withdrawIncentiveFee(await fund.incentiveFee.call());
+        assert.equal((await fund.incentiveFee.call()).toString(), "0");
 
-    //     await deployer.setIndex(200);
-    //     await testPurchaseAmount(calr, 15, 1000, user2);
+        await deployer.setIndex(200);
+        await testPurchaseAmount(calr, 15, 1000, user2);
 
-    //     await fund.setTimestamp(10);
-    //     var marginBalance = new BigNumber(await deployer.perpetual.marginBalance.call(fund.address));
-    //     assert.equal((await fund.incentiveFee.call()).toString(), marginBalance.times(new BigNumber(0.00000005)).toFixed());
-    // });
+        await fund.setTimestamp(10);
+        var marginBalance = new BigNumber(await deployer.perpetual.marginBalance.call(fund.address));
+        assert.equal((await fund.incentiveFee.call()).toString(), marginBalance.times(new BigNumber(0.00000005)).toFixed());
+    });
 
 
     it("normal case - entrance fee + performance fee + streaming fee - settle", async () => {
