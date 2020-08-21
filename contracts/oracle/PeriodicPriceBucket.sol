@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
@@ -11,7 +11,7 @@ interface IPriceFeeder {
     function price() external view returns (uint256 lastPrice, uint256 lastTimestamp);
 }
 
-contract PeriodicPriceBucket is Ownable {
+contract PeriodicPriceBucket is OwnableUpgradeSafe {
 
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -32,7 +32,18 @@ contract PeriodicPriceBucket is Ownable {
     event RemoveBucket(uint256 period);
     event UpdatePriceFeeder(address indexed previousPriceFeeder, address indexed newPriceFeeder);
 
-    constructor(address priceFeeder) public {
+    function initialize(address priceFeeder)
+        external
+        initializer
+    {
+        __Ownable_init();
+        __PeriodicPriceBucket_init_unchained(priceFeeder);
+    }
+
+    function __PeriodicPriceBucket_init_unchained(address priceFeeder)
+        internal
+        initializer
+    {
         _setPriceFeeder(priceFeeder);
     }
 

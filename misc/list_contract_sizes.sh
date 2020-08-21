@@ -2,7 +2,6 @@
 
 BUILD_DIR=build/contracts
 
-echo "123456789" | 
 for fn in $(ls $BUILD_DIR) 
 do 
 	[[ $fn = Test* ]] && continue

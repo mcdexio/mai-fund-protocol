@@ -10,7 +10,6 @@ contract TestFundCollateral is FundCollateral {
         require(msg.sender == address(_perpetual), "only receive ethers from perpetual");
     }
 
-
     constructor(address perpetual)
         public
     {

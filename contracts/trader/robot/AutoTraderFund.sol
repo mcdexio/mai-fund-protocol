@@ -2,14 +2,13 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/utils/SafeCast.sol";
-import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/SafeCast.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
 
 import "../../lib/LibTypes.sol";
 import "../../lib/LibMathEx.sol";
-import "../../storage/FundStorage.sol";
 import "../FundBase.sol";
 import "../FundManagement.sol";
 
@@ -18,7 +17,6 @@ interface ITradingStrategy {
 }
 
 contract AutoTraderFund is
-    FundStorage,
     FundBase,
     FundManagement
 {

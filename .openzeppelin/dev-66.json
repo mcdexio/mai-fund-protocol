@@ -1,0 +1,14 @@
+{
+  "contracts": {},
+  "solidityLibs": {},
+  "proxies": {
+    "mai-fund-protocol/AutoTraderFund": [
+      {
+        "address": "0xC9A3ed5461a811d040E44679149c70C4D10401b7",
+        "kind": "NonProxy",
+        "bytecodeHash": "7de933f5583fb4680fc8f83ba0de6e2af482d108fdf756507913d947c1b0aa2b"
+      }
+    ]
+  },
+  "manifestVersion": "2.2"
+}
