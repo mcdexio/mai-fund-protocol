@@ -1,13 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-contract Stoppable {
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol";
+
+contract StoppableUpgradeSafe is Initializable, ContextUpgradeSafe {
 
     event Stopped(address indexed caller);
 
-    bool private _stopped;
+    bool internal _stopped;
 
-    constructor() internal {
+    function __Stoppable_init() internal initializer {
+        __Context_init_unchained();
+        __Stoppable_init_unchained();
+    }
+
+    function __Stoppable_init_unchained() internal initializer {
         _stopped = false;
     }
 

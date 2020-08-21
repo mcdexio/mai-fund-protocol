@@ -1,35 +1,35 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../lib/LibConstant.sol";
-import "../storage/FundStorage.sol";
 
 interface ITokenWithDecimals {
     function decimals() external view returns (uint8);
 }
 
 /**
- * @title   FundCollateral
- * @notice  Handle collateral.
+ * @title   Collateral
+ * @notice  Handle underlaying collaterals.
  */
-contract FundCollateral is FundStorage {
+contract Collateral is Initializable {
     using SafeMath for uint256;
-    using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
+
+    address private _collateral;
+    uint256 private _scaler;
 
     /**
      * @notice  Initialize collateral and decimals.
      * @param   decimals    Decimals of collateral token, will be verified with a staticcall.
      */
-    function _initialize(address collateral, uint8 decimals)
+    function __Collateral_init_unchained(address collateral, uint8 decimals)
         internal
+        initializer
     {
-        require(_scaler == 0, "alreay initialized");
         require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "given decimals out of range");
         if (collateral == address(0)) {
             // ether
@@ -41,6 +41,14 @@ contract FundCollateral is FundStorage {
         }
         _collateral = collateral;
         _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
+    }
+
+    function collateral() external view returns (address) {
+        return _collateral;
+    }
+
+    function scaler() external view returns (uint256) {
+        return _scaler;
     }
 
     /**
@@ -66,7 +74,7 @@ contract FundCollateral is FundStorage {
      * @dev Indicates that whether current token is an erc20 token.
      * @return True if current token is an erc20 token.
      */
-    function _isToken()
+    function _isCollateralERC20()
         internal
         view
         returns (bool)
@@ -81,13 +89,13 @@ contract FundCollateral is FundStorage {
      * @param amount Amount of token to be transferred into contract.
      * @return Internal representation of the raw amount.
      */
-    function _pullCollateralFromUser(address trader, uint256 amount)
+    function _pullFromUser(address trader, uint256 amount)
         internal
         returns (uint256)
     {
         require(amount > 0, "amount should not be 0");
         uint256 rawAmount = _toRawAmount(amount);
-        if (_isToken()) {
+        if (_isCollateralERC20()) {
             IERC20(_collateral).safeTransferFrom(trader, address(this), rawAmount);
         } else {
             require(msg.value == rawAmount, "amount not match with sent value");
@@ -102,41 +110,19 @@ contract FundCollateral is FundStorage {
      * @param amount    Amount of token to be transferred to user.
      * @return Internal representation of the raw amount.
      */
-    function _pushCollateralToUser(address payable trader, uint256 amount)
+    function _pushToUser(address payable trader, uint256 amount)
         internal
         returns (uint256)
     {
         require(amount > 0, "amount should not be 0");
         uint256 rawAmount = _toRawAmount(amount);
-        if (_isToken()) {
+        if (_isCollateralERC20()) {
             IERC20(_collateral).safeTransfer(trader, rawAmount);
         } else {
             Address.sendValue(trader, rawAmount);
             // trader.transfer(amount);
         }
         return rawAmount;
-    }
-
-    function _approvePerpetual(uint256 amount)
-        internal
-    {
-        IERC20(_collateral).safeApprove(address(_perpetual), amount);
-    }
-
-    /**
-     * @notice  Withdraw collateral from perpetual.
-     * @param   amount  Amount of collateral to withdraw(pull).
-     */
-    function _pullCollateralFromPerpetual(uint256 amount) internal {
-        _perpetual.withdraw(_toRawAmount(amount));
-    }
-
-    /**
-     * @notice  Deposit collateral into perpetual.
-     * @param   amount  Amount of collateral to deposit.
-     */
-    function _pushCollateralToPerpetual(uint256 amount) internal {
-        _perpetual.deposit{ value: msg.value }(_toRawAmount(amount));
     }
 
     /**

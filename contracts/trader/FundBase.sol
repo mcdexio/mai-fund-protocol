@@ -2,7 +2,12 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../interface/IPerpetual.sol";
 import "../interface/IDelegate.sol";
@@ -10,27 +15,34 @@ import "../interface/IDelegate.sol";
 import "../lib/LibConstant.sol";
 import "../lib/LibMathEx.sol";
 
-import "../storage/FundStorage.sol";
-import "../component/FundAccount.sol";
-import "../component/FundCollateral.sol";
-import "../component/FundConfiguration.sol";
-import "../component/FundERC20Wrapper.sol";
-import "../component/FundFee.sol";
-import "../component/FundProperty.sol";
-import "./FundAuction.sol";
+import "../component/Account.sol";
+import "../component/Collateral.sol";
+import "../component/Configuration.sol";
+import "../component/ERC20Wrapper.sol";
+import "../component/ManagementFee.sol";
+import "../component/Property.sol";
+import "../component/Auction.sol";
 
 contract FundBase is
-    FundStorage,
-    FundAccount,
-    FundCollateral,
-    FundConfiguration,
-    FundERC20Wrapper,
-    FundFee,
-    FundProperty,
-    FundAuction
+    Initializable,
+    ContextUpgradeSafe,
+    ReentrancyGuardUpgradeSafe,
+    PausableUpgradeSafe,
+    StoppableUpgradeSafe,
+    PerpetualWrapper,
+    Account,
+    Auction,
+    Collateral,
+    Configuration,
+    ERC20Wrapper,
+    ManagementFee,
+    Property,
+    Settlement
 {
     using SafeMath for uint256;
     using LibMathEx for uint256;
+
+    address private _manager;
 
     event Received(address indexed sender, uint256 amount);
     event Create(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
@@ -46,8 +58,8 @@ contract FundBase is
      * @notice only accept ether from pereptual when collateral is ether. otherwise, revert.
      */
     receive() external payable {
-        require(_collateral == address(0), "this contract does not accept ether");
-        require(msg.sender == address(_perpetual), "only receive ethers from perpetual");
+        require(collateral() == address(0), "this contract does not accept ether");
+        require(_msgSender() == address(_perpetual), "only receive ethers from perpetual");
         emit Received(msg.sender, msg.value);
     }
 
@@ -67,43 +79,31 @@ contract FundBase is
         uint8 collateralDecimals,
         address perpetual,
         address mananger,
-        uint256 capacity
+        uint256 cap
     )
         external
         virtual
         initializer
     {
-        require(perpetual != address(0), "invalid perpetual address");
-        require(capacity > 0, "capacity cannot be 0");
-
-        _perpetual = IPerpetual(perpetual);
-        _name = name;
-        _symbol = symbol;
-        _manager = mananger;
-        _capacity = capacity;
-
-        address collateral = address(_perpetual.collateral());
-        FundCollateral._initialize(collateral, collateralDecimals);
+        __Context_init_unchained();
+        __ReentrancyGuard_init_unchained();
+        __Stoppable_init_unchained();
+        __Pausable_init_unchained();
+        __PerpetualWrapper_init_unchained(perpetual);
+        __Collateral_init_unchained(_collateral(), collateralDecimals);
+        __ERC20Capped_init_unchained(name, symbol);
+        __ERC20Wrapper_init_unchained(cap);
+        __FundBase_init_unchained();
     }
 
-    function getLeverage()
-        external
-        returns (int256)
+    function __FundBase_init_unchained(IPerpetual perpetual, address manager)
+        internal
+        initializer
     {
-        return _leverage();
+        require(manager != address(0), "address of manager cannot be 0");
+        _manager = manager;
     }
 
-    /**
-     * @notice  Return net asset value per share.
-     * @return  Net asset value per share.
-     */
-    function getNetAssetValuePerShare()
-        external
-        returns (uint256)
-    {
-        (uint256 netAssetValuePerShare,) = _netAssetValuePerShareAndFee();
-        return netAssetValuePerShare;
-    }
 
     /**
      * @dev Call once, when NAV is 0 (position size == 0).
@@ -118,7 +118,7 @@ contract FundBase is
         nonReentrant
     {
         require(shareAmount > 0, "share amount must be greater than 0");
-        require(_totalSupply == 0, "share supply is not 0");
+        require(totalSupply() == 0, "share supply is not 0");
         uint256 collateralRequired = initialNetAssetValue.wmul(shareAmount);
         // pay collateral
         _pullCollateralFromUser(msg.sender, collateralRequired);
@@ -149,7 +149,7 @@ contract FundBase is
         ) = _netAssetValueAndFee();
         require(netAssetValue > 0, "nav should be greater than 0");
 
-        uint256 netAssetValuePerShare = netAssetValue.wdiv(_totalSupply);
+        uint256 netAssetValuePerShare = netAssetValue.wdiv(totalSupply());
         uint256 entranceFeePerShare = _entranceFee(netAssetValuePerShare);
         require(
             netAssetValuePerShare.add(entranceFeePerShare) <= netAssetValuePerShareLimit,
@@ -273,13 +273,13 @@ contract FundBase is
         require(shareAmount <= _redeemingBalances[trader], "insufficient shares to bid");
         // update fee status
         ( uint256 netAssetValue, uint256 fee ) = _netAssetValueAndFee();
-        _updateFeeState(fee, netAssetValue.wdiv(_totalSupply));
+        _updateFeeState(fee, netAssetValue.wdiv(totalSupply()));
         // bid shares
         uint256 slippage = _redeemingSlippages[trader];
         uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, slippage);
         // this is the finally collateral returned to user.
         // calculate collateral to return
-        uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, _totalSupply).sub(slippageLoss);
+        uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply()).sub(slippageLoss);
         // withdraw collateral from perp
         _pullCollateralFromPerpetual(collateralToReturn);
         _increaseWithdrawableCollateral(trader, collateralToReturn);
@@ -313,7 +313,7 @@ contract FundBase is
         // ( uint256 netAssetValue, ) = _netAssetValueAndFee();
         uint256 slippage = _redeemingSlippages[account];
         uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, slippage);
-        // uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, _totalSupply).sub(slippageLoss);
+        // uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply()).sub(slippageLoss);
         // _pullCollateralFromPerpetual(collateralToReturn);
         _decreaseRedeemingShareBalance(account, shareAmount);
         // emit Settle(shareAmount);
@@ -326,8 +326,8 @@ contract FundBase is
         returns (uint256 collateralToReturn)
     {
         ( uint256 netAssetValue, uint fee ) = _netAssetValueAndFee();
-        _updateFeeState(fee, netAssetValue.wdiv(_totalSupply));
-        collateralToReturn = netAssetValue.wfrac(shareAmount, _totalSupply);
+        _updateFeeState(fee, netAssetValue.wdiv(totalSupply()));
+        collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply());
         _burnShareBalance(account, shareAmount);
         _pullCollateralFromPerpetual(collateralToReturn);
         _pushCollateralToUser(payable(account), collateralToReturn);

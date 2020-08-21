@@ -2,12 +2,10 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "../../storage/FundStorage.sol";
 import "../FundBase.sol";
 import "../FundManagement.sol";
 
 contract SocialTraderFund is
-    FundStorage,
     FundBase,
     FundManagement
 {

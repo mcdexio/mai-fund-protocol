@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../lib/LibConstant.sol";
-import "../storage/FundStorage.sol";
+import "./ERC20Wrapper.sol";
+import "./Time.sol";
 
 /**
  * @title Implemetation of operations on fund account.
  */
-contract FundAccount is FundStorage {
+contract Account is ERC20Wrapper, Time {
 
     using SafeMath for uint256;
 
-    event IncreaseShareBalance(address indexed trader, uint256 shareAmount);
-    event DecreaseShareBalance(address indexed trader, uint256 shareAmount);
+    mapping(address => uint256) private _redeemingBalances;
+    mapping(address => uint256) private _redeemingSlippages;
+    mapping(address => uint256) private _lastPurchaseTimes;
+    mapping(address => uint256) private _withdrawableCollaterals;
+
+    event SetRedeemingShareBalance(address indexed trader, uint256 shareAmount);
     event IncreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
     event DecreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
     event MintShareBalance(address indexed trader, uint256 shareAmount);
@@ -22,6 +27,23 @@ contract FundAccount is FundStorage {
     event IncreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event DecreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event SetRedeemingSlippage(address indexed trader, uint256 slippage);
+
+    // Getters
+    function redeemingBalance(address account) public view returns (uint256) {
+        return _redeemingBalances[account];
+    }
+
+    function redeemingSlippage(address account) public view returns (uint256) {
+        return _redeemingSlippages[account];
+    }
+
+    function lastPurchaseTime(address account) public view returns (uint256) {
+        return _lastPurchaseTimes[account];
+    }
+
+    function withdrawableCollateral(address account) public view returns (uint256) {
+        return _withdrawableCollaterals[account];
+    }
 
     /**
      * @notice  Share balance to redeem.
@@ -34,35 +56,7 @@ contract FundAccount is FundStorage {
         view
         returns (uint256)
     {
-        if (!_canRedeem(trader)) {
-            return 0;
-        }
-        return _balances[trader].sub(_redeemingBalances[trader]);
-    }
-
-    /**
-     * @notice  Increase share balance.
-     * @param   trader      Address of share owner.
-     * @param   shareAmount Amount of share to purchase.
-     */
-    function _increaseShareBalance(address trader, uint256 shareAmount)
-        internal
-    {
-        _balances[trader] = _balances[trader].add(shareAmount);
-        emit IncreaseShareBalance(trader, shareAmount);
-    }
-
-    /**
-     * @notice  Decrease share balance.
-     * @param   trader      Address of share owner.
-     * @param   shareAmount Amount of share to purchase.
-     */
-    function _decreaseShareBalance(address trader, uint256 shareAmount)
-        internal
-    {
-        // update balance
-        _balances[trader] = _balances[trader].sub(shareAmount, "insufficient share balance");
-        emit DecreaseShareBalance(trader, shareAmount);
+        return balanceOf(trader).sub(_redeemingBalances[trader]);
     }
 
     /**
@@ -74,10 +68,8 @@ contract FundAccount is FundStorage {
     function _mintShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        _increaseShareBalance(trader, shareAmount);
+        _mint(trader, shareAmount);
         _lastPurchaseTimes[trader] = _now();
-        _totalSupply = _totalSupply.add(shareAmount);
-
         emit MintShareBalance(trader, shareAmount);
     }
 
@@ -89,28 +81,26 @@ contract FundAccount is FundStorage {
     function _burnShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        _decreaseShareBalance(trader, shareAmount);
-        _totalSupply = _totalSupply.sub(shareAmount, "insufficient share balance");
-
+        _burn(trader, shareAmount);
         emit BurnShareBalance(trader, shareAmount);
     }
 
-    /**
-     * @dev     After purchasing, user have to wait for a period to redeem.
-     *          Note that new purchase will refresh the time point.
-     * @param   trader      Address of share owner.
-     * @return  True if shares are unlocked for redeeming.
-     */
-    function _canRedeem(address trader)
-        internal
-        view
-        returns (bool)
-    {
-        if (_redeemingLockPeriod == 0) {
-            return true;
-        }
-        return _lastPurchaseTimes[trader].add(_redeemingLockPeriod) < _now();
-    }
+    // /**
+    //  * @dev     After purchasing, user have to wait for a period to redeem.
+    //  *          Note that new purchase will refresh the time point.
+    //  * @param   trader      Address of share owner.
+    //  * @return  True if shares are unlocked for redeeming.
+    //  */
+    // function _canRedeem(address trader)
+    //     internal
+    //     view
+    //     returns (bool)
+    // {
+    //     if (_redeemingLockPeriod == 0) {
+    //         return true;
+    //     }
+    //     return _lastPurchaseTimes[trader].add(_redeemingLockPeriod) < _now();
+    // }
 
     /**
      * @notice  Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
@@ -142,6 +132,14 @@ contract FundAccount is FundStorage {
         _redeemingBalances[trader] = _redeemingBalances[trader].add(shareAmount);
         emit IncreaseRedeemingShareBalance(trader, shareAmount);
     }
+
+    function _setRedeemingShareBalance(address trader, uint256 shareAmount)
+        internal
+    {
+        _redeemingBalances[trader] = shareAmount;
+        emit SetRedeemingShareBalance(trader, shareAmount);
+    }
+
 
     /**
      * @notice  Redeem share balance, to prevent redeemed amount exceed total amount.
