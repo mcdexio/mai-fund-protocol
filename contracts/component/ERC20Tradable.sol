@@ -4,45 +4,37 @@ pragma solidity 0.6.10;
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../lib/LibConstant.sol";
-import "./ERC20Wrapper.sol";
-import "./Time.sol";
+import "./ERC20Purchasable.sol";
 
 /**
  * @title Implemetation of operations on fund account.
  */
-contract Account is ERC20Wrapper, Time {
-
+contract ERC20Tradable is ERC20Purchasable {
+    
     using SafeMath for uint256;
 
+    // using fixed decimals 18
+    uint8 constant private FUND_SHARE_ERC20_DECIMALS = 18;
+
+    uint256 private _redeemingLockPeriod;
+
+    mapping(address => uint256) private _lastPurchaseTimes;
     mapping(address => uint256) private _redeemingBalances;
     mapping(address => uint256) private _redeemingSlippages;
-    mapping(address => uint256) private _lastPurchaseTimes;
     mapping(address => uint256) private _withdrawableCollaterals;
 
-    event SetRedeemingShareBalance(address indexed trader, uint256 shareAmount);
+    event Purchase(address indexed trader, uint256 shareAmount, uint256 lastPurchaseTime);
     event IncreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
     event DecreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
-    event MintShareBalance(address indexed trader, uint256 shareAmount);
-    event BurnShareBalance(address indexed trader, uint256 shareAmount);
     event IncreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event DecreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event SetRedeemingSlippage(address indexed trader, uint256 slippage);
 
-    // Getters
-    function redeemingBalance(address account) public view returns (uint256) {
-        return _redeemingBalances[account];
-    }
-
-    function redeemingSlippage(address account) public view returns (uint256) {
-        return _redeemingSlippages[account];
-    }
-
-    function lastPurchaseTime(address account) public view returns (uint256) {
-        return _lastPurchaseTimes[account];
-    }
-
-    function withdrawableCollateral(address account) public view returns (uint256) {
-        return _withdrawableCollaterals[account];
+    function __ERC20Tradable_init_unchained(uint256 cap)
+        internal
+        initializer
+    {
+        _setupDecimals(FUND_SHARE_ERC20_DECIMALS);
     }
 
     /**
@@ -65,12 +57,13 @@ contract Account is ERC20Wrapper, Time {
      * @param   trader      Address of share owner.
      * @param   shareAmount Amount of share to mint.
      */
-    function _mintShareBalance(address trader, uint256 shareAmount)
+    function _purchase(address trader, uint256 shareAmount)
         internal
+        virtual
     {
         _mint(trader, shareAmount);
         _lastPurchaseTimes[trader] = _now();
-        emit MintShareBalance(trader, shareAmount);
+        emit Purchase(trader, shareAmount, _now());
     }
 
     /**
@@ -78,29 +71,29 @@ contract Account is ERC20Wrapper, Time {
      * @param   trader      Address of share owner.
      * @param   shareAmount Amount of share to burn.
      */
-    function _burnShareBalance(address trader, uint256 shareAmount)
+    function _redeem(address trader, uint256 shareAmount)
         internal
     {
         _burn(trader, shareAmount);
         emit BurnShareBalance(trader, shareAmount);
     }
 
-    // /**
-    //  * @dev     After purchasing, user have to wait for a period to redeem.
-    //  *          Note that new purchase will refresh the time point.
-    //  * @param   trader      Address of share owner.
-    //  * @return  True if shares are unlocked for redeeming.
-    //  */
-    // function _canRedeem(address trader)
-    //     internal
-    //     view
-    //     returns (bool)
-    // {
-    //     if (_redeemingLockPeriod == 0) {
-    //         return true;
-    //     }
-    //     return _lastPurchaseTimes[trader].add(_redeemingLockPeriod) < _now();
-    // }
+    /**
+     * @dev     After purchasing, user have to wait for a period to redeem.
+     *          Note that new purchase will refresh the time point.
+     * @param   trader      Address of share owner.
+     * @return  True if shares are unlocked for redeeming.
+     */
+    function _canRedeem(address trader)
+        internal
+        view
+        returns (bool)
+    {
+        if (_redeemingLockPeriod == 0) {
+            return true;
+        }
+        return _lastPurchaseTimes[trader].add(_redeemingLockPeriod) < _now();
+    }
 
     /**
      * @notice  Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
@@ -132,15 +125,7 @@ contract Account is ERC20Wrapper, Time {
         _redeemingBalances[trader] = _redeemingBalances[trader].add(shareAmount);
         emit IncreaseRedeemingShareBalance(trader, shareAmount);
     }
-
-    function _setRedeemingShareBalance(address trader, uint256 shareAmount)
-        internal
-    {
-        _redeemingBalances[trader] = shareAmount;
-        emit SetRedeemingShareBalance(trader, shareAmount);
-    }
-
-
+    
     /**
      * @notice  Redeem share balance, to prevent redeemed amount exceed total amount.
      * @param   trader       Address of share owner.
@@ -178,5 +163,18 @@ contract Account is ERC20Wrapper, Time {
         _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader]
             .sub(amount, "insufficient withdrawable collateral");
         emit DecreaseWithdrawableCollateral(trader, amount);
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+
+        require(amount <= _redeemableShareBalance(from), "insufficent balance to transfer");
+        // this will affect receipient's _lastPurchaseTime.
+        // to prevent early redeeming through transfer
+        // but there is a side effect: if a account continously purchase && transfer shares to another account.
+        // the target account may be blocked by such unexpeced manner.
+        if (amount > 0 && _lastPurchaseTimes[from] > _lastPurchaseTimes[to]) {
+            _lastPurchaseTimes[to] = _lastPurchaseTimes[from];
+        }
     }
 }

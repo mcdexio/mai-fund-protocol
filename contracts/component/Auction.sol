@@ -4,7 +4,7 @@ pragma solidity 0.6.10;
 import "./Account.sol";
 import "./PerpetualWrapper.sol";
 
-contract Auction is Account, PerpetualWrapper {
+contract Auction is Account, MarginAccount {
 
     /**
      * @notice  Get bidding price according to current markprice and slippage.

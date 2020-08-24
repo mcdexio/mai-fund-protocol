@@ -1,91 +1,53 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../lib/LibConstant.sol";
 import "../lib/LibMathEx.sol";
-import "./ERC20Wrapper.sol";
-import "./Stoppable.sol";
-import "./Time.sol";
+import "./Context.sol";
+import "./ERC20Tradable.sol";
 
-contract ManagementFee is Initializable, StoppableUpgradeSafe, ERC20Wrapper, Time {
+contract ManagementFee is Context, ERC20Tradable {
 
     using SafeMath for uint256;
     using LibMathEx for uint256;
 
-    uint256 private _totalFeeClaimed;
-    uint256 private _maxNetAssetValuePerShare;
-    uint256 private _lastFeeTime;
-    uint256 private _entranceFeeRate;
-    uint256 private _streamingFeeRate;
-    uint256 private _performanceFeeRate;
+    uint256 internal _totalFeeClaimed;
+    uint256 internal _maxNetAssetValuePerShare;
+    uint256 internal _lastFeeTime;
+    uint256 internal _entranceFeeRate;
+    uint256 internal _streamingFeeRate;
+    uint256 internal _performanceFeeRate;
 
-    // Getters
-    function totalFeeClaimed()
-        public
-        view
-        returns (uint256)
-    {
-        return _totalFeeClaimed;
-    }
-
-    function maxNetAssetValuePerShare()
-        public
-        view
-        returns (uint256)
-    {
-        return _maxNetAssetValuePerShare;
-    }
-
-    function lastFeeTime()
-        public
-        view
-        returns (uint256)
-    {
-        return _lastFeeTime;
-    }
-
-
-    function entranceFeeRate() external view returns (uint256) {
-        return _entranceFeeRate;
-    }
-
-    function streamingFeeRate() external view returns (uint256) {
-        return _streamingFeeRate;
-    }
-
-    function performanceFeeRate() external view returns (uint256) {
-        return _performanceFeeRate;
-    }
+    event SetFeeRates(
+        uint256 entranceFeeRate,
+        uint256 streamingFeeRate,
+        uint256 performanceFeeRate  
+    );
 
     /**
-     * @notice  Set entrance fee rete.
-     * @param   newRate Rate of entrance fee. 0 < rate <= 100%
+     * @notice  Set entrance/streaming/performance fee rete.
+     * @param   entranceFeeRate     Rate of entrance fee. 0 < rate <= 100%
+     * @param   streamingFeeRate    Rate of streaming fee. 0 < rate <= 100%
+     * @param   performanceFeeRate  Rate of performance fee. 0 < rate <= 100%
      */
-    function _setEntranceFeeRate(uint256 newRate) internal {
-        require(newRate <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
-        _entranceFeeRate = newRate;
+    function _setFeeRates(
+        uint256 entranceFeeRate,
+        uint256 streamingFeeRate,
+        uint256 performanceFeeRate
+    )
+        internal
+    {
+        require(newRatentranceFeeRatee <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
+        require(streamingFeeRate <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
+        require(performanceFeeRate <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
+        _entranceFeeRate = entranceFeeRate;
+        _streamingFeeRate = streamingFeeRate;
+        _performanceFeeRate = performanceFeeRate;
+        emit SetFeeRates(entranceFeeRate, streamingFeeRate, performanceFeeRate);
     }
 
-    /**
-     * @notice  Set streaming fee rete.
-     * @param   newRate Rate of streaming fee. 0 < rate <= 100%
-     */
-    function _setStreamingFeeRate(uint256 newRate) internal {
-        require(newRate <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
-        _streamingFeeRate = newRate;
-    }
-
-    /**
-     * @notice  Set performance fee rete.
-     * @param   newRate Rate of performance fee. 0 < rate <= 100%
-     */
-    function _setPerformanceFeeRate(uint256 newRate) internal {
-        require(newRate <= LibConstant.RATE_UPPERBOUND, "performance fee rate must be less than 100%");
-        _performanceFeeRate = newRate;
-    }
     /**
      * @notice  Calculate purchase fee. nav * amount * feerate
      * @param   purchasedAssetValue   Total asset value to purchase.
@@ -153,9 +115,6 @@ contract ManagementFee is Initializable, StoppableUpgradeSafe, ERC20Wrapper, Tim
     function _updateFeeState(uint256 fee, uint256 netAssetValuePerShare)
         internal
     {
-        if (stopped()) {
-            return;
-        }
         if (netAssetValuePerShare > _maxNetAssetValuePerShare) {
             _maxNetAssetValuePerShare = netAssetValuePerShare;
         }

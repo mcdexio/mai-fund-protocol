@@ -45,6 +45,7 @@ contract FundBase is
     address private _manager;
 
     event Received(address indexed sender, uint256 amount);
+    
     event Create(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
     event Purchase(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
     event RequestToRedeem(address indexed trader, uint256 shareAmount, uint256 slippage);

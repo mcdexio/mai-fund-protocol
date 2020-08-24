@@ -18,14 +18,6 @@ contract Settlement is StoppableUpgradeSafe, Account, ERC20Wrapper, Property {
 
     event Settle();
 
-    function drawdownHighWaterMark() external view returns (uint256) {
-        return _drawdownHighWaterMark;
-    }
-
-    function leverageHighWaterMark() external view returns (uint256) {
-        return _leverageHighWaterMark;
-    }
-
     /**
      * @notice  Set drawdonw high water mark. Exceeding hwm will cause emergency shutdown.
      * @param   hwm     High water mark for drawdown.
@@ -45,6 +37,26 @@ contract Settlement is StoppableUpgradeSafe, Account, ERC20Wrapper, Property {
     }
 
     /**
+     * @notice  Get drawdown to max net asset value per share in history.
+     * @return  A percentage represents drawdown, fixed float in decimals 18.
+     */
+    function _drawdown()
+        internal
+        virtual
+        returns (uint256)
+    {
+        if (totalSupply() == 0) {
+            return 0;
+        }
+        uint256 currentNetAssetValuePerShare = netAssetValuePerShare();
+        uint256 netAssetValuePerShareHWM = maxNetAssetValuePerShare();
+        if (netAssetValuePerShareHWM <= currentNetAssetValuePerShare) {
+            return 0;
+        }
+        return netAssetValuePerShareHWM.sub(currentNetAssetValuePerShare).wdiv(netAssetValuePerShareHWM);
+    } 
+
+    /**
      * @notice  Test can shutdown or not.
      * @dev     1. This is NOT view because method in perpetual.
      *          2. shutdown conditions:
@@ -52,8 +64,9 @@ contract Settlement is StoppableUpgradeSafe, Account, ERC20Wrapper, Property {
      *              - max drawdown reaches limit.
      * @return True if any condition is met.
      */
-    function canShutdown()
-        public
+    function _canShutdown()
+        internal
+        virtual
         returns (bool)
     {
         uint256 maxDrawdown = _drawdown();
