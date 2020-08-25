@@ -1,7 +1,6 @@
 const { toBytes32, fromBytes32, uintToBytes32, toWad, fromWad } = require("./utils.js");
 const { buildOrder } = require("./order.js");
 const { getPerpetualComponents } = require("./perpetual.js");
-const FundBase = artifacts.require('FundBase.sol');
 const IGlobalConfig = artifacts.require('IGlobalConfig.sol');
 
 const encodeInitializData  = (

@@ -61,4 +61,6 @@ contract StoppableUpgradeSafe is Initializable, ContextUpgradeSafe {
         _stopped = true;
         emit Stopped(msg.sender);
     }
+
+    uint256[19] private __gap;
 }

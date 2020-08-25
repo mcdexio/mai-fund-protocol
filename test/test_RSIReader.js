@@ -15,8 +15,10 @@ contract('TestRSIReader', accounts => {
 
     const deploy = async () => {
         feeder = await TestPriceFeeder.new();
-        bucket = await PeriodicPriceBucket.new(feeder.address);
+        bucket = await PeriodicPriceBucket.new();
+        await bucket.initialize(feeder.address);
         reader = await TestRSIReader.new(bucket.address, 3600, 3);
+
     };
 
     beforeEach(deploy);

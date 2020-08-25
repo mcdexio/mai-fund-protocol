@@ -6,9 +6,9 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "../lib/LibConstant.sol";
 import "../lib/LibMathEx.sol";
 import "./Context.sol";
-import "./ERC20Tradable.sol";
+import "./ERC20Redeemable.sol";
 
-contract ManagementFee is Context, ERC20Tradable {
+contract Fee is Context, ERC20Redeemable {
 
     using SafeMath for uint256;
     using LibMathEx for uint256;
@@ -23,29 +23,34 @@ contract ManagementFee is Context, ERC20Tradable {
     event SetFeeRates(
         uint256 entranceFeeRate,
         uint256 streamingFeeRate,
-        uint256 performanceFeeRate  
+        uint256 performanceFeeRate
     );
 
     /**
-     * @notice  Set entrance/streaming/performance fee rete.
-     * @param   entranceFeeRate     Rate of entrance fee. 0 < rate <= 100%
-     * @param   streamingFeeRate    Rate of streaming fee. 0 < rate <= 100%
-     * @param   performanceFeeRate  Rate of performance fee. 0 < rate <= 100%
+     * @notice  Set entrance fee rete.
+     * @param   newRate Rate of entrance fee. 0 < rate <= 100%
      */
-    function _setFeeRates(
-        uint256 entranceFeeRate,
-        uint256 streamingFeeRate,
-        uint256 performanceFeeRate
-    )
-        internal
-    {
-        require(newRatentranceFeeRatee <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
-        require(streamingFeeRate <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
-        require(performanceFeeRate <= LibConstant.RATE_UPPERBOUND, "streaming fee rate must be less than 100%");
-        _entranceFeeRate = entranceFeeRate;
-        _streamingFeeRate = streamingFeeRate;
-        _performanceFeeRate = performanceFeeRate;
-        emit SetFeeRates(entranceFeeRate, streamingFeeRate, performanceFeeRate);
+    function _setEntranceFeeRate(uint256 newRate) internal {
+        require(newRate <= LibConstant.RATE_UPPERBOUND, "too large rate");
+        _entranceFeeRate = newRate;
+    }
+
+    /**
+     * @notice  Set streaming fee rete.
+     * @param   newRate Rate of streaming fee. 0 < rate <= 100%
+     */
+    function _setStreamingFeeRate(uint256 newRate) internal {
+        require(newRate <= LibConstant.RATE_UPPERBOUND, "too large rate");
+        _streamingFeeRate = newRate;
+    }
+
+    /**
+     * @notice  Set performance fee rete.
+     * @param   newRate Rate of performance fee. 0 < rate <= 100%
+     */
+    function _setPerformanceFeeRate(uint256 newRate) internal {
+        require(newRate <= LibConstant.RATE_UPPERBOUND, "too large rate");
+        _performanceFeeRate = newRate;
     }
 
     /**
@@ -91,7 +96,7 @@ contract ManagementFee is Context, ERC20Tradable {
      * @param   netAssetValue   Amount of total asset value, streaming fee excluded.
      * @return  Amount of performance fee.
      */
-    function _performanceFee(uint256 netAssetValue)
+    function _performanceFee(uint256 netAssetValue, uint256 totalSupply)
         internal
         view
         virtual
@@ -100,25 +105,42 @@ contract ManagementFee is Context, ERC20Tradable {
         if (_performanceFeeRate == 0) {
             return 0;
         }
-        uint256 maxAssetValue = _maxNetAssetValuePerShare.wmul(totalSupply());
-        if (netAssetValue <= maxAssetValue) {
+        uint256 _maxNetAssetValue = _maxNetAssetValuePerShare.wmul(totalSupply);
+        if (netAssetValue <= _maxNetAssetValue) {
             return 0;
         }
-        return netAssetValue.sub(maxAssetValue).wmul(_performanceFeeRate);
+        return netAssetValue.sub(_maxNetAssetValue).wmul(_performanceFeeRate);
     }
 
     /**
-     * @notice  Update fee state, make a checkpoint for next fee.
-     * @param   fee                   Amount of Fee.
-     * @param   netAssetValuePerShare Value of net asset.
+     * @notice  Update claimed fee.
+     * @param   fee Amount of Fee.
      */
-    function _updateFeeState(uint256 fee, uint256 netAssetValuePerShare)
+    function _updateFee(uint256 fee)
+        internal
+        returns (uint256)
+    {
+        _totalFeeClaimed = _totalFeeClaimed.add(fee);
+        _lastFeeTime = _now();
+        return _totalFeeClaimed;
+    }
+
+    /**
+     * @notice  Update max asset value per share.
+     * @param   netAssetValue   Value of net asset.
+     * @param   totalSupply     Value of net asset.
+     */
+    function _updateMaxNetAssetValuePerShare(uint256 netAssetValue, uint256 totalSupply)
         internal
     {
+        if (totalSupply == 0) {
+            return;
+        }
+        uint256 netAssetValuePerShare = netAssetValue.wdiv(totalSupply);
         if (netAssetValuePerShare > _maxNetAssetValuePerShare) {
             _maxNetAssetValuePerShare = netAssetValuePerShare;
         }
-        _totalFeeClaimed = _totalFeeClaimed.add(fee);
-        _lastFeeTime = _now();
     }
+
+    uint256[14] private __gap;
 }

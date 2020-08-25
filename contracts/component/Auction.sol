@@ -1,25 +1,26 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "./Account.sol";
-import "./PerpetualWrapper.sol";
+import "./Status.sol";
 
-contract Auction is Account, MarginAccount {
-
+/**
+ * @title Auction handles share auctions (for redeeming/settling)
+ */
+contract Auction is Status {
     /**
      * @notice  Get bidding price according to current markprice and slippage.
      * @param   side        Side of position.
      * @param   slippage    Slippage of price, fixed float in decimals 18.
-     * @return  tradingPrice    Price with slippage.
-     * @return  priceLoss       Total loss caused by slippage.
+     * @return  priceLimit  Price with slippage.
+     * @return  priceLoss   Total loss caused by slippage.
      */
     function _biddingPrice(LibTypes.Side side, uint256 slippage)
         internal
-        returns (uint256 tradingPrice, uint256 priceLoss)
+        returns (uint256 priceLimit, uint256 priceLoss)
     {
         uint256 markPrice = _markPrice();
         priceLoss = markPrice.wmul(slippage);
-        tradingPrice = side == LibTypes.Side.LONG? markPrice.sub(priceLoss): markPrice.add(priceLoss);
+        priceLimit = side == LibTypes.Side.LONG? markPrice.sub(priceLoss): markPrice.add(priceLoss);
     }
 
     /**
@@ -32,11 +33,10 @@ contract Auction is Account, MarginAccount {
         internal
         pure
     {
-        if (side == LibTypes.Side.LONG) {
-            require(price <= priceLimit, "price too low for long");
-        } else {
-            require(price >= priceLimit, "price too high for short");
-        }
+        require(
+            (side == LibTypes.Side.LONG && price <= priceLimit) || (side == LibTypes.Side.SHORT && price >= priceLimit),
+            "price not match"
+        );
     }
 
     /**
@@ -44,7 +44,7 @@ contract Auction is Account, MarginAccount {
      * @param   shareAmount Amount of share to bid.
      * @param   priceLimit  Price limit.
      */
-    function _bidShares(
+    function _bidShare(
         uint256 shareAmount,
         uint256 priceLimit,
         LibTypes.Side side,
@@ -54,12 +54,14 @@ contract Auction is Account, MarginAccount {
         returns (uint256 slippageValue)
     {
         LibTypes.MarginAccount memory marginAccount = _marginAccount();
-        require(marginAccount.size > 0, "no position to trade");
-        require(marginAccount.side == side, "unexpected trading side");
+        require(marginAccount.size > 0, "empty margin account");
+        require(marginAccount.side == side, "unexpected side");
         uint256 tradingAmount = marginAccount.size.wfrac(shareAmount, totalSupply());
         ( uint256 tradingPrice, uint256 priceLoss ) = _biddingPrice(side, slippage);
         _validatePrice(side, tradingPrice, priceLimit);
         _tradePosition(side, tradingPrice, tradingAmount);
         slippageValue = priceLoss.wmul(tradingAmount);
     }
+
+    uint256[20] private __gap;
 }

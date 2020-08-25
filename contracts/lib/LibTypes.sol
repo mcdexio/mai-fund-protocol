@@ -6,7 +6,7 @@ library LibTypes {
 
     enum Status {NORMAL, EMERGENCY, SETTLED}
 
-    function counterSide(Side side) internal pure returns (Side) {
+    function opposite(Side side) internal pure returns (Side) {
         if (side == Side.LONG) {
             return Side.SHORT;
         } else if (side == Side.SHORT) {

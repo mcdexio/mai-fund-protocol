@@ -4,32 +4,34 @@ pragma experimental ABIEncoderV2;
 
 import "../interface/IPerpetual.sol";
 import "../lib/LibTypes.sol";
-import "../component/FundProperty.sol";
+import "../component/Status.sol";
 
-import "./TestFundConfiguration.sol";
-
-contract TestFundProperty is
-    FundProperty,
-    TestFundConfiguration
-{
+contract TestStatus is Status {
     address private _mockSelf;
     uint256 private _mockStreamingFee;
     uint256 private _mockPerformanceFee;
 
-    constructor(address perpetual) public {
+    constructor(string memory name, string memory symbol, uint256 cap, address perpetual) public {
+        __ERC20_init_unchained(name, symbol);
+        __ERC20Capped_init_unchained(cap);
+        __ERC20Redeemable_init_unchained();
         _perpetual = IPerpetual(perpetual);
     }
 
-    function setTotalFeeClaimed(uint256 totalFeeClaimed)
-        external
-    {
-        _totalFeeClaimed = totalFeeClaimed;
+    function totalFeeClaimed() external view returns (uint256) {
+        return _totalFeeClaimed;
     }
 
-    function setTotalSupply(uint256 totalSupply)
+    function setTotalFeeClaimed(uint256 __totalFeeClaimed)
         external
     {
-        _totalSupply = totalSupply;
+        _totalFeeClaimed = __totalFeeClaimed;
+    }
+
+    function mint(address trader, uint256 shareAmount)
+        external
+    {
+        _mint(trader, shareAmount);
     }
 
     function setSelf(address mockSelf)
@@ -70,7 +72,7 @@ contract TestFundProperty is
         _mockPerformanceFee = performanceFee;
     }
 
-    function _performanceFee(uint256)
+    function _performanceFee(uint256, uint256)
         internal
         view
         virtual
@@ -86,7 +88,7 @@ contract TestFundProperty is
         _maxNetAssetValuePerShare = maxNetAssetValuePerShare;
     }
 
-    function marginAccountPublic()
+    function marginAccount()
         external
         view
         returns (LibTypes.MarginAccount memory account)
@@ -94,56 +96,62 @@ contract TestFundProperty is
         return _marginAccount();
     }
 
-    function positionSizePublic()
+    function netAssetValue()
+        external
+        virtual
+        returns (uint256)
+    {
+        // claimed fee excluded
+        return _netAssetValue();
+    }
+
+    function netAssetValueEx()
+        external
+        virtual
+        returns (uint256)
+    {
+        // claimed fee excluded
+        return _updateFeeState(_netAssetValue());
+    }
+
+
+    function netAssetValuePerShare(uint256 __netAssetValue)
         external
         view
+        virtual
         returns (uint256)
     {
-        return _positionSize();
+        return _netAssetValuePerShare(__netAssetValue);
     }
 
-
-  function getTotalAssetValuePublic()
+    function managementFee(uint256 assetValue)
         external
+        view
+        virtual
         returns (uint256)
     {
-        return _totalAssetValue();
+        return _managementFee(assetValue);
     }
 
-    function getNetAssetValueAndFeePublic()
-        external
-        returns (uint256 netAssetValue, uint256 managementFee)
-    {
-        return _netAssetValueAndFee();
-    }
-
-    function getNetAssetValuePerShareAndFeePublic()
-        external
-        returns (uint256 netAssetValuePerShare, uint256 managementFee)
-    {
-        return _netAssetValuePerShareAndFee();
-    }
-
-    function getLeveragePublic()
+    function leverage()
         external
         returns (int256)
     {
-        return _leverage();
+        return _leverage(_updateFeeState(_netAssetValue()));
     }
 
-    function getDrawdownPublic()
+    function drawdown()
         external
         returns (uint256)
     {
-        return _drawdown();
+        return _drawdown(_updateFeeState(_netAssetValue()));
     }
 
-    function getPositionSizePublic()
+    function updateFeeState(uint256 netAssetValueBeforeUpdating)
         external
-        view
         returns (uint256)
     {
-        return _positionSize();
+        return _updateFeeState(netAssetValueBeforeUpdating);
     }
 }
 
