@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "../storage/Stoppable.sol";
+import "../component/Stoppable.sol";
 
-contract TestStoppable is Stoppable {
+contract TestStoppable is StoppableUpgradeSafe {
 
     function stop() external {
         _stop();

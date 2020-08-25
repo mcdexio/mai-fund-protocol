@@ -2,14 +2,15 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "../trader/FundAuction.sol";
+import "../component/Auction.sol";
 
-contract TestFundAuction is FundAuction {
+contract TestAuction is Auction {
 
     address private _mockSelf;
 
-    constructor(address perpetual) public {
-        _perpetual = IPerpetual(perpetual);
+    constructor(address perpetual, uint256 cap) public {
+        __ERC20Capped_init_unchained(cap);
+        __MarginAccount_init_unchained(perpetual);
     }
 
     function setSelf(address self)
@@ -28,22 +29,17 @@ contract TestFundAuction is FundAuction {
         return _mockSelf;
     }
 
-    function setTotalSupply(uint256 totalSupply)
+    function increaseTotalSupply(uint256 totalSupply)
         external
     {
-        _totalSupply = totalSupply;
+        _mint(_mockSelf, totalSupply);
     }
 
-    function setRedeemingBalances(address account, uint256 amount)
+    function validatePrice(LibTypes.Side side, uint256 price, uint256 priceLimit)
         external
+        pure
     {
-        _redeemingBalances[account] = amount;
-    }
-
-    function setRedeemingSlippage(address account, uint256 slippage)
-        external
-    {
-        _redeemingSlippages[account] = slippage;
+        return _validatePrice(side, price, priceLimit);
     }
 
     function bidShare(
@@ -58,18 +54,10 @@ contract TestFundAuction is FundAuction {
         return _bidShare(shareAmount, priceLimit, side, slippage);
     }
 
-
     function biddingPrice(LibTypes.Side side, uint256 slippage)
         external
         returns (uint256 tradingPrice, uint256 priceLoss)
     {
         return _biddingPrice(side, slippage);
-    }
-
-    function validateBiddingPrice(LibTypes.Side side, uint256 price, uint256 priceLimit)
-        external
-        pure
-    {
-        return _validateBiddingPrice(side, price, priceLimit);
     }
 }

@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/SafeCast.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../interface/IPerpetual.sol";
 import "./Context.sol";
@@ -12,10 +16,14 @@ interface IOwnable {
 }
 
 /**
- * @title   MarginAccount 
+ * @title   MarginAccount
  * @notice  Handle all interactions with underlaying perpetual.
  */
 contract MarginAccount is Initializable, Context {
+
+    using SafeCast for int256;
+    using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     IPerpetual internal _perpetual;
 
@@ -23,7 +31,7 @@ contract MarginAccount is Initializable, Context {
         internal
         initializer
     {
-        require(perpetualAddress != address(0), "invalid perpetual address");
+        require(perpetualAddress != address(0), "zero perpetual address");
         _perpetual = IPerpetual(perpetualAddress);
     }
 
@@ -36,6 +44,23 @@ contract MarginAccount is Initializable, Context {
         return IOwnable(_perpetual.globalConfig()).owner();
     }
 
+    function _collateral()
+        internal
+        view
+        virtual
+        returns (address)
+    {
+        return _perpetual.collateral();
+    }
+
+    function _markPrice()
+        internal
+        virtual
+        returns (uint256)
+    {
+        return _perpetual.markPrice();
+    }
+
     function _perpetualAddress()
         internal
         view
@@ -45,24 +70,12 @@ contract MarginAccount is Initializable, Context {
         return address(_perpetual);
     }
 
-    function _approveCollateral(uint256 rawCollateralAmount)
+    function _emergency()
         internal
+        view
+        returns (bool)
     {
-        IERC20 collateral = IERC20(_perpetual.collateral());
-        collateral.safeApprove(address(_perpetual), rawCollateralAmount);
-    }
-
-    function _deposit(uint256 rawCollateralAmount)
-        internal
-        payable
-    {
-        _perpetual.deposit{ value: msg.value }(rawCollateralAmount);
-    }
-
-    function _withdraw(uint256 rawCollateralAmount)
-        internal
-    {
-        _perpetual.withdraw(rawCollateralAmount);
+        return _perpetual.status() != LibTypes.Status.NORMAL;
     }
 
     /**
@@ -89,25 +102,27 @@ contract MarginAccount is Initializable, Context {
         returns (uint256)
     {
         int256 marginBalance = _perpetual.marginBalance(_self());
-        require(marginBalance >= 0, "marginBalance must be possitive");
+        require(marginBalance >= 0, "negative marginBalance");
         return marginBalance.toUint256();
     }
 
-    function _collateral()
+    function _approveCollateral(uint256 rawCollateralAmount)
         internal
-        view
-        virtual
-        returns (address)
     {
-        return _perpetual.collateral();
+        IERC20 collateral = IERC20(_perpetual.collateral());
+        collateral.safeApprove(address(_perpetual), rawCollateralAmount);
     }
 
-    function _markPrice()
+    function _deposit(uint256 rawCollateralAmount)
         internal
-        virtual
-        returns (uint256)
     {
-        return _perpetual.markPrice();
+        _perpetual.deposit{ value: msg.value }(rawCollateralAmount);
+    }
+
+    function _withdraw(uint256 rawCollateralAmount)
+        internal
+    {
+        _perpetual.withdraw(rawCollateralAmount);
     }
 
     /**
@@ -146,4 +161,6 @@ contract MarginAccount is Initializable, Context {
             require(_perpetual.isSafe(_self()), "fund margin unsafe");
         }
     }
+
+    uint256[19] private __gap;
 }

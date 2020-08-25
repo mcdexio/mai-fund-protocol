@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "../component/FundCollateral.sol";
+import "../component/Collateral.sol";
 
-contract TestFundCollateral is FundCollateral {
+contract TestCollateral is Collateral {
 
     receive() external payable {
         require(_collateral == address(0), "this contract does not accept ether");

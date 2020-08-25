@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Capped.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../lib/LibConstant.sol";
-import "./ERC20Purchasable.sol";
+import "./Context.sol";
 
 /**
  * @title Implemetation of operations on fund account.
  */
-contract ERC20Tradable is ERC20Purchasable {
-    
+contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
+
     using SafeMath for uint256;
 
     // using fixed decimals 18
     uint8 constant private FUND_SHARE_ERC20_DECIMALS = 18;
 
-    uint256 private _redeemingLockPeriod;
+    uint256 internal _redeemingLockPeriod;
 
-    mapping(address => uint256) private _lastPurchaseTimes;
-    mapping(address => uint256) private _redeemingBalances;
-    mapping(address => uint256) private _redeemingSlippages;
-    mapping(address => uint256) private _withdrawableCollaterals;
+    mapping(address => uint256) internal _lastPurchaseTimes;
+    mapping(address => uint256) internal _redeemingBalances;
+    mapping(address => uint256) internal _redeemingSlippages;
 
     event Purchase(address indexed trader, uint256 shareAmount, uint256 lastPurchaseTime);
     event IncreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
@@ -30,7 +30,7 @@ contract ERC20Tradable is ERC20Purchasable {
     event DecreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event SetRedeemingSlippage(address indexed trader, uint256 slippage);
 
-    function __ERC20Tradable_init_unchained(uint256 cap)
+    function __ERC20Redeemable_init_unchained()
         internal
         initializer
     {
@@ -48,7 +48,34 @@ contract ERC20Tradable is ERC20Purchasable {
         view
         returns (uint256)
     {
+        if (!_canRedeem(trader)) {
+            return 0;
+        }
         return balanceOf(trader).sub(_redeemingBalances[trader]);
+    }
+
+    /**
+     * @notice  Set redeeming lock period.
+     * @param   period  Lock period in seconds.
+     */
+    function _setRedeemingLockPeriod(uint256 period) internal {
+        _redeemingLockPeriod = period;
+    }
+
+    /**
+     * @notice  Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
+     * @param   trader      Address of share owner.
+     * @param   slippage    Slipage percent of redeeming rate.
+     */
+    function _setRedeemingSlippage(address trader, uint256 slippage)
+        internal
+    {
+        if (slippage == _redeemingSlippages[trader]) {
+            return;
+        }
+        require(slippage < LibConstant.RATE_UPPERBOUND, "slippage out of range");
+        _redeemingSlippages[trader] = slippage;
+        emit SetRedeemingSlippage(trader, slippage);
     }
 
     /**
@@ -57,25 +84,13 @@ contract ERC20Tradable is ERC20Purchasable {
      * @param   trader      Address of share owner.
      * @param   shareAmount Amount of share to mint.
      */
-    function _purchase(address trader, uint256 shareAmount)
+    function _mint(address trader, uint256 shareAmount)
         internal
         virtual
+        override
     {
-        _mint(trader, shareAmount);
+        super._mint(trader, shareAmount);
         _lastPurchaseTimes[trader] = _now();
-        emit Purchase(trader, shareAmount, _now());
-    }
-
-    /**
-     * @notice  Decrease share balance,  also decrease the total supply.
-     * @param   trader      Address of share owner.
-     * @param   shareAmount Amount of share to burn.
-     */
-    function _redeem(address trader, uint256 shareAmount)
-        internal
-    {
-        _burn(trader, shareAmount);
-        emit BurnShareBalance(trader, shareAmount);
     }
 
     /**
@@ -96,22 +111,6 @@ contract ERC20Tradable is ERC20Purchasable {
     }
 
     /**
-     * @notice  Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
-     * @param   trader      Address of share owner.
-     * @param   slippage    Slipage percent of redeeming rate.
-     */
-    function _setRedeemingSlippage(address trader, uint256 slippage)
-        internal
-    {
-        if (slippage == _redeemingSlippages[trader]) {
-            return;
-        }
-        require(slippage < LibConstant.RATE_UPPERBOUND, "slippage must be less then 100%");
-        _redeemingSlippages[trader] = slippage;
-        emit SetRedeemingSlippage(trader, slippage);
-    }
-
-    /**
      * @notice  Redeem share balance, to prevent redeemed amount exceed total amount.
      * @dev     Slippage will overwrite previous setting.
      * @param   trader      Address of share owner.
@@ -120,12 +119,12 @@ contract ERC20Tradable is ERC20Purchasable {
     function _increaseRedeemingShareBalance(address trader, uint256 shareAmount)
         internal
     {
-        require(shareAmount <= _redeemableShareBalance(trader), "no enough share to redeem");
+        require(shareAmount <= _redeemableShareBalance(trader), "exceeded amount");
         // set max amount of redeeming amount
         _redeemingBalances[trader] = _redeemingBalances[trader].add(shareAmount);
         emit IncreaseRedeemingShareBalance(trader, shareAmount);
     }
-    
+
     /**
      * @notice  Redeem share balance, to prevent redeemed amount exceed total amount.
      * @param   trader       Address of share owner.
@@ -135,40 +134,17 @@ contract ERC20Tradable is ERC20Purchasable {
         internal
     {
         // set max amount of redeeming amount
-        _redeemingBalances[trader] = _redeemingBalances[trader]
-            .sub(shareAmount, "insufficient redeeming share balance");
+        _redeemingBalances[trader] = _redeemingBalances[trader].sub(shareAmount, "insufficient balance");
         emit DecreaseRedeemingShareBalance(trader, shareAmount);
     }
 
     /**
-     * @notice  Increase collateral amount which can be withdraw by user.
-     * @param   trader      Address of share owner.
-     * @param   amount      Amount of collateral to increase.
+     * @dev Hook to check redeemable amount before transfer && update purchase time.
      */
-    function _increaseWithdrawableCollateral(address trader, uint256 amount)
-        internal
-    {
-        _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader].add(amount);
-        emit IncreaseWithdrawableCollateral(trader, amount);
-    }
-
-    /**
-     * @notice  Decrease collateral amount which can be withdraw by user.
-     * @param   trader      Address of share owner.
-     * @param   amount      Amount of collateral to decrease.
-     */
-    function _decreaseWithdrawableCollateral(address trader, uint256 amount)
-        internal
-    {
-        _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader]
-            .sub(amount, "insufficient withdrawable collateral");
-        emit DecreaseWithdrawableCollateral(trader, amount);
-    }
-
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
-        require(amount <= _redeemableShareBalance(from), "insufficent balance to transfer");
+        require(from == address(0) || amount <= _redeemableShareBalance(from), "insufficient balance");
         // this will affect receipient's _lastPurchaseTime.
         // to prevent early redeeming through transfer
         // but there is a side effect: if a account continously purchase && transfer shares to another account.
@@ -177,4 +153,6 @@ contract ERC20Tradable is ERC20Purchasable {
             _lastPurchaseTimes[to] = _lastPurchaseTimes[from];
         }
     }
+
+    uint256[16] private __gap;
 }

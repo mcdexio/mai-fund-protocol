@@ -10,5 +10,5 @@ do
 	bytecode=$(cat ${BUILD_DIR}/${fn} | jq .deployedBytecode | awk -F "\"" '{print $2}') 
 	[[ $bytecode = 0x ]] && continue
 	let size=${#bytecode}/2
-	printf "%-30s%s\n" "${fn}~" "~${size}" | tr ' ~' '- '
+	printf "%-40s%s\n" "${fn}~" "~${size}" | tr ' ~' '- '
 done

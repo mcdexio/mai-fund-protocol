@@ -14,7 +14,8 @@ contract('TestRSITrendingStrategy', accounts => {
 
     const deploy = async () => {
         feeder = await TestPriceFeeder.new();
-        bucket = await PeriodicPriceBucket.new(feeder.address);
+        bucket = await PeriodicPriceBucket.new();
+        await bucket.initialize(feeder.address);
         rsistg = await TestRSITrendingStrategy.new(
             bucket.address,
             3600,

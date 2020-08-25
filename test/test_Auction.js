@@ -7,9 +7,9 @@ const {
     createEVMSnapshot, restoreEVMSnapshot,
 } = require("./utils.js");
 
-const TestFundAuction = artifacts.require('TestFundAuction.sol');
+const TestAuction = artifacts.require('TestAuction.sol');
 
-contract('TestFundAuction', accounts => {
+contract('TestAuction', accounts => {
 
     const SHORT = 1;
     const LONG = 2;
@@ -35,7 +35,7 @@ contract('TestFundAuction', accounts => {
         await deployer.setIndex(200);
         await deployer.createPool();
 
-        auction = await TestFundAuction.new(deployer.perpetual.address);
+        auction = await TestAuction.new(deployer.perpetual.address, toWad(1000));
         await deployer.globalConfig.addComponent(deployer.perpetual.address, auction.address);
     }
 
@@ -74,13 +74,13 @@ contract('TestFundAuction', accounts => {
     });
 
     it("validate price", async () => {
-        assert.ok(await auction.validateBiddingPrice(LONG, 1000, 1000));
-        assert.ok(await auction.validateBiddingPrice(LONG, 1000, 1002));
-        await shouldThrows(auction.validateBiddingPrice(LONG, 1000, 999), "price too low for long");
+        assert.ok(await auction.validatePrice(LONG, 1000, 1000));
+        assert.ok(await auction.validatePrice(LONG, 1000, 1002));
+        await shouldThrows(auction.validatePrice(LONG, 1000, 999), "price not match");
 
-        assert.ok(await auction.validateBiddingPrice(SHORT, 1000, 1000));
-        assert.ok(await auction.validateBiddingPrice(SHORT, 1000, 999));
-        await shouldThrows(auction.validateBiddingPrice(SHORT, 1000, 1001), "price too high for short");
+        assert.ok(await auction.validatePrice(SHORT, 1000, 1000));
+        assert.ok(await auction.validatePrice(SHORT, 1000, 999));
+        await shouldThrows(auction.validatePrice(SHORT, 1000, 1001), "price not match");
     })
 
     const prepare = async (side) => {
@@ -89,8 +89,8 @@ contract('TestFundAuction', accounts => {
         await deployer.perpetual.deposit(toWad(1000), {from: user3, value: toWad(1000)});
 
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, null, admin);
-        await delegateTrade(user1, user3, side, toWad(200), toWad(20000)); 
-        
+        await delegateTrade(user1, user3, side, toWad(200), toWad(20000));
+
         var margin = await deployer.perpetual.getMarginAccount(user1);
         assert.equal(fromWad(await deployer.perpetual.marginBalance.call(user1)), 1000);
         assert.equal(fromWad(margin.size), 20000);
@@ -98,8 +98,7 @@ contract('TestFundAuction', accounts => {
         // user1 -- mock fund
         // user2 -- keeper
         await auction.setSelf(user1);
-        await auction.setTotalSupply(toWad(100));
-        await auction.setRedeemingBalances(user2, toWad(2));
+        await auction.increaseTotalSupply(toWad(100));
     }
 
     it("bidding no slippage", async () => {

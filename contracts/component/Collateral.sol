@@ -19,8 +19,8 @@ contract Collateral is Initializable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address private _collateral;
-    uint256 private _scaler;
+    IERC20 internal _collateralToken;
+    uint256 internal _scaler;
 
     /**
      * @notice  Initialize collateral and decimals.
@@ -30,25 +30,17 @@ contract Collateral is Initializable {
         internal
         initializer
     {
-        require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "given decimals out of range");
+        require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "decimals out of range");
         if (collateral == address(0)) {
             // ether
-            require(decimals == 18, "ether must have decimals of 18");
+            require(decimals == 18, "ether requires decimals 18");
         } else {
             // erc20 token
             (uint8 retrievedDecimals, bool ok) = _retrieveDecimals(collateral);
-            require(!ok || (ok && retrievedDecimals == decimals), "decimals not match");
+            require(!ok || (ok && retrievedDecimals == decimals), "unmatched decimals");
         }
-        _collateral = collateral;
+        _collateralToken = IERC20(collateral);
         _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
-    }
-
-    function collateral() external view returns (address) {
-        return _collateral;
-    }
-
-    function scaler() external view returns (uint256) {
-        return _scaler;
     }
 
     /**
@@ -68,7 +60,12 @@ contract Collateral is Initializable {
         return (0, false);
     }
 
-    // ** All interface call from upper layer use the decimals of the token, called 'rawAmount'.
+    function _increaseApproval(address spender, uint256 amount)
+        internal
+    {
+        _collateralToken.safeIncreaseAllowance(spender, amount);
+    }
+
 
     /**
      * @dev Indicates that whether current token is an erc20 token.
@@ -79,7 +76,7 @@ contract Collateral is Initializable {
         view
         returns (bool)
     {
-        return _collateral != address(0);
+        return address(_collateralToken) != address(0);
     }
 
     /**
@@ -93,12 +90,12 @@ contract Collateral is Initializable {
         internal
         returns (uint256)
     {
-        require(amount > 0, "amount should not be 0");
+        require(amount > 0, "zero amount");
         uint256 rawAmount = _toRawAmount(amount);
         if (_isCollateralERC20()) {
-            IERC20(_collateral).safeTransferFrom(trader, address(this), rawAmount);
+            _collateralToken.safeTransferFrom(trader, address(this), rawAmount);
         } else {
-            require(msg.value == rawAmount, "amount not match with sent value");
+            require(msg.value == rawAmount, "unmatched sent value");
         }
         return rawAmount;
     }
@@ -114,10 +111,10 @@ contract Collateral is Initializable {
         internal
         returns (uint256)
     {
-        require(amount > 0, "amount should not be 0");
+        require(amount > 0, "zero amount");
         uint256 rawAmount = _toRawAmount(amount);
         if (_isCollateralERC20()) {
-            IERC20(_collateral).safeTransfer(trader, rawAmount);
+            _collateralToken.safeTransfer(trader, rawAmount);
         } else {
             Address.sendValue(trader, rawAmount);
             // trader.transfer(amount);
@@ -144,4 +141,6 @@ contract Collateral is Initializable {
     function _toRawAmount(uint256 amount) internal view returns (uint256) {
         return amount.div(_scaler);
     }
+
+    uint256[18] private __gap;
 }

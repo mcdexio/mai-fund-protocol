@@ -13,7 +13,8 @@ contract('PeriodicPriceBucket', accounts => {
 
     const deploy = async () => {
         feeder = await TestPriceFeeder.new();
-        bucket = await PeriodicPriceBucket.new(feeder.address);
+        bucket = await PeriodicPriceBucket.new();
+        await bucket.initialize(feeder.address);
         MAX_BUCKET = await bucket.MAX_BUCKETS();
     };
 
@@ -191,7 +192,8 @@ contract('PeriodicPriceBucket', accounts => {
     });
 
     it("updatePrice", async () => {
-        await shouldThrows(PeriodicPriceBucket.new("0x0000000000000000000000000000000000000000"), "invalid price feeder address");
+        var newBucket = await PeriodicPriceBucket.new()
+        await shouldThrows(newBucket.initialize("0x0000000000000000000000000000000000000000"), "invalid price feeder address");
 
         await feeder.setPrice(0, 0);
         await shouldThrows(bucket.updatePrice(), "invalid price");

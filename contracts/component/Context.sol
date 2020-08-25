@@ -19,4 +19,6 @@ contract Context is ContextUpgradeSafe {
     function _now() internal view returns (uint256) {
         return block.timestamp;
     }
+
+    uint256[20] private __gap;
 }
