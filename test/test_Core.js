@@ -9,8 +9,7 @@ const {
     checkEtherBalance
 } = require("./utils.js");
 
-const MockPerpetual = artifacts.require('MockPerpetual.sol');
-const TestFund = artifacts.require('TestFund.sol');
+const TestCore = artifacts.require('TestCore.sol');
 
 contract('FundBase', accounts => {
 
@@ -38,7 +37,7 @@ contract('FundBase', accounts => {
         await deployer.setIndex(200);
         await deployer.createPool();
 
-        fund = await TestFund.new();
+        fund = await TestCore.new();
         await fund.initialize(
             "Fund Share Token",
             "FST",
@@ -96,7 +95,7 @@ contract('FundBase', accounts => {
 
     it("initialize", async () => {
 
-        var fund = await TestFund.new();
+        var fund = await TestCore.new();
         await fund.initialize(
             "Fund Share Token",
             "FST",
@@ -117,7 +116,7 @@ contract('FundBase', accounts => {
             "Contract instance has already been initialized"
         );
 
-        var fund = await TestFund.new();
+        var fund = await TestCore.new();
         await shouldThrows(
             fund.initialize(
                 "Fund Share Token",
@@ -130,7 +129,7 @@ contract('FundBase', accounts => {
             "invalid perpetual address"
         );
 
-        var fund = await TestFund.new();
+        var fund = await TestCore.new();
         await shouldThrows(
             fund.initialize(
                 "Fund Share Token",
@@ -145,7 +144,7 @@ contract('FundBase', accounts => {
     });
 
     it("create", async () => {
-        var fund = await TestFund.new();
+        var fund = await TestCore.new();
         await fund.initialize(
             "Fund Share Token",
             "FST",

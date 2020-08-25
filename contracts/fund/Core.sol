@@ -142,8 +142,9 @@ contract Core is
      */
     function approvePerpetual(uint256 amount)
         external
+        onlyOwner
     {
-        _increaseApproval(address(_perpetual), amount);
+        _approvalTo(address(_perpetual), amount);
     }
 
     /**

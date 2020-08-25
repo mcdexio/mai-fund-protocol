@@ -60,10 +60,10 @@ contract Collateral is Initializable {
         return (0, false);
     }
 
-    function _increaseApproval(address spender, uint256 amount)
+    function _approvalTo(address spender, uint256 amount)
         internal
     {
-        _collateralToken.safeIncreaseAllowance(spender, amount);
+        _collateralToken.safeApprove(spender, amount);
     }
 
 
