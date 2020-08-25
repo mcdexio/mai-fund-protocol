@@ -73,6 +73,7 @@ contract MarginAccount is Initializable, Context {
     function _emergency()
         internal
         view
+        virtual
         returns (bool)
     {
         return _perpetual.status() != LibTypes.Status.NORMAL;
