@@ -133,6 +133,8 @@ contract MarginAccount is Initializable, Context {
      * @param   positionAmount  Amount of position to bid.
      */
     function _tradePosition(
+        address taker,
+        address maker,
         LibTypes.Side side,
         uint256 price,
         uint256 positionAmount
@@ -145,21 +147,21 @@ contract MarginAccount is Initializable, Context {
             uint256 takerOpened,
             uint256 makerOpened
         ) = _perpetual.tradePosition(
-            _msgSender(),
-            _self(),
+            taker,
+            maker,
             side,
             price,
             alignedAmount
         );
         if (makerOpened > 0) {
-            require(_perpetual.isIMSafe(_msgSender()), "caller initial margin unsafe");
+            require(_perpetual.isIMSafe(maker), "caller initial margin unsafe");
         } else {
-            require(_perpetual.isSafe(_msgSender()), "caller margin unsafe");
+            require(_perpetual.isSafe(maker), "caller margin unsafe");
         }
         if (takerOpened > 0) {
-            require(_perpetual.isIMSafe(_self()), "fund initial margin unsafe");
+            require(_perpetual.isIMSafe(taker), "fund initial margin unsafe");
         } else {
-            require(_perpetual.isSafe(_self()), "fund margin unsafe");
+            require(_perpetual.isSafe(taker), "fund margin unsafe");
         }
     }
 

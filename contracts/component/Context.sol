@@ -16,7 +16,12 @@ contract Context is ContextUpgradeSafe {
         return address(this);
     }
 
-    function _now() internal view returns (uint256) {
+    function _now()
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
         return block.timestamp;
     }
 

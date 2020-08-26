@@ -33,21 +33,19 @@ contract SocialTraderFund is
         string calldata symbol,
         uint8 collateralDecimals,
         address perpetual,
-        uint256 cap,
-        address newManager
+        uint256 cap
     )
         external
         initializer
     {
         __Core_init(name, symbol, collateralDecimals, perpetual, cap);
-        __SocialTraderFund_init_unchained(newManager);
+        __SocialTraderFund_init_unchained();
     }
 
-    function __SocialTraderFund_init_unchained(address newManager)
+    function __SocialTraderFund_init_unchained()
         internal
         initializer
     {
-        _manager = newManager;
     }
 
     /**

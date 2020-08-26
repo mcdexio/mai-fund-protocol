@@ -7,6 +7,11 @@ import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "../fund/Core.sol";
 import "../fund/Getter.sol";
 
+interface IDelegatable {
+    function setDelegator(address perpetual, address newDelegator) external;
+    function isDelegator(address trader, address perpetual, address target) external view returns (bool);
+}
+
 contract TestCore is
     Initializable,
     Core,
@@ -25,4 +30,9 @@ contract TestCore is
         __Core_init(name, symbol, collateralDecimals, perpetual, cap);
     }
 
+    function setDelegator(address exchangeAddress, address delegator)
+        external
+    {
+        IDelegatable(exchangeAddress).setDelegator(address(_perpetual), delegator);
+    }
 }

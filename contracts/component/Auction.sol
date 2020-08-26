@@ -27,7 +27,7 @@ contract Auction is Status {
      * @notice Validate bidding price for given side and pricelimit.
      * @param   side        Bidding side.
      * @param   price       Bidding price.
-     * @param   priceLimit  Limit of bidding price.
+     * @param   priceLimit  Limit of bidding price.1
      */
     function _validatePrice(LibTypes.Side side, uint256 price, uint256 priceLimit)
         internal
@@ -54,12 +54,12 @@ contract Auction is Status {
         returns (uint256 slippageValue)
     {
         LibTypes.MarginAccount memory marginAccount = _marginAccount();
-        require(marginAccount.size > 0, "empty margin account");
+        require(marginAccount.size > 0, "position size is 0");
         require(marginAccount.side == side, "unexpected side");
         uint256 tradingAmount = marginAccount.size.wfrac(shareAmount, totalSupply());
         ( uint256 tradingPrice, uint256 priceLoss ) = _biddingPrice(side, slippage);
         _validatePrice(side, tradingPrice, priceLimit);
-        _tradePosition(side, tradingPrice, tradingAmount);
+        _tradePosition(_msgSender(), _self(), side, tradingPrice, tradingAmount);
         slippageValue = priceLoss.wmul(tradingAmount);
     }
 
