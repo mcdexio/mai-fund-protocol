@@ -10,9 +10,9 @@ const {
 
 BigNumber.set({ ROUNDING_MODE: BigNumber.ROUND_DOWN })
 
-const SocialTraderFund = artifacts.require('TestSocialTraderFund.sol');
+const SocialTradingFund = artifacts.require('TestSocialTradingFund.sol');
 
-contract('FundSocialTrader', accounts => {
+contract('SocialTradingFund', accounts => {
 
     const SHORT = 1;
     const LONG = 2;
@@ -39,7 +39,7 @@ contract('FundSocialTrader', accounts => {
         await deployer.setIndex(200);
         await deployer.createPool();
 
-        fund = await SocialTraderFund.new();
+        fund = await SocialTradingFund.new();
         await fund.initialize(
             "Fund Share Token",
             "FST",

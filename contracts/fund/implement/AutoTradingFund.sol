@@ -17,7 +17,7 @@ interface ITradingStrategy {
     function getNextTarget() external returns (int256);
 }
 
-contract AutoTraderFund is
+contract AutoTradingFund is
     Initializable,
     Core,
     Getter
@@ -51,10 +51,10 @@ contract AutoTraderFund is
         initializer
     {
         __Core_init(name, symbol, collateralDecimals, perpetual, cap);
-        __AutoTraderFund_init_unchained(strategy, inversed);
+        __AutoTradingFund_init_unchained(strategy, inversed);
     }
 
-    function __AutoTraderFund_init_unchained(
+    function __AutoTradingFund_init_unchained(
         address strategy,
         bool inversed
     )

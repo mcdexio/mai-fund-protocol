@@ -16,7 +16,7 @@ interface IDelegatable {
  * @title   Social trading fund, managed by a social trader.
  *          A social trader is able trade for fund but cannot withdraw from fund.
  */
-contract SocialTraderFund is
+contract SocialTradingFund is
     Initializable,
     Core,
     Getter
@@ -39,10 +39,10 @@ contract SocialTraderFund is
         initializer
     {
         __Core_init(name, symbol, collateralDecimals, perpetual, cap);
-        __SocialTraderFund_init_unchained();
+        __SocialTradingFund_init_unchained();
     }
 
-    function __SocialTraderFund_init_unchained()
+    function __SocialTradingFund_init_unchained()
         internal
         initializer
     {

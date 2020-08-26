@@ -35,6 +35,9 @@ contract MarginAccount is Initializable, Context {
         _perpetual = IPerpetual(perpetualAddress);
     }
 
+    /**
+     * @dev Get owner of perpetual system (Owner of GlobalConfig)
+     */
     function _owner()
         internal
         view
@@ -44,6 +47,9 @@ contract MarginAccount is Initializable, Context {
         return IOwnable(_perpetual.globalConfig()).owner();
     }
 
+    /**
+     * @dev Should be same to perpetual.collateral()
+     */
     function _collateral()
         internal
         view
@@ -53,6 +59,9 @@ contract MarginAccount is Initializable, Context {
         return _perpetual.collateral();
     }
 
+    /**
+     * @dev Current mark price from perpetual.
+     */
     function _markPrice()
         internal
         virtual

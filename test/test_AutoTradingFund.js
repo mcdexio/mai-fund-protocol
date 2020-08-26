@@ -8,9 +8,9 @@ const {
 } = require("./utils.js");
 
 const MockRSITrendingStrategy = artifacts.require('MockRSITrendingStrategy.sol');
-const AutoTraderFund = artifacts.require('AutoTraderFund.sol');
+const AutoTradingFund = artifacts.require('AutoTradingFund.sol');
 
-contract('FundAutoTrader', accounts => {
+contract('AutoTradingFund', accounts => {
     const FLAT = 0;
     const SHORT = 1;
     const LONG = 2;
@@ -38,7 +38,7 @@ contract('FundAutoTrader', accounts => {
         await deployer.createPool();
 
         rsistg = await MockRSITrendingStrategy.new();
-        fund = await AutoTraderFund.new();
+        fund = await AutoTradingFund.new();
         await fund.initialize(
             "Fund Share Token",
             "FST",
