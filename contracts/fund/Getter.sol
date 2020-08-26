@@ -5,6 +5,10 @@ pragma experimental ABIEncoderV2;
 import "./Core.sol";
 
 contract Getter is Core {
+    // asset value
+    function netAssetValue() external returns (uint256) {
+        return _netAssetValue();
+    }
 
     // redeem
     function redeemableShareBalance(address account) external view returns (uint256) {
@@ -48,8 +52,14 @@ contract Getter is Core {
         return _lastFeeTime;
     }
 
-    function feeRates() external view returns (uint256, uint256, uint256) {
-        return (_entranceFeeRate, _streamingFeeRate, _performanceFeeRate);
+    function feeRates()
+        external
+        view
+        returns (uint256 entranceFeeRate, uint256 streamingFeeRate, uint256 performanceFeeRate )
+    {
+        entranceFeeRate = _entranceFeeRate;
+        streamingFeeRate = _streamingFeeRate;
+        performanceFeeRate = _performanceFeeRate;
     }
 
     // risk indicator
@@ -62,15 +72,11 @@ contract Getter is Core {
     }
 
     function leverage() external returns (int256) {
-        uint256 netAssetValue = _netAssetValue();
-        _updateFeeState(netAssetValue);
-        return _leverage(netAssetValue);
+        return _leverage(_netAssetValue());
     }
 
     function drawdown() external returns (uint256) {
-        uint256 netAssetValue = _netAssetValue();
-        _updateFeeState(netAssetValue);
-        return _drawdown(netAssetValue);
+        return _drawdown(_netAssetValue());
     }
 
     // withdraw

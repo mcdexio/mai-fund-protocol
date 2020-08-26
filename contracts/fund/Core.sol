@@ -181,12 +181,12 @@ contract Core is
         whenNotStopped
         nonReentrant
     {
-        require(shareAmount > 0, "zero amount");
+        require(shareAmount > 0, "amount is 0");
         require(totalSupply() == 0, "alread created");
         uint256 requiredCollateralAmount = initialNetAssetValue.wmul(shareAmount);
         // pay collateral
         _pullFromUser(_msgSender(), requiredCollateralAmount);
-        _deposit(requiredCollateralAmount);
+        _deposit(_toRawAmount(requiredCollateralAmount));
         _mint(_msgSender(), shareAmount);
         _updateFee(0);
         _updateMaxNetAssetValuePerShare(initialNetAssetValue, shareAmount);
@@ -207,9 +207,9 @@ contract Core is
         whenNotStopped
         nonReentrant
     {
-        require(minimalShareAmount > 0, "zero amount");
+        require(minimalShareAmount > 0, "amount is 0");
         uint256 netAssetValue = _netAssetValue();
-        require(netAssetValue > 0, "zero nav");
+        require(netAssetValue > 0, "nav is 0");
         uint256 netAssetValuePerShare = _netAssetValuePerShare(netAssetValue);
         uint256 entranceFeePerShare = _entranceFee(netAssetValuePerShare);
         uint256 pricePerShare = netAssetValuePerShare.add(entranceFeePerShare);
@@ -219,9 +219,9 @@ contract Core is
         uint256 entranceFee = entranceFeePerShare.wmul(shareAmount);
         // require(netAssetValuePerShare <= netAssetValuePerShareLimit, "unit nav exceeded limit");
         // pay collateral + fee, collateral -> perpetual, fee -> fund
-        Collateral._pullFromUser(_msgSender(), collateralPaid);
-        MarginAccount._deposit(collateralPaid);
-        ERC20Redeemable._mint(_msgSender(), shareAmount);
+        _pullFromUser(_msgSender(), collateralPaid);
+        _deposit(_toRawAmount(collateralPaid));
+        _mint(_msgSender(), shareAmount);
         // - update manager status
         _updateFee(entranceFee);
 
@@ -244,7 +244,7 @@ contract Core is
         // steps:
         //  1. update redeeming amount in account
         //  2.. create order, push order to list
-        require(shareAmount > 0, "zero amount");
+        require(shareAmount > 0, "amount is 0");
         require(shareAmount <= balanceOf(_msgSender()), "excceeded amount");
         require(_canRedeem(_msgSender()), "cannot redeem now");
         _setRedeemingSlippage(_msgSender(), slippage);
@@ -267,7 +267,7 @@ contract Core is
         whenStopped
         nonReentrant
     {
-        require(shareAmount > 0, "zero amount");
+        require(shareAmount > 0, "amount is 0");
         require(shareAmount <= balanceOf(_msgSender()), "excceeded amount");
         require(_redeemingBalances[_self()] == 0, "cannot redeem now");
         _redeemImmediately(_msgSender(), shareAmount);
@@ -283,7 +283,7 @@ contract Core is
         external
         whenNotPaused
     {
-        require(shareAmount > 0, "zero amount");
+        require(shareAmount > 0, "amount is 0");
         _decreaseRedeemingShareBalance(_msgSender(), shareAmount);
         emit CancelRedeem(_msgSender(), shareAmount);
     }
@@ -305,11 +305,11 @@ contract Core is
         LibTypes.Side side
     )
         external
-        nonReentrant
         whenNotPaused
         whenNotStopped
+        nonReentrant
     {
-        require(shareAmount > 0, "zero amount");
+        require(shareAmount > 0, "amount is 0");
         require(shareAmount <= _redeemingBalances[trader], "excceeded amount");
         // update fee status
         uint256 netAssetValue = _netAssetValue();
@@ -318,10 +318,10 @@ contract Core is
         uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, slippage);
         // this is the finally collateral returned to user.
         uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply()).sub(slippageLoss);
-        _withdraw(collateralToReturn);
-        _increaseWithdrawableCollateral(trader, collateralToReturn);
-        _burn(trader, shareAmount);
         _decreaseRedeemingShareBalance(trader, shareAmount);
+        _burn(trader, shareAmount);
+        _withdraw(_toRawAmount(collateralToReturn));
+        _increaseWithdrawableCollateral(trader, collateralToReturn);
         emit BidShare(_msgSender(), trader, shareAmount, slippage);
     }
     // 13931    +3024
@@ -344,7 +344,7 @@ contract Core is
         whenStopped
     {
         address account = _self();
-        require(shareAmount > 0, "zero amount");
+        require(shareAmount > 0, "amount is 0");
         uint256 redeemingShareBalance = _redeemingBalances[account];
         require(shareAmount <= redeemingShareBalance, "excceeded amount");
         uint256 slippage = _redeemingSlippages[account];
@@ -388,7 +388,7 @@ contract Core is
         uint256 netAssetValue = _netAssetValue();
         collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply());
         _burn(account, shareAmount);
-        _withdraw(collateralToReturn);
+        _withdraw(_toRawAmount(collateralToReturn));
         _pushToUser(payable(account), collateralToReturn);
     }
 
@@ -402,5 +402,20 @@ contract Core is
         returns (uint256)
     {
         return _updateFeeState(super._netAssetValue());
+    }
+
+    /**
+     * @dev Override net asset value, update fee.
+     */
+    function _updateFeeState(uint256 netAssetValue)
+        internal
+        virtual
+        override
+        returns (uint256)
+    {
+        if (stopped()) {
+            return netAssetValue;
+        }
+        return super._updateFeeState(netAssetValue);
     }
 }

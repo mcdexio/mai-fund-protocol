@@ -33,7 +33,7 @@ const encodeInitializData  = (
 }
 
 const setConfigurationEntry = async (target, entry, value) => {
-    await target.setConfigurationEntry(toBytes32(entry), uintToBytes32(value));
+    await target.setParameter(toBytes32(entry), uintToBytes32(value));
 }
 
 const createTradingContext = (perpetual, exchange, fundProxy, broker) => {

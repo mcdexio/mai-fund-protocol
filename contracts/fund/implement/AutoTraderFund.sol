@@ -141,7 +141,7 @@ contract AutoTraderFund is
         whenNotPaused
         whenNotStopped
     {
-        require(maxPositionAmount > 0, "zero position amount");
+        require(maxPositionAmount > 0, "amount is 0");
         require(needRebalancing(), "no need to rebalance");
         (
             uint256 rebalancingAmount,
@@ -154,11 +154,7 @@ contract AutoTraderFund is
         uint256 tradingAmount = Math.min(maxPositionAmount, rebalancingAmount);
         _validatePrice(rebalancingSide, tradingPrice, limitPrice);
         // to reuse _tradePosition, we have to swap taker and maker then take the counterSide
-        _tradePosition(
-            rebalancingSide.opposite(),
-            tradingPrice,
-            tradingAmount
-        );
+        _tradePosition(_self(), _msgSender(), rebalancingSide, tradingPrice, tradingAmount);
         emit Rebalance(rebalancingSide, tradingPrice, tradingAmount);
     }
 

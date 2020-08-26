@@ -1,7 +1,7 @@
 const assert = require("assert");
 const BN = require('bn.js');
 const BigNumber = require('bignumber.js');
-const { encodeInitializData, setConfigurationEntry, createTradingContext } = require("./bootstrap.js");
+const { encodeInitializData, setParameter, createTradingContext } = require("./bootstrap.js");
 const { PerpetualDeployer } = require("./perpetual.js");
 const {
     toBytes32, fromBytes32, uintToBytes32, toWad, fromWad, shouldThrows,
@@ -43,7 +43,6 @@ contract('FundBase', accounts => {
             "FST",
             18,
             deployer.perpetual.address,
-            admin,
             toWad(1000),
         )
         await deployer.globalConfig.addComponent(deployer.perpetual.address, fund.address);
@@ -71,15 +70,14 @@ contract('FundBase', accounts => {
         console.log("  │    Price (inversed)           │ $", (new BN(1e8)).div(await deployer.priceFeeder.latestAnswer()).toString());
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fund                          │                 ");
-        console.log("  │    Leverage                   │  ", fromWad(await fund.getLeverage.call()));
+        console.log("  │    Leverage                   │  ", fromWad(await fund.leverage.call()));
         // console.log("  │    NeedRebalance              │  ", await fund.needRebalancing.call());
         console.log("  │    TotalSupply                │  ", fromWad(await fund.totalSupply()));
-        console.log("  │    NetAssetValuePerShare      │ Ξ", fromWad(await fund.getNetAssetValuePerShare.call()));
+        console.log("  │    NetAssetValuePerShare      │ Ξ", fromWad(await fund.netAssetValue.call()));
         console.log("  │    PositionSize               │  ", fromWad(marginAccount.size));
         console.log("  │    PositionSide               │  ", marginAccount.side == SHORT? "SHORT": marginAccount.side == LONG? "LONG": "FLAT");
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fee                           │                 ");
-        console.log("  │    Manager                    │  ", await fund.manager());
         console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimed()));
         console.log("  │    LastFeeTime                │  ", (await fund.lastFeeTime()).toString());
         console.log("  └───────────────────────────────┴─────────────────");
@@ -90,7 +88,7 @@ contract('FundBase', accounts => {
         assert.equal(await fund.name(), "Fund Share Token");
         assert.equal(await fund.symbol(), "FST");
         assert.equal(await fund.decimals(), 18);
-        assert.equal(await fund.capacity(), toWad(1000));
+        assert.equal(await fund.cap(), toWad(1000));
     });
 
     it("initialize", async () => {
@@ -101,7 +99,6 @@ contract('FundBase', accounts => {
             "FST",
             18,
             deployer.perpetual.address,
-            admin,
             toWad(1000),
         )
         await shouldThrows(
@@ -110,7 +107,6 @@ contract('FundBase', accounts => {
                 "FST",
                 18,
                 deployer.perpetual.address,
-                admin,
                 toWad(1000),
             ),
             "Contract instance has already been initialized"
@@ -123,10 +119,9 @@ contract('FundBase', accounts => {
                 "FST",
                 18,
                 "0x0000000000000000000000000000000000000000",
-                admin,
                 toWad(1000),
             ),
-            "invalid perpetual address"
+            "zero perpetual address"
         );
 
         var fund = await TestCore.new();
@@ -136,10 +131,9 @@ contract('FundBase', accounts => {
                 "FST",
                 18,
                 deployer.perpetual.address,
-                admin,
                 toWad(0),
             ),
-            "capacity cannot be 0"
+            "cap is 0"
         );
     });
 
@@ -150,43 +144,41 @@ contract('FundBase', accounts => {
             "FST",
             18,
             deployer.perpetual.address,
-            admin,
             toWad(1000),
         )
         await deployer.globalConfig.addComponent(deployer.perpetual.address, fund.address);
-        await shouldThrows(fund.create(toWad(0), toWad(200), { value: toWad(200) }), "share amount must be greater than 0");
+        await shouldThrows(fund.create(toWad(0), toWad(200), { value: toWad(200) }), "amount is 0");
 
         assert.ok((await fund.lastFeeTime()).toString() == 0);
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         assert.ok((await fund.lastFeeTime()).toString() != 0);
         assert.equal(fromWad(await fund.totalSupply()), 1);
-        assert.equal(fromWad(await fund.getNetAssetValuePerShare.call()), 200);
+        assert.equal(fromWad(await fund.netAssetValue.call()), 200);
 
-        await shouldThrows(fund.create(toWad(1), toWad(200), { value: toWad(200) }), "share supply is not 0");
+        await shouldThrows(fund.create(toWad(1), toWad(200), { value: toWad(200) }), "alread created");
     });
 
     it("purchase", async () => {
-        await shouldThrows(fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) }), "nav should be greater than 0");
+        await shouldThrows(fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) }), "nav is 0");
 
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await shouldThrows(fund.purchase(toWad(1), toWad(199), { from: user1, value: toWad(199) }), "nav per share exceeds limit");
-        await shouldThrows(fund.purchase(toWad(0), toWad(200), { from: user1, value: toWad(200) }), "share amount must be greater than 0");
+        await shouldThrows(fund.purchase(toWad(1), toWad(199), { from: user1, value: toWad(199) }), "exceeded nav");
+        await shouldThrows(fund.purchase(toWad(0), toWad(200), { from: user1, value: toWad(200) }), "amount is 0");
     });
 
     it("redeem - no position", async () => {
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await shouldThrows(fund.redeem(toWad(0), toWad(0)), "amount must be greater than 0");
-        await shouldThrows(fund.redeem(toWad(1), toWad(1)), "slippage must be less then 100%");
-
+        await shouldThrows(fund.redeem(toWad(0), toWad(0)), "amount is 0");
+        await shouldThrows(fund.redeem(toWad(1), toWad(1)), "slippage out of range");
 
         await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.setConfigurationEntry(toBytes32("redeemingLockPeriod"), 6);
+        await fund.setParameter(toBytes32("redeemingLockPeriod"), 6);
         await shouldThrows(fund.redeem(toWad(1), toWad(0.01)), "cannot redeem now");
 
         await sleep(6000);
@@ -202,7 +194,7 @@ contract('FundBase', accounts => {
         await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.setDelegator(deployer.exchange.address);
+        await fund.setDelegator(deployer.exchange.address, admin);
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
 
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
@@ -222,7 +214,7 @@ contract('FundBase', accounts => {
         await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.setDelegator(deployer.exchange.address);
+        await fund.setDelegator(deployer.exchange.address, admin);
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
 
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
@@ -238,17 +230,16 @@ contract('FundBase', accounts => {
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 0.5);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
 
-        await shouldThrows(fund.cancelRedeem(toWad(0.51), { from: user1 }), "insufficient redeeming share balance");
-        await shouldThrows(fund.cancelRedeem(toWad(0), { from: user1 }), "share amount must be greater than 0");
+        await shouldThrows(fund.cancelRedeem(toWad(0.51), { from: user1 }), "insufficient balance");
+        await shouldThrows(fund.cancelRedeem(toWad(0), { from: user1 }), "amount is 0");
 
         await fund.cancelRedeem(toWad(0.5), { from: user1 });
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 0);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
 
-        await shouldThrows(fund.cancelRedeem(toWad(0), { from: user1 }), "share amount must be greater than 0");
-        await shouldThrows(fund.cancelRedeem(toWad(1), { from: user1 }), "no share to redeem");
+        await shouldThrows(fund.cancelRedeem(toWad(0), { from: user1 }), "amount is 0");
+        await shouldThrows(fund.cancelRedeem(toWad(1), { from: user1 }), "insufficient balance");
     });
-
 
     it("withdrawCollateral", async () => {
         debug = true;
@@ -256,13 +247,13 @@ contract('FundBase', accounts => {
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await shouldThrows(fund.redeem(toWad(0), toWad(0)), "amount must be greater than 0");
-        await shouldThrows(fund.redeem(toWad(1), toWad(1)), "slippage must be less then 100%");
+        await shouldThrows(fund.redeem(toWad(0), toWad(0)), "amount is 0");
+        await shouldThrows(fund.redeem(toWad(1), toWad(1)), "slippage out of range");
 
         await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.setConfigurationEntry(toBytes32("redeemingLockPeriod"), 6);
+        await fund.setParameter(toBytes32("redeemingLockPeriod"), 6);
         await shouldThrows(fund.redeem(toWad(1), toWad(0.01)), "cannot redeem now");
 
         await sleep(6000);
@@ -271,7 +262,7 @@ contract('FundBase', accounts => {
         assert.equal(fromWad(await fund.withdrawableCollateral(admin)), 0);
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
 
-        await shouldThrows(fund.redeem(toWad(0.6), toWad(0.2)), "insufficient share to redeem");
+        await shouldThrows(fund.redeem(toWad(0.6), toWad(0.2)), "excceeded amount");
 
         await checkEtherBalance(fund.redeem(toWad(0.5), toWad(0.2)), admin, toWad(-100));
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
@@ -279,13 +270,14 @@ contract('FundBase', accounts => {
     });
 
     it("user purchase - redeem", async () => {
+
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
         await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.setDelegator(deployer.exchange.address);
+        await fund.setDelegator(deployer.exchange.address, admin);
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
 
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
@@ -298,25 +290,27 @@ contract('FundBase', accounts => {
         await printFundState(deployer, fund, user1);
 
         await fund.redeem(toWad(1), toWad(0), { from: user1 });
-        await fund.bidRedeemingShare(user1, toWad(1), toWad(0), 1);
+
+        console.log(await deployer.perpetual.getMarginAccount(user2));
+        await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT, { from: user2 });
 
         await printFundState(deployer, fund, user1);
     });
 
     it("user purchase - redeem (with entrance fee)", async () => {
         debug = false;
-        await setConfigurationEntry(fund, "entranceFeeRate", toWad(0.10));
+        await fund.setParameter(toBytes32("entranceFeeRate"), toWad(0.10));
 
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
         await printFundState(deployer, fund, user1);
 
-        console.log("DEBUG", fromWad(await fund.getNetAssetValuePerShare.call()));
+        console.log("DEBUG", fromWad(await fund.netAssetValue.call()));
         await fund.purchase(toWad(1), toWad(220), { from: user1, value: toWad(220) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
         await printFundState(deployer, fund, user1);
 
-        await fund.setDelegator(deployer.exchange.address);
+        await fund.setDelegator(deployer.exchange.address, admin);
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
         await delegateTrade(admin, user2, 'buy', toWad(200), toWad(1));
@@ -333,8 +327,7 @@ contract('FundBase', accounts => {
     });
 
     it("user purchase - redeem (with streaming fee)", async () => {
-        debug = true;
-        await setConfigurationEntry(fund, "streamingFeeRate", toWad(0.31536)); // 0.000864 / day -> 0.00000001 / second
+        await fund.setParameter(toBytes32("streamingFeeRate"), toWad(0.31536)); // 0.000864 / day -> 0.00000001 / second
 
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
@@ -348,7 +341,7 @@ contract('FundBase', accounts => {
         // assert.equal(fromWad(await fund.balanceOf(user1)), 1);
         await printFundState(deployer, fund, user1);
 
-        await fund.setDelegator(deployer.exchange.address);
+        await fund.setDelegator(deployer.exchange.address, admin);
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
         await delegateTrade(admin, user2, 'buy', toWad(200), toWad(1));
@@ -370,7 +363,7 @@ contract('FundBase', accounts => {
 
     it("user purchase - redeem (with performace fee)", async () => {
         debug = true;
-        await setConfigurationEntry(fund, "streamingFeeRate", toWad(0.00));
+        await fund.setParameter(toBytes32("streamingFeeRate"), toWad(0.00));
 
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
@@ -380,7 +373,7 @@ contract('FundBase', accounts => {
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
         await printFundState(deployer, fund, user1);
 
-        await fund.setDelegator(deployer.exchange.address);
+        await fund.setDelegator(deployer.exchange.address, admin);
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
         await delegateTrade(admin, user2, 'buy', toWad(200), toWad(1));
@@ -409,7 +402,7 @@ contract('FundBase', accounts => {
         await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.setDelegator(deployer.exchange.address);
+        await fund.setDelegator(deployer.exchange.address, admin);
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
 
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
@@ -434,7 +427,7 @@ contract('FundBase', accounts => {
     });
 
     it("settle - 2", async () => {
-        await fund.setDelegator(deployer.exchange.address);
+        await fund.setDelegator(deployer.exchange.address, admin);
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
 
         await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
@@ -483,6 +476,6 @@ contract('FundBase', accounts => {
         await fund.settle(toWad(2), { from: user2 });
         assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
 
-        await shouldThrows(fund.settle(toWad(1), { from: admin }), "insufficient share to redeem");
+        await shouldThrows(fund.settle(toWad(1), { from: admin }), "excceeded amount");
     });
 });

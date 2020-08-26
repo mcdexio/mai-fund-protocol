@@ -143,8 +143,7 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
      */
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
-
-        require(from == address(0) || amount <= _redeemableShareBalance(from), "insufficient balance");
+        require(from == address(0) || to == address(0) || amount <= _redeemableShareBalance(from), "insufficient balance");
         // this will affect receipient's _lastPurchaseTime.
         // to prevent early redeeming through transfer
         // but there is a side effect: if a account continously purchase && transfer shares to another account.

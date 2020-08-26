@@ -44,9 +44,11 @@ contract('FundAutoTrader', accounts => {
             "FST",
             18,
             deployer.perpetual.address,
-            rsistg.address,
             toWad(1000),
+            rsistg.address,
+            true,
         )
+
         await deployer.globalConfig.addComponent(deployer.perpetual.address, fund.address);
     }
 
@@ -114,7 +116,7 @@ contract('FundAutoTrader', accounts => {
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
 
         await rsistg.setNextTarget(toWad(1));
-        await shouldThrows(fund.rebalance(toWad(0), toWad(0), SHORT), "position amount must greater than 0");
+        await shouldThrows(fund.rebalance(toWad(0), toWad(0), SHORT), "amount is 0");
         await shouldThrows(fund.rebalance(toWad(40000), toWad(0), LONG), "unexpected side");
         await fund.rebalance(toWad(40000), toWad(0), SHORT);
 
@@ -171,6 +173,8 @@ contract('FundAutoTrader', accounts => {
 
     it("normal case - user", async () => {
 
+        await deployer.perpetual.deposit(toWad(1000), { value: toWad(1000) });
+
         await fund.create(toWad(1), toWad(200), { value: toWad(200) });
         await rsistg.setNextTarget(toWad(1));
 
@@ -215,39 +219,44 @@ contract('FundAutoTrader', accounts => {
         await rsistg.setNextTarget(toWad(1));
 
         var user1 = accounts[2];
-        var balancer = accounts[3];
-        await deployer.perpetual.deposit(toWad(1000), {from: balancer, value: toWad(1000)});
+
+        await deployer.perpetual.deposit(toWad(1000), { from: admin, value: toWad(1000) });
+        await deployer.perpetual.deposit(toWad(1000), { from: user1, value: toWad(1000) });
 
         await fund.purchase(toWad(2), toWad(200), { from: user1, value: toWad(400)});
 
         await rsistg.setNextTarget(toWad(0.3));
         await fund.rebalance(toWad(40000), toWad(0), SHORT);
 
-        var nav = fromWad(await fund.getNetAssetValuePerShare.call());
-        console.log("  => NAV", nav);
+        var nav = fromWad(await fund.netAssetValue.call());
+        var totalSupply = fromWad(await fund.totalSupply());
+        console.log("  => NAV", nav/totalSupply);
 
         await printFundState(deployer, fund, user1);
 
         // 400 -- 0.0025  delta -- 0.0025 * 36000 = 90 (pnl) / 3 = 30
         // nav = 200 + 30
         await deployer.setIndex(400, { gasLimit: 8000000 });
-        var nav = fromWad(await fund.getNetAssetValuePerShare.call());
-        console.log("  => NAV", nav);
-        assert.equal(nav, 230);
+        var nav = fromWad(await fund.netAssetValue.call());
+        var totalSupply = fromWad(await fund.totalSupply());
+        console.log("  => NAV", nav/totalSupply);
+        assert.equal(nav/totalSupply, 230);
 
         // 100 -- 0.01  delta -- 0.005 * 36000 = 180 (pnl) / 3 = 60
         // nav = 200 - 60
         await deployer.setIndex(100, { gasLimit: 8000000 });
-        var nav = fromWad(await fund.getNetAssetValuePerShare.call());
-        console.log("  => NAV", nav);
-        assert.equal(nav, 140);
+        var nav = fromWad(await fund.netAssetValue.call());
+        var totalSupply = fromWad(await fund.totalSupply());
+        console.log("  => NAV", nav/totalSupply);
+        assert.equal(nav/totalSupply, 140);
 
         // 400 -- 0.0025  delta -- 0.0025 * 36000 = 90 (pnl) / 3 = 30
         // // nav = 200 + 30
         await deployer.setIndex(400, { gasLimit: 8000000 });
-        var nav = fromWad(await fund.getNetAssetValuePerShare.call());
-        console.log("  => NAV", nav);
-        assert.equal(nav, 230);
+        var nav = fromWad(await fund.netAssetValue.call());
+        var totalSupply = fromWad(await fund.totalSupply());
+        console.log("  => NAV", nav/totalSupply);
+        assert.equal(nav/totalSupply, 230);
 
         var b1 = await web3.eth.getBalance(user1);
         await fund.redeem(toWad(1), toWad(0.00), { from: user1, gasLimit: 8000000 });
