@@ -1,4 +1,4 @@
-# mai-fund-protocol
+# Mai Fund Protocol
 
 Mai Fund Protocol is trading tool built on Mai Protocol. It performs position trading for participants, making profits through various trading strategies.
 
@@ -37,7 +37,7 @@ Currently, management fee includes:
 - streaming fee
 - performance fee
 
-Check [Fee.md] for details.
+Check 'Fee.md' for details.
 
 #### Status.sol
 
@@ -75,5 +75,12 @@ Getter contrains read-only methods to retrieve basic properties of fund.
 
 SocialTradingFund allows a fund manager performing delegate trading for a fund.
 
-It is empowered by a new feature introduced in latest exchange contract.
+It is empowered by a new feature 'delegate trading' introduced in latest exchange contract.
 
+A real trader (fund manager) will be set as the delegator of fund margin account. User deposited their collateral into the fund is acturally doing a copy trading according to the strategy provided by fund manager.
+
+In this mode, a manager is able to choose any combination of fee parameters.
+
+### AutoTradingFund.sol
+
+AutoTradingFund accept a contract as target leverage indicator. When the target changed, anyone can rebalance the position of fund through calling 'rebalance' method.
