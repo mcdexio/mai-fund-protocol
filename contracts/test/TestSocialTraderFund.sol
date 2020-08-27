@@ -2,9 +2,9 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "../fund/implement/SocialTraderFund.sol";
+import "../fund/implement/SocialTradingFund.sol";
 
-contract TestSocialTraderFund is SocialTraderFund {
+contract TestSocialTradingFund is SocialTradingFund {
 
     uint256 private _mockTimestamp;
 
