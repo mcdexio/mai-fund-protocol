@@ -1,20 +1,26 @@
 # REDEEMING
 
-[TOC]
+- [REDEEMING](#redeeming)
+  - [Defines](#defines)
+  - [Steps](#steps)
+    - [When not stopped](#when-not-stopped)
+      - [position size of fund is not 0](#position-size-of-fund-is-not-0)
+      - [position size of fund is 0](#position-size-of-fund-is-0)
+    - [When stopped](#when-stopped)
 
 ## Defines
 
 - $ManagementFee = PerformanceFee + StreamingFee + EntranceFee$
 
-- $NAV = MarginBalance(fund) - ManagementFee $
+- $NAV = MarginBalance(fund) - ManagementFee$
 
-
+-----
 
 ## Steps
 
 ### When not stopped
 
-**position size of fund is not 0**
+#### position size of fund is not 0
 
 1. [Trader] asks to redeem $X$ shares;
    $$
@@ -52,14 +58,12 @@
    $$
 
 
-
 4. Loop 3 until $RedeemingShareBalance_{trader} = 0$
 
 5. [Trader] is able to withdraws collaterals up to $WithdrawableCollateral_{trader}$.
 
 
-
-**position size of fund is 0**
+#### position size of fund is 0
 
 1. [Trader] asks to redeem X shares;
 
@@ -78,9 +82,9 @@
 
 ### When stopped
 
-[Admin] will set $redeemingShareBalance_{fund} = totalShareBalance$ on stop operation;
+1. [Admin] will set $redeemingShareBalance_{fund} = totalShareBalance$ on stop operation;
 
-1. [Keeper] bids $X'$ shares for fund account;
+2. [Keeper] bids $X'$ shares for fund account;
    $$
    Slippage = MarkPrice \times RedeemingSlippage_{fund} \times X'
    $$
@@ -97,9 +101,9 @@
    RedeemingShareBalance_{fund} = RedeemingShareBalance_{fund} - X'
    $$
 
-2. [Trader] is not able to settle until $redeemingShareBalance_{fund} = 0$;
+3. [Trader] is not able to settle until $redeemingShareBalance_{fund} = 0$;
 
-3. [Trader] is able to withdraw collateral using steps in **position size of fund is 0**.
+4. [Trader] is able to withdraw collateral using steps in [position size of fund is 0](#position-size-of-fund-is-0).
 
 
 

@@ -1,10 +1,19 @@
-# FEE
+# MANAGEMENT FEE
 
-> There are three different types of extra fees that may arise during the interaction with the MFP (Mai Fund Protocol): entrance fee, streaming fee and performance fee. Each fee rate can be set between [0% - 100%) individually.
->
-> For one wants to become a fund manager (which is called social trader in MFP) could chose different combinations of parameters to build customized management models to attract traders with different purposes.
->
-> The fund managed by contract strategies (which is called auto trader in MFP) is completely fee-free.
+- [MANAGEMENT FEE](#management-fee)
+  - [Entrance Fee](#entrance-fee)
+  - [Streaming Fee](#streaming-fee)
+  - [Performance Fee](#performance-fee)
+
+Management fee is a major incentive for social traders to maintain their fund and improve trading strategies.
+
+There are three different types of extra fees that may arise during the interaction with the MFP (Mai Fund Protocol): entrance fee, streaming fee and performance fee. Each fee rate can be set between [0% - 100%) individually.
+
+For one wants to become a fund manager (which is called social trader in MFP) is able to chose different combinations of  fee parameters to build customized management models to attract traders with different purposes.
+
+Currently, the fund managed by contract strategies (which is called auto trader in MFP) is completely fee-free.
+
+-----
 
 ## Entrance Fee
 
@@ -13,10 +22,9 @@ $$
 EntranceFee = NAVunit \times PurchasingAmount \times EntranceFeeRate
 $$
 
-
 For example: assume the NAV per share of fund is Ξ200, and the entrance fee rate is 0.1%. A trader have to pay for Ξ200 plus Ξ0.2 (Ξ200 * 0.01%)  to get 1 share.
 
-
+-----
 
 ## Streaming Fee
 
@@ -32,11 +40,9 @@ Every time before share purchasing, the streaming fee will be settle for all exi
 
 *In implementation of contract, we assume 365 days in a year for convenience.*
 
-
-
 For example:  assume on time T a fund is created with NAV Ξ200000000, and the streaming fee rate is set to 31.536% (which means 0.000001% / second).  On T + 100 seconds when a user wants to purchase some shares worth Ξ200000000, a Ξ200 (Ξ200000000 * 0.000001% * 100) streaming fee of will be charged first. Then on T + 200, the streaming fee will be Ξ399.9998  ( (Ξ200000000 - 200 + Ξ200000000) * 0.000001% * 100).
 
-
+-----
 
 ## Performance Fee
 
