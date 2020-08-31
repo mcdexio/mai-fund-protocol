@@ -6,6 +6,9 @@ import "./Core.sol";
 
 contract Getter is Core {
     // asset value
+    /**
+     * @dev This is overrided version from Core.sol
+     */
     function netAssetValue() external returns (uint256) {
         return _netAssetValue();
     }

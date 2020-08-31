@@ -70,6 +70,9 @@ contract MarginAccount is Initializable, Context {
         return _perpetual.markPrice();
     }
 
+    /**
+     * @dev Address of perpetual.
+     */
     function _perpetualAddress()
         internal
         view
@@ -79,6 +82,9 @@ contract MarginAccount is Initializable, Context {
         return address(_perpetual);
     }
 
+    /**
+     * @dev True If perpetual in emergency mode.
+     */
     function _emergency()
         internal
         view
@@ -102,8 +108,8 @@ contract MarginAccount is Initializable, Context {
     }
 
     /**
-     * @notice  Return total collateral amount, including unclaimed fee.
-     * @dev     This is NOT a view function because [marginBalance]
+     * @dev     Return total collateral amount, including unclaimed fee.
+     *          This is NOT a view function because [marginBalance]
      * @return  Value of total collateral in fund.
      */
     function _totalAssetValue()
@@ -116,23 +122,22 @@ contract MarginAccount is Initializable, Context {
         return marginBalance.toUint256();
     }
 
-    function _approveCollateral(uint256 rawCollateralAmount)
+    /**
+     * @dev     Deposit collateral to perpetual.
+     */
+    function _deposit(uint256 rawAmount)
         internal
     {
-        IERC20 collateral = IERC20(_perpetual.collateral());
-        collateral.safeApprove(address(_perpetual), rawCollateralAmount);
+        _perpetual.deposit{ value: msg.value }(rawAmount);
     }
 
-    function _deposit(uint256 rawCollateralAmount)
+    /**
+     * @dev     Withdraw collateral from perpetual.
+     */
+    function _withdraw(uint256 rawAmount)
         internal
     {
-        _perpetual.deposit{ value: msg.value }(rawCollateralAmount);
-    }
-
-    function _withdraw(uint256 rawCollateralAmount)
-        internal
-    {
-        _perpetual.withdraw(rawCollateralAmount);
+        _perpetual.withdraw(rawAmount);
     }
 
     /**
@@ -150,6 +155,7 @@ contract MarginAccount is Initializable, Context {
     )
         internal
     {
+        // align to lotsize
         uint256 lotSize = _perpetual.getGovernance().lotSize;
         uint256 alignedAmount = positionAmount.sub(positionAmount.mod(lotSize));
         (
@@ -162,6 +168,7 @@ contract MarginAccount is Initializable, Context {
             price,
             alignedAmount
         );
+        // check safety of trading margin account.
         if (makerOpened > 0) {
             require(_perpetual.isIMSafe(maker), "caller initial margin unsafe");
         } else {

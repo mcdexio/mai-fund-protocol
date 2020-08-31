@@ -12,8 +12,12 @@ interface ITokenWithDecimals {
 }
 
 /**
- * @title   Collateral
- * @notice  Handle underlaying collaterals.
+ * @title   Collateral Module
+ * @dev     Handle underlaying collaterals.
+ *          In this file, parameter named with:
+ *              - [amount] means internal amount
+ *              - [rawAmount] means amount in decimals of underlaying collateral
+ *
  */
 contract Collateral is Initializable {
     using SafeMath for uint256;
@@ -23,7 +27,7 @@ contract Collateral is Initializable {
     uint256 internal _scaler;
 
     /**
-     * @notice  Initialize collateral and decimals.
+     * @dev     Initialize collateral and decimals.
      * @param   decimals    Decimals of collateral token, will be verified with a staticcall.
      */
     function __Collateral_init_unchained(address collateral, uint8 decimals)
@@ -44,9 +48,9 @@ contract Collateral is Initializable {
     }
 
     /**
-     * @notice  Read decimal from erc20 contract.
+     * @dev     Read decimal from erc20 contract.
      * @param   token Address of erc20 token to read from.
-     * @return  Decimals of token and wether the erc20 contract supports decimals() interface.
+     * @return  Decimals of token and if the erc20 contract supports decimals() interface.
      */
     function _retrieveDecimals(address token)
         internal
@@ -60,10 +64,16 @@ contract Collateral is Initializable {
         return (0, false);
     }
 
-    function _approvalTo(address spender, uint256 amount)
+    /**
+     * @dev     Approve collateral to spender. Used for depositing erc20 to perpetual.
+     * @param   spender     Address of spender.
+     * @param   rawAmount   Amount to approve.
+     */
+    function _approvalTo(address spender, uint256 rawAmount)
         internal
     {
-        _collateralToken.safeApprove(spender, amount);
+        require(!_isCollateralERC20(), "no need to approve");
+        _collateralToken.safeApprove(spender, rawAmount);
     }
 
 
@@ -80,10 +90,9 @@ contract Collateral is Initializable {
     }
 
     /**
-     * @dev Transfer token from user if token is erc20 token.
-     *
-     * @param trader Address of account owner.
-     * @param amount Amount of token to be transferred into contract.
+     * @dev     Transfer token from user if token is erc20 token.
+     * @param   trader  Address of account owner.
+     * @param   amount  Amount of token to be transferred into contract.
      * @return Internal representation of the raw amount.
      */
     function _pullFromUser(address trader, uint256 amount)
@@ -102,7 +111,6 @@ contract Collateral is Initializable {
 
     /**
      * @dev Transfer token to user no matter erc20 token or ether.
-     *
      * @param trader    Address of account owner.
      * @param amount    Amount of token to be transferred to user.
      * @return Internal representation of the raw amount.
@@ -124,7 +132,6 @@ contract Collateral is Initializable {
 
     /**
      * @dev Convert the represention of amount from raw to internal.
-     *
      * @param rawAmount Amount with decimals of token.
      * @return Amount with internal decimals.
      */
@@ -134,7 +141,6 @@ contract Collateral is Initializable {
 
     /**
      * @dev Convert the represention of amount from internal to raw.
-     *
      * @param amount Amount with internal decimals.
      * @return Amount with decimals of token.
      */

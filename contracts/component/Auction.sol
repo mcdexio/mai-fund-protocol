@@ -4,11 +4,12 @@ pragma solidity 0.6.10;
 import "./Status.sol";
 
 /**
- * @title Auction handles share auctions (for redeeming/settling)
+ * @title   An auction module for selling shares.
+ * @dev     Handles share auctions in redeeming / settling.
  */
 contract Auction is Status {
     /**
-     * @notice  Get bidding price according to current markprice and slippage.
+     * @dev     Get bidding price according to current markprice and slippage.
      * @param   side        Side of position.
      * @param   slippage    Slippage of price, fixed float in decimals 18.
      * @return  priceLimit  Price with slippage.
@@ -24,7 +25,7 @@ contract Auction is Status {
     }
 
     /**
-     * @notice Validate bidding price for given side and pricelimit.
+     * @dev     Validate price for given side and pricelimit.
      * @param   side        Bidding side.
      * @param   price       Bidding price.
      * @param   priceLimit  Limit of bidding price.1
@@ -40,9 +41,12 @@ contract Auction is Status {
     }
 
     /**
-     * @notice bid share from redeeming or shutdown account.
+     * @dev     Bid share from redeeming or shutdown account. Bidders will have a discount on dealing price,
+     *          which makes profits to bidder.
      * @param   shareAmount Amount of share to bid.
      * @param   priceLimit  Price limit.
+     * @param   side        Side of position to bid.
+     * @param   slippage    Slippage for auction shares.
      */
     function _bidShare(
         uint256 shareAmount,

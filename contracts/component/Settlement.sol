@@ -16,8 +16,8 @@ contract Settlement is Status, StoppableUpgradeSafe {
     event Shutdown();
 
     /**
-     * @notice  Set drawdonw high water mark. Exceeding hwm will cause emergency shutdown.
-     * @param   hwm     High water mark for drawdown.
+     * @dev     Set drawdonw high water mark. Exceeding hwm will cause emergency shutdown.
+     * @param   hwm High water mark for drawdown.
      */
     function _setDrawdownHighWaterMark(uint256 hwm)
         internal
@@ -27,8 +27,8 @@ contract Settlement is Status, StoppableUpgradeSafe {
     }
 
     /**
-     * @notice  Set leverage high water mark. Exceeding hwm will cause emergency shutdown.
-     * @param   hwm     High water mark for drawdown.
+     * @dev     Set leverage high water mark. Exceeding hwm will cause emergency shutdown.
+     * @param   hwm High water mark for drawdown.
      */
     function _setLeverageHighWaterMark(uint256 hwm)
         internal
@@ -38,8 +38,8 @@ contract Settlement is Status, StoppableUpgradeSafe {
     }
 
     /**
-     * @notice  Test can shutdown or not.
-     * @dev     1. This is NOT view because method in perpetual.
+     * @dev     Test can shutdown or not.
+     *          1. This is NOT view because method in perpetual.
      *          2. shutdown conditions:
      *              - leveraga reaches limit;
      *              - max drawdown reaches limit.

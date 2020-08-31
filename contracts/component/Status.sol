@@ -22,7 +22,7 @@ contract Status is ERC20Redeemable, Fee, MarginAccount {
     using LibMathEx for uint256;
 
     /**
-     * @notice  Get net asset value and fee.
+     * @dev     Get net asset value.
      * @return  Net asset value.
      */
     function _netAssetValue()
@@ -34,6 +34,10 @@ contract Status is ERC20Redeemable, Fee, MarginAccount {
         return _totalAssetValue().sub(_totalFeeClaimed, "total asset value less than fee");
     }
 
+    /**
+     * @dev     Get net asset value per share.
+     * @return  Net asset value.
+     */
     function _netAssetValuePerShare(uint256 netAssetValue)
         internal
         view
@@ -46,6 +50,9 @@ contract Status is ERC20Redeemable, Fee, MarginAccount {
         return netAssetValue.wdiv(totalSupply());
     }
 
+    /**
+     * @dev     Get incremental management fee
+     */
     function _managementFee(uint256 assetValue)
         internal
         view
@@ -60,7 +67,7 @@ contract Status is ERC20Redeemable, Fee, MarginAccount {
     }
 
     /**
-     * @dev     leverage = margin / (asset value - fee)
+     * @dev     Get leverage, leverage = margin / (asset value - fee)
      * @return  Leverage of fund positon account.
      */
     function _leverage(uint256 netAssetValue)
@@ -69,13 +76,17 @@ contract Status is ERC20Redeemable, Fee, MarginAccount {
         returns (int256)
     {
         LibTypes.MarginAccount memory account = _marginAccount();
+        if (account.size == 0) {
+            return 0;
+        }
+        require(netAssetValue != 0, "nav is 0");
         uint256 marginValue = _markPrice().wmul(account.size);
         int256 currentLeverage = marginValue.wdiv(netAssetValue).toInt256();
         return account.side == LibTypes.Side.SHORT? currentLeverage.neg(): currentLeverage;
     }
 
     /**
-     * @notice  Get drawdown to max net asset value per share in history.
+     * @dev     Get drawdown to max net asset value per share in history.
      * @return  A percentage represents drawdown, fixed float in decimals 18.
      */
     function _drawdown(uint256 netAssetValue)

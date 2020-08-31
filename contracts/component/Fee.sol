@@ -8,6 +8,9 @@ import "../lib/LibMathEx.sol";
 import "./Context.sol";
 import "./ERC20Redeemable.sol";
 
+/**
+ * @title   Fee calculator and status updater.
+ */
 contract Fee is Context, ERC20Redeemable {
 
     using SafeMath for uint256;
@@ -27,7 +30,7 @@ contract Fee is Context, ERC20Redeemable {
     );
 
     /**
-     * @notice  Set entrance fee rete.
+     * @dev     Set entrance fee rete.
      * @param   newRate Rate of entrance fee. 0 < rate <= 100%
      */
     function _setEntranceFeeRate(uint256 newRate) internal {
@@ -36,7 +39,7 @@ contract Fee is Context, ERC20Redeemable {
     }
 
     /**
-     * @notice  Set streaming fee rete.
+     * @dev     Set streaming fee rete.
      * @param   newRate Rate of streaming fee. 0 < rate <= 100%
      */
     function _setStreamingFeeRate(uint256 newRate) internal {
@@ -45,7 +48,7 @@ contract Fee is Context, ERC20Redeemable {
     }
 
     /**
-     * @notice  Set performance fee rete.
+     * @dev     Set performance fee rete.
      * @param   newRate Rate of performance fee. 0 < rate <= 100%
      */
     function _setPerformanceFeeRate(uint256 newRate) internal {
@@ -54,7 +57,7 @@ contract Fee is Context, ERC20Redeemable {
     }
 
     /**
-     * @notice  Calculate purchase fee. nav * amount * feerate
+     * @dev     Calculate purchase fee. nav * amount * feerate
      * @param   purchasedAssetValue   Total asset value to purchase.
      * @return  Amount of purchase fee.
      */
@@ -71,8 +74,7 @@ contract Fee is Context, ERC20Redeemable {
     }
 
     /**
-     * @notice  Claim streaming fee.
-     * @dev     Assume that 1 year == 365 day
+     * @dev     Claim streaming fee. Assume that 1 year == 365 day
      * @param   netAssetValue   Total asset value.
      * @return  Amount of streaming fee.
      */
@@ -92,7 +94,7 @@ contract Fee is Context, ERC20Redeemable {
     }
 
     /**
-     * @notice  Calculate performance fee. mature part and immature part are calculated separately.
+     * @dev     Calculate performance fee. mature part and immature part are calculated separately.
      * @param   netAssetValue   Amount of total asset value, streaming fee excluded.
      * @return  Amount of performance fee.
      */
@@ -113,7 +115,7 @@ contract Fee is Context, ERC20Redeemable {
     }
 
     /**
-     * @notice  Update claimed fee.
+     * @dev     Update fee amount.
      * @param   fee Amount of Fee.
      */
     function _updateFee(uint256 fee)
@@ -126,7 +128,7 @@ contract Fee is Context, ERC20Redeemable {
     }
 
     /**
-     * @notice  Update max asset value per share.
+     * @dev     Update max asset value per share, for drawdown and performance fee calculating.
      * @param   netAssetValue   Value of net asset.
      * @param   totalSupply     Value of net asset.
      */

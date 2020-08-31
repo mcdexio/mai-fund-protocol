@@ -23,9 +23,9 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
     mapping(address => uint256) internal _redeemingBalances;
     mapping(address => uint256) internal _redeemingSlippages;
 
-    event Purchase(address indexed trader, uint256 shareAmount, uint256 lastPurchaseTime);
-    event IncreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
-    event DecreaseRedeemingShareBalance(address indexed trader, uint256 shareAmount);
+    event Purchase(address indexed trader, uint256 amount, uint256 lastPurchaseTime);
+    event IncreaseRedeemingShareBalance(address indexed trader, uint256 amount);
+    event DecreaseRedeemingShareBalance(address indexed trader, uint256 amount);
     event IncreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event DecreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event SetRedeemingSlippage(address indexed trader, uint256 slippage);
@@ -38,10 +38,9 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
     }
 
     /**
-     * @notice  Share balance to redeem.
-     * @dev     Before actually sold (redeemed), the share will still be active.
+     * @dev     Before actually sold (redeemed), the share will still belongs to redeeming account.
      * @param   trader  Address of share owner.
-     * @return Amount of redeemable share balance.
+     * @return  Amount of redeemable share balance.
      */
     function _redeemableShareBalance(address trader)
         internal
@@ -55,7 +54,7 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
     }
 
     /**
-     * @notice  Set redeeming lock period.
+     * @dev     Set redeeming lock period.
      * @param   period  Lock period in seconds.
      */
     function _setRedeemingLockPeriod(uint256 period) internal {
@@ -63,7 +62,7 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
     }
 
     /**
-     * @notice  Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
+     * @dev     Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
      * @param   trader      Address of share owner.
      * @param   slippage    Slipage percent of redeeming rate.
      */
@@ -79,17 +78,16 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
     }
 
     /**
-     * @notice  Increase share balance, also increase the total supply.
-     * @dev     Will update purchase time.
+     * @dev     Increase share balance, also increase the total supply. update purchase time.
      * @param   trader      Address of share owner.
-     * @param   shareAmount Amount of share to mint.
+     * @param   amount      Amount of share to mint.
      */
-    function _mint(address trader, uint256 shareAmount)
+    function _mint(address trader, uint256 amount)
         internal
         virtual
         override
     {
-        super._mint(trader, shareAmount);
+        super._mint(trader, amount);
         _lastPurchaseTimes[trader] = _now();
     }
 
@@ -111,31 +109,31 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
     }
 
     /**
-     * @notice  Redeem share balance, to prevent redeemed amount exceed total amount.
-     * @dev     Slippage will overwrite previous setting.
-     * @param   trader      Address of share owner.
-     * @param   shareAmount Amount of share to redeem.
+     * @dev     Redeem share balance, to prevent redeemed amount exceed total amount.
+     *          Slippage will overwrite previous setting.
+     * @param   trader  Address of share owner.
+     * @param   amount  Amount of share to redeem.
      */
-    function _increaseRedeemingShareBalance(address trader, uint256 shareAmount)
+    function _increaseRedeemingShareBalance(address trader, uint256 amount)
         internal
     {
-        require(shareAmount <= _redeemableShareBalance(trader), "exceeded amount");
+        require(amount <= _redeemableShareBalance(trader), "exceeded amount");
         // set max amount of redeeming amount
-        _redeemingBalances[trader] = _redeemingBalances[trader].add(shareAmount);
-        emit IncreaseRedeemingShareBalance(trader, shareAmount);
+        _redeemingBalances[trader] = _redeemingBalances[trader].add(amount);
+        emit IncreaseRedeemingShareBalance(trader, amount);
     }
 
     /**
-     * @notice  Redeem share balance, to prevent redeemed amount exceed total amount.
+     * @dev     Redeem share balance, to prevent redeemed amount exceed total amount.
      * @param   trader       Address of share owner.
-     * @param   shareAmount   Amount of share to redeem.
+     * @param   amount   Amount of share to redeem.
      */
-    function _decreaseRedeemingShareBalance(address trader, uint256 shareAmount)
+    function _decreaseRedeemingShareBalance(address trader, uint256 amount)
         internal
     {
         // set max amount of redeeming amount
-        _redeemingBalances[trader] = _redeemingBalances[trader].sub(shareAmount, "insufficient balance");
-        emit DecreaseRedeemingShareBalance(trader, shareAmount);
+        _redeemingBalances[trader] = _redeemingBalances[trader].sub(amount, "insufficient balance");
+        emit DecreaseRedeemingShareBalance(trader, amount);
     }
 
     /**

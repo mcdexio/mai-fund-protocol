@@ -114,12 +114,18 @@ contract AutoTradingFund is
     /**
      * @notice  Set slippage and tolerance of rebalancing.
      */
-    function setRebalancingParameter(uint256 newRebalancingSlippage, uint256 newRebalancingTolerance)
-        external
+    function setParameter(bytes32 key, int256 value)
+        public
+        virtual
+        override
         onlyOwner
     {
-        _rebalancingSlippage = newRebalancingSlippage;
-        _rebalancingTolerance = newRebalancingTolerance;
+        if (key == "rebalancingSlippage") {
+            _rebalancingSlippage = value.toUint256();
+        } else if (key == "rebalancingTolerance") {
+            _rebalancingTolerance = value.toUint256();
+        }
+        super.setParameter(key, value);
     }
 
     /**
@@ -134,9 +140,12 @@ contract AutoTradingFund is
     }
 
     /**
-     * @notice  Return true if rebalance is needed.
+     * @notice  Rebalance current position to target leverage.
+     * @param   maxPositionAmount   Max amount of underlaying position caller want to take (align to lotsize)
+     * @param   priceLimit          Max price of underlaying position.
+     * @param   side                Expected side of underlaying positon.
      */
-    function rebalance(uint256 maxPositionAmount, uint256 limitPrice, LibTypes.Side side)
+    function rebalance(uint256 maxPositionAmount, uint256 priceLimit, LibTypes.Side side)
         external
         whenNotPaused
         whenNotStopped
@@ -152,7 +161,7 @@ contract AutoTradingFund is
 
         ( uint256 tradingPrice, ) = _biddingPrice(rebalancingSide, _rebalancingSlippage);
         uint256 tradingAmount = Math.min(maxPositionAmount, rebalancingAmount);
-        _validatePrice(rebalancingSide, tradingPrice, limitPrice);
+        _validatePrice(rebalancingSide, tradingPrice, priceLimit);
         // to reuse _tradePosition, we have to swap taker and maker then take the counterSide
         _tradePosition(_self(), _msgSender(), rebalancingSide, tradingPrice, tradingAmount);
         emit Rebalance(rebalancingSide, tradingPrice, tradingAmount);
@@ -160,7 +169,7 @@ contract AutoTradingFund is
 
     /**
      * @notice  Get amount / side to rebalance.
-     * @dev     To compact with _tradePosition, side is reversed.
+     *          To compact with _tradePosition, side is reversed.
      *          delta is, eg:
      *           - expected = 1,  current = 1  -->  no adjust
      *           - expected = 2,  current = 1  -->  2 -  1 =  1,   LONG for 1
@@ -169,14 +178,16 @@ contract AutoTradingFund is
      *           - expected = -1, current = 1  --> -1 -  1 = -2,   SHORT for 2
      *           - expected = 2,  current = -1 -->  2 - -1 =  3,   LONG for 3
      *           - expected = -2, current = -1 --> -2 - -1 = -1,   SHORT for 1
-     *           ....
+     *           ...
+     * @return  amount  Amount of positions needed for rebalancing to target leverage.
+     * @return  side    Side of positions needed for rebalancing to target leverage.
      */
     function calculateRebalancingTarget()
         public
         returns (uint256 amount, LibTypes.Side side)
     {
         uint256 markPrice = _markPrice();
-        require(markPrice != 0, "mark price cannot be 0");
+        require(markPrice != 0, "mark price is 0");
 
         int256 signedSize = _signedSize();    // -40000
         int256 nextTarget = _nextTarget();    // -40000 - 40000
@@ -194,6 +205,9 @@ contract AutoTradingFund is
         }
     }
 
+    /**
+     * @dev     Add a sign for side of fund margin, LONG is positive while SHORT is negative.
+     */
     function _signedSize()
         internal
         view
@@ -204,6 +218,9 @@ contract AutoTradingFund is
         return fundMarginAccount.side == LibTypes.Side.SHORT? size.neg(): size;
     }
 
+    /**
+     * @dev     Get next target from oracle.
+     */
     function _nextTarget()
         internal
         returns (int256)

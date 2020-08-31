@@ -12,18 +12,18 @@ contract TestCollateral is Collateral {
         __Collateral_init_unchained(collateral, decimals);
     }
 
-    function collateral() 
+    function collateral()
         external
         view
-        returns (address) 
+        returns (address)
     {
         return address(_collateralToken);
     }
 
-    function scaler() 
+    function scaler()
         external
         view
-        returns (uint256) 
+        returns (uint256)
     {
         return _scaler;
     }

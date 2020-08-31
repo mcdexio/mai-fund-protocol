@@ -3,9 +3,12 @@ pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol";
 
+/**
+ * @title A contect object contains.
+ */
 contract Context is ContextUpgradeSafe {
     /**
-     * @notice  Return address of fund contract.
+     * @dev Return address of fund contract.
      */
     function _self()
         internal
@@ -16,6 +19,9 @@ contract Context is ContextUpgradeSafe {
         return address(this);
     }
 
+    /**
+     * @dev Return current timestamp on chain.
+     */
     function _now()
         internal
         view

@@ -36,6 +36,7 @@ contract Core is
 
     event Received(address indexed sender, uint256 amount);
     event Create(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
+    event Purchase(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
     event Redeem(address indexed trader, uint256 shareAmount, uint256 slippage);
     event Settle(address indexed trader, uint256 shareAmount);
     event CancelRedeem(address indexed trader, uint256 shareAmount);
@@ -88,12 +89,13 @@ contract Core is
     }
 
     /**
-     * @dev Set value of configuration entry.
-     * @param key   Name string of entry to set.
-     * @param value Value of entry to set.
+     * @notice  Set value of configuration entry.
+     * @param   key   Name string of entry to set.
+     * @param   value Value of entry to set.
      */
     function setParameter(bytes32 key, int256 value)
-        external
+        public
+        virtual
         onlyOwner
     {
         if (key == "redeemingLockPeriod") {
@@ -148,7 +150,7 @@ contract Core is
     }
 
     /**
-     * @dev Pause the fund.
+     * @notice Pause the fund.
      */
     function pause()
         external
@@ -170,9 +172,9 @@ contract Core is
 
     // =================================== User Methods ===================================
     /**
-     * @dev Call once, when NAV is 0 (position size == 0).
-     * @param shareAmount           Amount of shares to purchase.
-     * @param initialNetAssetValue  Initial NAV defined by creator.
+     * @notice  Call once on fund creation, require that NAV equals to 0 (position size == 0).
+     * @param   shareAmount           Amount of shares to purchase.
+     * @param   initialNetAssetValue  Initial NAV defined by creator.
      */
     function create(uint256 shareAmount, uint256 initialNetAssetValue)
         external
@@ -196,9 +198,11 @@ contract Core is
     // 5738
 
     /**
-     * @dev Purchase share, Total collataral required = amount x unit net value.
-     * @param minimalShareAmount            At least amount of shares token received by user.
-     * @param netAssetValuePerShareLimit    NAV price limit to protect trader's dealing price.
+     * @notice  Purchase share, Total collataral required == amount * nav per share.
+     *          Since the transfer mechanism of ether and erc20 is totally different,
+     *          the received amount wiil not be deterministic but only a mininal amount promised.
+     * @param   minimalShareAmount            At least amount of shares token received by user.
+     * @param   netAssetValuePerShareLimit    NAV price limit to protect trader's dealing price.
      */
     function purchase(uint256 minimalShareAmount, uint256 netAssetValuePerShareLimit)
         external
@@ -317,7 +321,8 @@ contract Core is
         uint256 slippage = _redeemingSlippages[trader];
         uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, slippage);
         // this is the finally collateral returned to user.
-        uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply()).sub(slippageLoss);
+        uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply())
+            .sub(slippageLoss, "slippage too high");
         _decreaseRedeemingShareBalance(trader, shareAmount);
         _burn(trader, shareAmount);
         _withdraw(_toRawAmount(collateralToReturn));
@@ -379,7 +384,7 @@ contract Core is
     }
 
     /**
-     * @dev Redeem and get collateral immediately.
+     * @notice  Redeem and get collateral immediately.
      */
     function _redeemImmediately(address account, uint256 shareAmount)
         internal
@@ -393,7 +398,7 @@ contract Core is
     }
 
     /**
-     * @dev Override net asset value, update fee.
+     * @notice  Override net asset value, update fee.
      */
     function _netAssetValue()
         internal
@@ -405,7 +410,7 @@ contract Core is
     }
 
     /**
-     * @dev Override net asset value, update fee.
+     * @notice  Override net asset value, update fee.
      */
     function _updateFeeState(uint256 netAssetValue)
         internal

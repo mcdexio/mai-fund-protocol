@@ -11,7 +11,7 @@ const {
 
 const TestCore = artifacts.require('TestCore.sol');
 
-contract('FundBase', accounts => {
+contract('Core', accounts => {
 
     const SHORT = 1;
     const LONG = 2;
