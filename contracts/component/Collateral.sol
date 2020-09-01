@@ -34,14 +34,14 @@ contract Collateral is Initializable {
         internal
         initializer
     {
-        require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "decimals out of range");
+        require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "bad decimals");
         if (collateral == address(0)) {
             // ether
-            require(decimals == 18, "ether requires decimals 18");
+            require(decimals == 18, "decimals is not 18");
         } else {
             // erc20 token
             (uint8 retrievedDecimals, bool ok) = _retrieveDecimals(collateral);
-            require(!ok || (ok && retrievedDecimals == decimals), "unmatched decimals");
+            require(!ok || (ok && retrievedDecimals == decimals), "bad decimals");
         }
         _collateralToken = IERC20(collateral);
         _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
@@ -72,7 +72,7 @@ contract Collateral is Initializable {
     function _approvalTo(address spender, uint256 rawAmount)
         internal
     {
-        require(!_isCollateralERC20(), "no need to approve");
+        require(!_isCollateralERC20(), "need no approve");
         _collateralToken.safeApprove(spender, rawAmount);
     }
 
@@ -99,12 +99,12 @@ contract Collateral is Initializable {
         internal
         returns (uint256)
     {
-        require(amount > 0, "zero amount");
+        require(amount > 0, "amount is 0");
         uint256 rawAmount = _toRawAmount(amount);
         if (_isCollateralERC20()) {
             _collateralToken.safeTransferFrom(trader, address(this), rawAmount);
         } else {
-            require(msg.value == rawAmount, "unmatched sent value");
+            require(msg.value == rawAmount, "bad sent value");
         }
         return rawAmount;
     }
@@ -119,7 +119,7 @@ contract Collateral is Initializable {
         internal
         returns (uint256)
     {
-        require(amount > 0, "zero amount");
+        require(amount > 0, "amount is 0");
         uint256 rawAmount = _toRawAmount(amount);
         if (_isCollateralERC20()) {
             _collateralToken.safeTransfer(trader, rawAmount);

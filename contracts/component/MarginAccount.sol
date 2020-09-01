@@ -131,6 +131,12 @@ contract MarginAccount is Initializable, Context {
         _perpetual.deposit{ value: msg.value }(rawAmount);
     }
 
+    function _settle()
+        internal
+    {
+        _perpetual.settle();
+    }
+
     /**
      * @dev     Withdraw collateral from perpetual.
      */
@@ -170,14 +176,14 @@ contract MarginAccount is Initializable, Context {
         );
         // check safety of trading margin account.
         if (makerOpened > 0) {
-            require(_perpetual.isIMSafe(maker), "caller initial margin unsafe");
+            require(_perpetual.isIMSafe(maker), "maker im unsafe");
         } else {
-            require(_perpetual.isSafe(maker), "caller margin unsafe");
+            require(_perpetual.isSafe(maker), "maker unsafe");
         }
         if (takerOpened > 0) {
-            require(_perpetual.isIMSafe(taker), "fund initial margin unsafe");
+            require(_perpetual.isIMSafe(taker), "taker im unsafe");
         } else {
-            require(_perpetual.isSafe(taker), "fund margin unsafe");
+            require(_perpetual.isSafe(taker), "taker unsafe");
         }
     }
 

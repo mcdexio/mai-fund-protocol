@@ -58,6 +58,8 @@ interface IPerpetual {
 
     function withdraw(uint256 amount) external;
 
+    function settle() external;
+
     function depositFor(address trader, uint256 amount) external payable;
 
     function withdrawFor(address payable trader, uint256 amount) external;

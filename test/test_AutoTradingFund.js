@@ -8,7 +8,7 @@ const {
 } = require("./utils.js");
 
 const MockRSITrendingStrategy = artifacts.require('MockRSITrendingStrategy.sol');
-const AutoTradingFund = artifacts.require('AutoTradingFund.sol');
+const AutoTradingFund = artifacts.require('TestAutoTradingFund.sol');
 
 contract('AutoTradingFund', accounts => {
     const FLAT = 0;
@@ -113,7 +113,7 @@ contract('AutoTradingFund', accounts => {
     it("rebalance", async () => {
         var user1 = accounts[2];
         await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
 
         await rsistg.setNextTarget(toWad(1));
         await shouldThrows(fund.rebalance(toWad(0), toWad(0), SHORT), "amount is 0");
@@ -121,7 +121,7 @@ contract('AutoTradingFund', accounts => {
         await fund.rebalance(toWad(40000), toWad(0), SHORT);
 
         await rsistg.setNextTarget(toWad(1));
-        await shouldThrows(fund.rebalance(toWad(40000), toWad(0), SHORT), "no need to rebalance");
+        await shouldThrows(fund.rebalance(toWad(40000), toWad(0), SHORT), "need no rebalance");
     })
 
     it("normal case", async () => {
@@ -129,7 +129,7 @@ contract('AutoTradingFund', accounts => {
         var user1 = accounts[2];
         await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
 
         await rsistg.setNextTarget(toWad(1));
         await printFundState(deployer, fund, user1);
@@ -175,14 +175,14 @@ contract('AutoTradingFund', accounts => {
 
         await deployer.perpetual.deposit(toWad(1000), { value: toWad(1000) });
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         await rsistg.setNextTarget(toWad(1));
 
         var user1 = accounts[2];
         var balancer = accounts[3];
         await deployer.perpetual.deposit(toWad(1000), {from: balancer, value: toWad(1000)});
 
-        await fund.purchase(toWad(2), toWad(200), { from: user1, value: toWad(400)});
+        await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user1, value: toWad(400)});
         await printFundState(deployer, fund, user1);
 
         // -0.3
@@ -215,7 +215,7 @@ contract('AutoTradingFund', accounts => {
 
         // 200 -- 0.005
         await deployer.setIndex(200);
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         await rsistg.setNextTarget(toWad(1));
 
         var user1 = accounts[2];
@@ -223,7 +223,7 @@ contract('AutoTradingFund', accounts => {
         await deployer.perpetual.deposit(toWad(1000), { from: admin, value: toWad(1000) });
         await deployer.perpetual.deposit(toWad(1000), { from: user1, value: toWad(1000) });
 
-        await fund.purchase(toWad(2), toWad(200), { from: user1, value: toWad(400)});
+        await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user1, value: toWad(400)});
 
         await rsistg.setNextTarget(toWad(0.3));
         await fund.rebalance(toWad(40000), toWad(0), SHORT);

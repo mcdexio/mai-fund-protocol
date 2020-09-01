@@ -1,0 +1,316 @@
+ +  Initializable 
+    - [31m[Prv][39m isConstructor
+
+ +  ContextUpgradeSafe [90m(Initializable)[39m
+    - [90m[Int][39m __Context_init[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m __Context_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m _msgSender
+    - [90m[Int][39m _msgData
+
+ +  PausableUpgradeSafe [90m(Initializable, ContextUpgradeSafe)[39m
+    - [90m[Int][39m __Pausable_init[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m __Pausable_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [32m[Pub][39m paused
+    - [90m[Int][39m _pause[31m #[39m
+       - modifiers: whenNotPaused
+    - [90m[Int][39m _unpause[31m #[39m
+       - modifiers: whenPaused
+
+ +  ReentrancyGuardUpgradeSafe [90m(Initializable)[39m
+    - [90m[Int][39m __ReentrancyGuard_init[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m __ReentrancyGuard_init_unchained[31m #[39m
+       - modifiers: initializer
+
+ + [33m[Lib][39m SafeMath 
+    - [90m[Int][39m add
+    - [90m[Int][39m sub
+    - [90m[Int][39m sub
+    - [90m[Int][39m mul
+    - [90m[Int][39m div
+    - [90m[Int][39m div
+    - [90m[Int][39m mod
+    - [90m[Int][39m mod
+
+ + [33m[Lib][39m SafeCast 
+    - [90m[Int][39m toUint128
+    - [90m[Int][39m toUint64
+    - [90m[Int][39m toUint32
+    - [90m[Int][39m toUint16
+    - [90m[Int][39m toUint8
+    - [90m[Int][39m toUint256
+    - [90m[Int][39m toInt256
+
+ + [33m[Lib][39m LibConstant 
+
+ + [33m[Lib][39m SignedSafeMath 
+    - [90m[Int][39m mul
+    - [90m[Int][39m div
+    - [90m[Int][39m sub
+    - [90m[Int][39m add
+
+ + [33m[Lib][39m LibMathEx 
+    - [90m[Int][39m wmul
+    - [90m[Int][39m wdiv
+    - [90m[Int][39m wfrac
+    - [90m[Int][39m wmul
+    - [90m[Int][39m wdiv
+    - [90m[Int][39m wfrac
+    - [90m[Int][39m abs
+    - [90m[Int][39m neg
+
+ + [33m[Lib][39m Math 
+    - [90m[Int][39m max
+    - [90m[Int][39m min
+    - [90m[Int][39m average
+
+ + [33m[Lib][39m LibTypes 
+    - [90m[Int][39m opposite
+
+ + [34m[Int][39m IERC20 
+    - [34m[Ext][39m totalSupply
+    - [34m[Ext][39m balanceOf
+    - [34m[Ext][39m transfer[31m #[39m
+    - [34m[Ext][39m allowance
+    - [34m[Ext][39m approve[31m #[39m
+    - [34m[Ext][39m transferFrom[31m #[39m
+
+ + [33m[Lib][39m Address 
+    - [90m[Int][39m isContract
+    - [90m[Int][39m sendValue[31m #[39m
+
+ +  ERC20UpgradeSafe [90m(Initializable, ContextUpgradeSafe, IERC20)[39m
+    - [90m[Int][39m __ERC20_init[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m __ERC20_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [32m[Pub][39m name
+    - [32m[Pub][39m symbol
+    - [32m[Pub][39m decimals
+    - [32m[Pub][39m totalSupply
+    - [32m[Pub][39m balanceOf
+    - [32m[Pub][39m transfer[31m #[39m
+    - [32m[Pub][39m allowance
+    - [32m[Pub][39m approve[31m #[39m
+    - [32m[Pub][39m transferFrom[31m #[39m
+    - [32m[Pub][39m increaseAllowance[31m #[39m
+    - [32m[Pub][39m decreaseAllowance[31m #[39m
+    - [90m[Int][39m _transfer[31m #[39m
+    - [90m[Int][39m _mint[31m #[39m
+    - [90m[Int][39m _burn[31m #[39m
+    - [90m[Int][39m _approve[31m #[39m
+    - [90m[Int][39m _setupDecimals[31m #[39m
+    - [90m[Int][39m _beforeTokenTransfer[31m #[39m
+
+ +  ERC20CappedUpgradeSafe [90m(Initializable, ERC20UpgradeSafe)[39m
+    - [90m[Int][39m __ERC20Capped_init[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m __ERC20Capped_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [32m[Pub][39m cap
+    - [90m[Int][39m _beforeTokenTransfer[31m #[39m
+
+ +  Context [90m(ContextUpgradeSafe)[39m
+    - [90m[Int][39m _self
+    - [90m[Int][39m _now
+
+ +  ERC20Redeemable [90m(ERC20CappedUpgradeSafe, Context)[39m
+    - [90m[Int][39m __ERC20Redeemable_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m _redeemableShareBalance
+    - [90m[Int][39m _setRedeemingLockPeriod[31m #[39m
+    - [90m[Int][39m _setRedeemingSlippage[31m #[39m
+    - [90m[Int][39m _mint[31m #[39m
+    - [90m[Int][39m _canRedeem
+    - [90m[Int][39m _increaseRedeemingShareBalance[31m #[39m
+    - [90m[Int][39m _decreaseRedeemingShareBalance[31m #[39m
+    - [90m[Int][39m _beforeTokenTransfer[31m #[39m
+
+ +  Fee [90m(Context, ERC20Redeemable)[39m
+    - [90m[Int][39m _setEntranceFeeRate[31m #[39m
+    - [90m[Int][39m _setStreamingFeeRate[31m #[39m
+    - [90m[Int][39m _setPerformanceFeeRate[31m #[39m
+    - [90m[Int][39m _entranceFee
+    - [90m[Int][39m _streamingFee
+    - [90m[Int][39m _performanceFee
+    - [90m[Int][39m _updateFee[31m #[39m
+    - [90m[Int][39m _updateMaxNetAssetValuePerShare[31m #[39m
+
+ + [33m[Lib][39m SafeERC20 
+    - [90m[Int][39m safeTransfer[31m #[39m
+    - [90m[Int][39m safeTransferFrom[31m #[39m
+    - [90m[Int][39m safeApprove[31m #[39m
+    - [90m[Int][39m safeIncreaseAllowance[31m #[39m
+    - [90m[Int][39m safeDecreaseAllowance[31m #[39m
+    - [31m[Prv][39m _callOptionalReturn[31m #[39m
+
+ + [34m[Int][39m IPerpetual 
+    - [34m[Ext][39m amm
+    - [34m[Ext][39m getMarginAccount
+    - [34m[Ext][39m getGovernance
+    - [34m[Ext][39m status
+    - [34m[Ext][39m paused
+    - [34m[Ext][39m withdrawDisabled
+    - [34m[Ext][39m globalConfig
+    - [34m[Ext][39m collateral
+    - [34m[Ext][39m markPrice[31m #[39m
+    - [34m[Ext][39m marginBalance[31m #[39m
+    - [34m[Ext][39m availableMargin[31m #[39m
+    - [34m[Ext][39m positionMargin
+    - [34m[Ext][39m pnl[31m #[39m
+    - [34m[Ext][39m isSafe[31m #[39m
+    - [34m[Ext][39m isSafeWithPrice[31m #[39m
+    - [34m[Ext][39m isIMSafe[31m #[39m
+    - [34m[Ext][39m isIMSafeWithPrice[31m #[39m
+    - [34m[Ext][39m tradePosition[31m #[39m
+    - [34m[Ext][39m transferCashBalance[31m #[39m
+    - [34m[Ext][39m deposit[33m ($)[39m
+    - [34m[Ext][39m withdraw[31m #[39m
+    - [34m[Ext][39m settle[31m #[39m
+    - [34m[Ext][39m depositFor[33m ($)[39m
+    - [34m[Ext][39m withdrawFor[31m #[39m
+    - [34m[Ext][39m isValidLotSize
+    - [34m[Ext][39m isValidTradingLotSize
+
+ + [34m[Int][39m IOwnable 
+    - [34m[Ext][39m owner
+
+ +  MarginAccount [90m(Initializable, Context)[39m
+    - [90m[Int][39m __MarginAccount_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m _owner
+    - [90m[Int][39m _collateral
+    - [90m[Int][39m _markPrice[31m #[39m
+    - [90m[Int][39m _perpetualAddress
+    - [90m[Int][39m _emergency
+    - [90m[Int][39m _marginAccount
+    - [90m[Int][39m _totalAssetValue[31m #[39m
+    - [90m[Int][39m _deposit[31m #[39m
+    - [90m[Int][39m _settle[31m #[39m
+    - [90m[Int][39m _withdraw[31m #[39m
+    - [90m[Int][39m _tradePosition[31m #[39m
+
+ +  Status [90m(ERC20Redeemable, Fee, MarginAccount)[39m
+    - [90m[Int][39m _netAssetValue[31m #[39m
+    - [90m[Int][39m _netAssetValuePerShare
+    - [90m[Int][39m _managementFee
+    - [90m[Int][39m _leverage[31m #[39m
+    - [90m[Int][39m _drawdown
+    - [90m[Int][39m _updateFeeState[31m #[39m
+
+ +  Auction [90m(Status)[39m
+    - [90m[Int][39m _biddingPrice[31m #[39m
+    - [90m[Int][39m _validatePrice
+    - [90m[Int][39m _bidShare[31m #[39m
+
+ + [34m[Int][39m ITokenWithDecimals 
+    - [34m[Ext][39m decimals
+
+ +  Collateral [90m(Initializable)[39m
+    - [90m[Int][39m __Collateral_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m _retrieveDecimals
+    - [90m[Int][39m _approvalTo[31m #[39m
+    - [90m[Int][39m _isCollateralERC20
+    - [90m[Int][39m _pullFromUser[31m #[39m
+    - [90m[Int][39m _pushToUser[31m #[39m
+    - [90m[Int][39m _toInternalAmount
+    - [90m[Int][39m _toRawAmount
+
+ +  StoppableUpgradeSafe [90m(Initializable, ContextUpgradeSafe)[39m
+    - [90m[Int][39m __Stoppable_init[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m __Stoppable_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [32m[Pub][39m stopped
+    - [90m[Int][39m _stop[31m #[39m
+       - modifiers: whenNotStopped
+
+ +  Settlement [90m(Status, StoppableUpgradeSafe)[39m
+    - [90m[Int][39m _setDrawdownHighWaterMark[31m #[39m
+    - [90m[Int][39m _setLeverageHighWaterMark[31m #[39m
+    - [90m[Int][39m _canShutdown[31m #[39m
+
+ +  Core [90m(Initializable, Context, Status, Auction, Collateral, Settlement, PausableUpgradeSafe, ReentrancyGuardUpgradeSafe)[39m
+    - [34m[Ext][39m [90m<Fallback>[39m[33m ($)[39m
+    - [90m[Int][39m __Core_init[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m __Core_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [32m[Pub][39m setParameter[31m #[39m
+       - modifiers: onlyOwner
+    - [34m[Ext][39m shutdown[31m #[39m
+       - modifiers: whenNotStopped
+    - [34m[Ext][39m approvePerpetual[31m #[39m
+       - modifiers: onlyOwner
+    - [34m[Ext][39m pause[31m #[39m
+       - modifiers: onlyOwner
+    - [34m[Ext][39m unpause[31m #[39m
+       - modifiers: onlyOwner
+    - [34m[Ext][39m purchase[33m ($)[39m
+       - modifiers: whenNotPaused,whenNotStopped,nonReentrant
+    - [34m[Ext][39m redeem[31m #[39m
+       - modifiers: whenNotPaused,whenNotStopped,nonReentrant
+    - [34m[Ext][39m settle[31m #[39m
+       - modifiers: whenNotPaused,whenStopped,nonReentrant
+    - [34m[Ext][39m cancelRedeem[31m #[39m
+       - modifiers: whenNotPaused,whenNotStopped
+    - [34m[Ext][39m withdrawCollateral[31m #[39m
+       - modifiers: whenNotPaused,nonReentrant
+    - [34m[Ext][39m bidRedeemingShare[31m #[39m
+       - modifiers: whenNotPaused,whenNotStopped,nonReentrant
+    - [34m[Ext][39m bidSettledShare[31m #[39m
+       - modifiers: whenNotPaused,whenStopped,nonReentrant
+    - [34m[Ext][39m settleMarginAccount[31m #[39m
+       - modifiers: whenNotPaused,whenStopped,nonReentrant
+    - [90m[Int][39m _bidRedeemingShare[31m #[39m
+    - [90m[Int][39m _increaseWithdrawableCollateral[31m #[39m
+    - [90m[Int][39m _decreaseWithdrawableCollateral[31m #[39m
+    - [90m[Int][39m _redeemImmediately[31m #[39m
+    - [90m[Int][39m _netAssetValue[31m #[39m
+
+ +  Getter [90m(Core)[39m
+    - [32m[Pub][39m netAssetValue[31m #[39m
+    - [32m[Pub][39m redeemableShareBalance
+    - [32m[Pub][39m redeemingLockPeriod
+    - [32m[Pub][39m redeemingBalance
+    - [32m[Pub][39m redeemingSlippage
+    - [32m[Pub][39m lastPurchaseTime
+    - [32m[Pub][39m maxNetAssetValuePerShare
+    - [32m[Pub][39m collateral
+    - [32m[Pub][39m scaler
+    - [32m[Pub][39m totalFeeClaimed
+    - [32m[Pub][39m lastFeeTime
+    - [32m[Pub][39m feeRates
+    - [32m[Pub][39m drawdownHighWaterMark
+    - [32m[Pub][39m leverageHighWaterMark
+    - [32m[Pub][39m leverage[31m #[39m
+    - [32m[Pub][39m drawdown[31m #[39m
+    - [32m[Pub][39m withdrawableCollateral
+
+ + [34m[Int][39m IDelegatable 
+    - [34m[Ext][39m setDelegator[31m #[39m
+    - [34m[Ext][39m isDelegator
+
+ +  SocialTradingFund [90m(Initializable, Core, Getter)[39m
+    - [34m[Ext][39m initialize[31m #[39m
+       - modifiers: initializer
+    - [90m[Int][39m __SocialTradingFund_init_unchained[31m #[39m
+       - modifiers: initializer
+    - [34m[Ext][39m manager
+    - [34m[Ext][39m managementFee[31m #[39m
+    - [34m[Ext][39m setManager[31m #[39m
+       - modifiers: onlyOwner
+    - [34m[Ext][39m withdrawManagementFee[31m #[39m
+       - modifiers: nonReentrant,whenNotPaused
+    - [32m[Pub][39m claimManagementFee[31m #[39m
+       - modifiers: whenNotPaused
+
+
+[33m ($)[39m = payable function
+[31m #[39m = non-constant function
+  

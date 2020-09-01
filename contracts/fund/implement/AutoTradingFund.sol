@@ -133,9 +133,7 @@ contract AutoTradingFund is
      */
     function needRebalancing() public returns (bool) {
         int256 nextTarget = _nextTarget();
-        uint256 netAssetValue = _netAssetValue();
-        netAssetValue = _updateFeeState(netAssetValue);
-        int256 currentleverage = _leverage(netAssetValue);
+        int256 currentleverage = leverage();
         return currentleverage.sub(nextTarget).abs().toUint256() > _rebalancingTolerance;
     }
 
@@ -151,12 +149,12 @@ contract AutoTradingFund is
         whenNotStopped
     {
         require(maxPositionAmount > 0, "amount is 0");
-        require(needRebalancing(), "no need to rebalance");
+        require(needRebalancing(), "need no rebalance");
         (
             uint256 rebalancingAmount,
             LibTypes.Side rebalancingSide
         ) = calculateRebalancingTarget();
-        require(rebalancingAmount > 0 && rebalancingSide != LibTypes.Side.FLAT, "no need to rebalance");
+        require(rebalancingAmount > 0 && rebalancingSide != LibTypes.Side.FLAT, "need no rebalance");
         require(rebalancingSide == side, "unexpected side");
 
         ( uint256 tradingPrice, ) = _biddingPrice(rebalancingSide, _rebalancingSlippage);
@@ -192,12 +190,11 @@ contract AutoTradingFund is
         int256 signedSize = _signedSize();    // -40000
         int256 nextTarget = _nextTarget();    // -40000 - 40000
 
-        uint256 netAssetValue = _netAssetValue();
-        netAssetValue = _updateFeeState(netAssetValue);
-        int256 expectedMarginBalance = netAssetValue.toInt256().wmul(nextTarget);
+        int256 expectedMarginBalance = _netAssetValue().toInt256().wmul(nextTarget);
         int256 expectedSize = expectedMarginBalance.wdiv(markPrice.toInt256());
         int256 target = expectedSize.sub(signedSize);
         amount = target.abs().toUint256();
+
         if (amount == 0) {
             side = LibTypes.Side.FLAT;
         } else {

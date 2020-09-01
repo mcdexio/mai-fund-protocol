@@ -110,6 +110,9 @@ contract Status is ERC20Redeemable, Fee, MarginAccount {
         virtual
         returns (uint256 netAssetValue)
     {
+        if (_lastFeeTime == _now()) {
+            return netAssetValueBeforeUpdating;
+        }
         uint256 newFee = _managementFee(netAssetValueBeforeUpdating);
         netAssetValue = netAssetValueBeforeUpdating.sub(newFee);
         _updateFee(newFee);

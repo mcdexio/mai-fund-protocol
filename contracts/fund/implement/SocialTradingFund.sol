@@ -52,7 +52,7 @@ contract SocialTradingFund is
      * @dev Manager of fund.
      */
     function manager()
-        external
+        public
         view
         returns (address)
     {
@@ -64,7 +64,7 @@ contract SocialTradingFund is
      * @return totalFee IncentiveFee gain since last claiming.
      */
     function managementFee()
-        external
+        public
         returns (uint256 totalFee)
     {
         claimManagementFee();
@@ -77,10 +77,14 @@ contract SocialTradingFund is
      * @param   exchangeAddress Address of exchange.
      */
     function setManager(address newManager, address exchangeAddress)
-        external
+        public
         onlyOwner
+        nonReentrant
     {
         if (_manager != newManager) {
+            if (_manager != address(0)) {
+                withdrawManagementFee(managementFee());
+            }
             emit SetManager(_manager, newManager);
             _manager = newManager;
         }
@@ -95,12 +99,12 @@ contract SocialTradingFund is
      * @param   collateralAmount    Amount of collateral to withdraw.
      */
     function withdrawManagementFee(uint256 collateralAmount)
-        external
+        public
         nonReentrant
         whenNotPaused
     {
         claimManagementFee();
-        _totalFeeClaimed = _totalFeeClaimed.sub(collateralAmount, "no withdrawable fee");
+        _totalFeeClaimed = _totalFeeClaimed.sub(collateralAmount, "insufficient fee");
         _withdraw(collateralAmount);
         _pushToUser(payable(_manager), collateralAmount);
         emit WithdrawManagementFee(_manager, collateralAmount);
@@ -113,8 +117,7 @@ contract SocialTradingFund is
         public
         whenNotPaused
     {
-        uint256 netAssetValue = _netAssetValue();
-        _updateFeeState(netAssetValue);
+        _netAssetValue();
     }
 
     uint256[19] private __gap;

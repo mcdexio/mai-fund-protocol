@@ -115,15 +115,15 @@ contract('TestCollateral', accounts => {
 
         var token = await ERC20WithDecimals.new("Token", "TKN", 19);
         var collateral = await TestCollateral.new();
-        await shouldThrows(collateral.initialize(token.address, 19), "decimals out of range");
+        await shouldThrows(collateral.initialize(token.address, 19), "bad decimals");
 
         var token = await ERC20WithDecimals.new("Token", "TKN", 18);
         var collateral = await TestCollateral.new();
-        await shouldThrows(collateral.initialize(token.address, 17), "unmatched decimals");
+        await shouldThrows(collateral.initialize(token.address, 17), "bad decimals");
 
         var token = await ERC20WithDecimals.new("Token", "TKN", 18);
         var collateral = await TestCollateral.new();
-        await shouldThrows(collateral.initialize(token.address, 17), "unmatched decimals");
+        await shouldThrows(collateral.initialize(token.address, 17), "bad decimals");
     });
 
     it("initialize - ether", async () => {
@@ -135,7 +135,7 @@ contract('TestCollateral', accounts => {
         assert.ok(!(await collateral.isCollateralERC20()));
 
         var collateral = await TestCollateral.new();
-        await shouldThrows(collateral.initialize("0x0000000000000000000000000000000000000000", 17), "ether requires decimals 18");
+        await shouldThrows(collateral.initialize("0x0000000000000000000000000000000000000000", 17), "decimals is not 18");
     });
 
     it("pullFrom / pushTo user - erc20", async () => {

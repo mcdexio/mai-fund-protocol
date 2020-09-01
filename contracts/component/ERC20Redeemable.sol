@@ -72,7 +72,7 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
         if (slippage == _redeemingSlippages[trader]) {
             return;
         }
-        require(slippage < LibConstant.RATE_UPPERBOUND, "slippage out of range");
+        require(slippage < LibConstant.RATE_UPPERBOUND, "slippage too large");
         _redeemingSlippages[trader] = slippage;
         emit SetRedeemingSlippage(trader, slippage);
     }
@@ -117,7 +117,7 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
     function _increaseRedeemingShareBalance(address trader, uint256 amount)
         internal
     {
-        require(amount <= _redeemableShareBalance(trader), "exceeded amount");
+        require(amount <= _redeemableShareBalance(trader), "amount exceeded");
         // set max amount of redeeming amount
         _redeemingBalances[trader] = _redeemingBalances[trader].add(amount);
         emit IncreaseRedeemingShareBalance(trader, amount);
@@ -132,7 +132,7 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
         internal
     {
         // set max amount of redeeming amount
-        _redeemingBalances[trader] = _redeemingBalances[trader].sub(amount, "insufficient balance");
+        _redeemingBalances[trader] = _redeemingBalances[trader].sub(amount, "amount exceeded");
         emit DecreaseRedeemingShareBalance(trader, amount);
     }
 
@@ -141,7 +141,7 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
      */
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
-        require(from == address(0) || to == address(0) || amount <= _redeemableShareBalance(from), "insufficient balance");
+        require(from == address(0) || to == address(0) || amount <= _redeemableShareBalance(from), "amount exceeded");
         // this will affect receipient's _lastPurchaseTime.
         // to prevent early redeeming through transfer
         // but there is a side effect: if a account continously purchase && transfer shares to another account.

@@ -65,12 +65,12 @@ contract('TestERC20Redeemable', accounts => {
         await redeemable.decreaseRedeemingShareBalance(user, toWad(1.11));
         assert.equal(await redeemable.redeemingBalance(user), toWad(1.2));
 
-        await shouldThrows(redeemable.decreaseRedeemingShareBalance(user, toWad(1.21)), "insufficient balance");
+        await shouldThrows(redeemable.decreaseRedeemingShareBalance(user, toWad(1.21)), "amount exceeded");
 
         await redeemable.decreaseRedeemingShareBalance(user, toWad(1.2));
         assert.equal(await redeemable.redeemingBalance(user), toWad(0));
 
-        await shouldThrows(redeemable.increaseRedeemingShareBalance(user, toWad(10.01)), "exceeded amount");
+        await shouldThrows(redeemable.increaseRedeemingShareBalance(user, toWad(10.01)), "amount exceeded");
     });
 
     it("mint / burn share balance", async () => {

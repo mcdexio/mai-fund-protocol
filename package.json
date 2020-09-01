@@ -3,7 +3,8 @@
     "test": "truffle test",
     "compile": "truffle compile",
     "migrate": "truffle migrate",
-    "coverage": "node --max-old-space-size=65536 ./node_modules/.bin/truffle run coverage"
+    "coverage": "node --max-old-space-size=65536 ./node_modules/.bin/truffle run coverage",
+    "merge": "sol-merger \"./contracts/fund/implement/*.sol\" ./merged"
   },
   "dependencies": {
     "@mcdex/mai-protocol-v2-build": "^2.0.5",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "prettier": "^1.19.1",
-    "prettier-plugin-solidity": "^1.0.0-alpha.37"
+    "prettier-plugin-solidity": "^1.0.0-alpha.37",
+    "sol-merger": "^3.1.0"
   }
 }

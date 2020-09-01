@@ -110,10 +110,10 @@ contract('SocialTradingFund', accounts => {
     it("normal case - user", async () => {
         await fund.setManager(user1, deployer.exchange.address);
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200), from: user1 });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.purchase(toWad(1), toWad(200), { from: user2, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user2, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user2)), 1);
 
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
@@ -138,10 +138,10 @@ contract('SocialTradingFund', accounts => {
 
         await fund.setParameter(toBytes32("performanceFeeRate"), toWad(0.5));
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200), from: user1 });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.purchase(toWad(1), toWad(200), { from: user2, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user2, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user2)), 1);
 
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
@@ -214,7 +214,7 @@ contract('SocialTradingFund', accounts => {
         var purchased = await fund.balanceOf(user);
         var t1 = await fund.lastFeeTime();
 
-        await fund.purchase(toWad(amount), toWad(price), { from: user, value: toWad(amount*price) });
+        await fund.purchase(toWad(amount*price), toWad(amount), toWad(price), { from: user, value: toWad(amount*price) });
         var t2 = await fund.lastFeeTime();
 
         var purchased = (await fund.balanceOf(user)).sub(purchased);
@@ -235,14 +235,14 @@ contract('SocialTradingFund', accounts => {
         await fund.setParameter(toBytes32("streamingFeeRate"), toWad(0.31536));
         await fund.setParameter(toBytes32("performanceFeeRate"), toWad(0.2));
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        await fund.purchase(toWad(210), toWad(1), toWad(200), { value: toWad(210), from: user1 });
 
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
         const calr = getCalculator(0.05, 0.31536, 0.2);
 
         var t1 = await fund.lastFeeTime();
         // 200 * 1.05 = 210,  21000 / 210 = 100.
-        await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
+        await fund.purchase(toWad(21000), toWad(100), toWad(210), { from: user2, value: toWad(21000) });
         var t2 = await fund.lastFeeTime();
 
         await testPurchaseAmount(calr, 100, 210, user2);
@@ -269,14 +269,14 @@ contract('SocialTradingFund', accounts => {
         await fund.setParameter(toBytes32("streamingFeeRate"), toWad(0.31536));
         // await fund.setParameter(toBytes32("performanceFeeRate"), toWad(0.2));
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200), from: user1 });
 
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
         const calr = getCalculator(0.05, 0.31536, 0.2);
 
         var t1 = await fund.lastFeeTime();
         // 200 * 1.05 = 210,  21000 / 210 = 100.
-        await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
+        await fund.purchase(toWad(21000), toWad(100), toWad(210), { from: user2, value: toWad(21000) });
         var t2 = await fund.lastFeeTime();
 
         await testPurchaseAmount(calr, 100, 210, user2);
@@ -308,14 +308,13 @@ contract('SocialTradingFund', accounts => {
 
         // ---------------- 1 ---------------------
         await fund.setTimestamp(1);
-        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
-
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200), from: user1 });
 
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
         const calr = getCalculator(0.05, 0.31536, 0.2);
 
         // 200 * 1.05 = 210,  21000 / 210 = 100.
-        await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
+        await fund.purchase(toWad(21000), toWad(100), toWad(210), { from: user2, value: toWad(21000) });
         await testPurchaseAmount(calr, 100, 210, user2);
 
         await deployer.setIndex(400);
@@ -346,13 +345,13 @@ contract('SocialTradingFund', accounts => {
 
         // ---------------- 1 ---------------------
         await fund.setTimestamp(1);
-        await fund.create(toWad(1), toWad(200), { value: toWad(200), from: user1 });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200), from: user1 });
 
         const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
         const calr = getCalculator(0.05, 0.31536, 0.2);
 
         // 200 * 1.05 = 210,  21000 / 210 = 100.
-        await fund.purchase(toWad(100), toWad(210), { from: user2, value: toWad(21000) });
+        await fund.purchase(toWad(21000), toWad(100), toWad(210), { from: user2, value: toWad(21000) });
         await testPurchaseAmount(calr, 100, 210, user2);
 
         await deployer.setIndex(400);

@@ -55,7 +55,7 @@ contract('TestFee', accounts => {
 
     it("entrance fee", async () => {
         await fundFee.setEntranceFeeRate(toWad(0.01));
-        assert.equal((await fundFee.entranceFee(toWad(1000))).toString(), toWad(10));
+        assert.equal((await fundFee.entranceFee(toWad(1010))).toString(), toWad(10));
         assert.equal((await fundFee.entranceFee(toWad(0))).toString(), toWad(0));
 
         await fundFee.setEntranceFeeRate(toWad(0.00));

@@ -41,23 +41,6 @@ const Side = {
     LONG: 2,
 }
 
-const approximatelyEqual = (a, b, epsilon = 1000) => {
-    var _a = new BigNumber(a);
-    var _b = new BigNumber(b);
-    return _a.minus(_b).abs().toFixed() <= epsilon;
-}
-
-const checkEtherBalance = async (doSomething, account, balanceDelta) => {
-    var prev = new BigNumber(await web3.eth.getBalance(account));
-    // console.log(prev.toFixed());
-    var tx = await doSomething;
-    var gas = new BigNumber(tx.receipt.cumulativeGasUsed).times(new BigNumber("20000000000"));
-    var post = new BigNumber(await web3.eth.getBalance(account));
-    // console.log(post.toFixed());
-    assert.equal(prev.minus(post).minus(gas).toFixed(), balanceDelta);
-}
-
-
 const addLeadingZero = (str, length) => {
     let len = str.length;
     return '0'.repeat(length - len) + str;
@@ -241,6 +224,24 @@ function assertApproximate(assert, actual, expected, limit) {
     if (abs.gt(limit)) {
         assert.fail(actual.toString(), expected.toString());
     }
+}
+
+const approximatelyEqual = (a, b, epsilon = 1000) => {
+    var _a = new BigNumber(a);
+    var _b = new BigNumber(b);
+    return _a.minus(_b).abs().toFixed() <= epsilon;
+}
+
+const checkEtherBalance = async (doSomething, account, balanceDelta) => {
+    var prev = new BigNumber(await web3.eth.getBalance(account));
+    // console.log(prev.toFixed());
+    var receipt = await doSomething;
+    var tx = await web3.eth.getTransaction(receipt.receipt.transactionHash);
+    console.log(tx);
+    var gas = new BigNumber(receipt.receipt.cumulativeGasUsed).times(new BigNumber(tx.gasPrice));
+    var post = new BigNumber(await web3.eth.getBalance(account));
+    // console.log(post.toFixed());
+    assert.equal(prev.minus(post).minus(gas).toFixed(), balanceDelta);
 }
 
 function sleep(ms) {

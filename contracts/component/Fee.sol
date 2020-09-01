@@ -70,7 +70,7 @@ contract Fee is Context, ERC20Redeemable {
         if (_entranceFeeRate == 0) {
             return 0;
         }
-        return purchasedAssetValue.wmul(_entranceFeeRate);
+        return purchasedAssetValue.wfrac(_entranceFeeRate, LibConstant.UNSIGNED_ONE.add(_entranceFeeRate));
     }
 
     /**

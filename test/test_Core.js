@@ -147,35 +147,31 @@ contract('Core', accounts => {
             toWad(1000),
         )
         await deployer.globalConfig.addComponent(deployer.perpetual.address, fund.address);
-        await shouldThrows(fund.create(toWad(0), toWad(200), { value: toWad(200) }), "amount is 0");
+        await shouldThrows(fund.purchase(toWad(200), toWad(0), toWad(200), { value: toWad(200) }), "amount is 0");
 
         assert.ok((await fund.lastFeeTime()).toString() == 0);
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.ok((await fund.lastFeeTime()).toString() != 0);
         assert.equal(fromWad(await fund.totalSupply()), 1);
         assert.equal(fromWad(await fund.netAssetValue.call()), 200);
-
-        await shouldThrows(fund.create(toWad(1), toWad(200), { value: toWad(200) }), "alread created");
     });
 
     it("purchase", async () => {
-        await shouldThrows(fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) }), "nav is 0");
-
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await shouldThrows(fund.purchase(toWad(1), toWad(199), { from: user1, value: toWad(199) }), "exceeded nav");
-        await shouldThrows(fund.purchase(toWad(0), toWad(200), { from: user1, value: toWad(200) }), "amount is 0");
+        await shouldThrows(fund.purchase(toWad(199), toWad(1), toWad(199), { from: user1, value: toWad(199) }), "nav exceeded");
+        await shouldThrows(fund.purchase(toWad(200), toWad(0), toWad(200), { from: user1, value: toWad(200) }), "amount is 0");
     });
 
     it("redeem - no position", async () => {
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
         await shouldThrows(fund.redeem(toWad(0), toWad(0)), "amount is 0");
-        await shouldThrows(fund.redeem(toWad(1), toWad(1)), "slippage out of range");
+        await shouldThrows(fund.redeem(toWad(1), toWad(1)), "slippage too large");
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
         await fund.setParameter(toBytes32("redeemingLockPeriod"), 6);
@@ -188,10 +184,10 @@ contract('Core', accounts => {
     });
 
     it("redeem - has position", async () => {
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
         await fund.setDelegator(deployer.exchange.address, admin);
@@ -208,10 +204,10 @@ contract('Core', accounts => {
     });
 
     it("cancelRedeem", async () => {
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
         await fund.setDelegator(deployer.exchange.address, admin);
@@ -230,7 +226,7 @@ contract('Core', accounts => {
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 0.5);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
 
-        await shouldThrows(fund.cancelRedeem(toWad(0.51), { from: user1 }), "insufficient balance");
+        await shouldThrows(fund.cancelRedeem(toWad(0.51), { from: user1 }), "amount exceeded");
         await shouldThrows(fund.cancelRedeem(toWad(0), { from: user1 }), "amount is 0");
 
         await fund.cancelRedeem(toWad(0.5), { from: user1 });
@@ -238,19 +234,19 @@ contract('Core', accounts => {
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
 
         await shouldThrows(fund.cancelRedeem(toWad(0), { from: user1 }), "amount is 0");
-        await shouldThrows(fund.cancelRedeem(toWad(1), { from: user1 }), "insufficient balance");
+        await shouldThrows(fund.cancelRedeem(toWad(1), { from: user1 }), "amount exceeded");
     });
 
     it("withdrawCollateral", async () => {
         debug = true;
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
         await shouldThrows(fund.redeem(toWad(0), toWad(0)), "amount is 0");
-        await shouldThrows(fund.redeem(toWad(1), toWad(1)), "slippage out of range");
+        await shouldThrows(fund.redeem(toWad(1), toWad(1)), "slippage too large");
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
         await fund.setParameter(toBytes32("redeemingLockPeriod"), 6);
@@ -262,7 +258,7 @@ contract('Core', accounts => {
         assert.equal(fromWad(await fund.withdrawableCollateral(admin)), 0);
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
 
-        await shouldThrows(fund.redeem(toWad(0.6), toWad(0.2)), "excceeded amount");
+        await shouldThrows(fund.redeem(toWad(0.6), toWad(0.2)), "amount excceeded");
 
         await checkEtherBalance(fund.redeem(toWad(0.5), toWad(0.2)), admin, toWad(-100));
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
@@ -270,11 +266,12 @@ contract('Core', accounts => {
     });
 
     it("user purchase - redeem", async () => {
+        debug = false
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
         await fund.setDelegator(deployer.exchange.address, admin);
@@ -301,12 +298,12 @@ contract('Core', accounts => {
         debug = false;
         await fund.setParameter(toBytes32("entranceFeeRate"), toWad(0.10));
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(220), toWad(1), toWad(200), { value: toWad(220) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
         await printFundState(deployer, fund, user1);
 
         console.log("DEBUG", fromWad(await fund.netAssetValue.call()));
-        await fund.purchase(toWad(1), toWad(220), { from: user1, value: toWad(220) });
+        await fund.purchase(toWad(220), toWad(1), toWad(200), { from: user1, value: toWad(220) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
         await printFundState(deployer, fund, user1);
 
@@ -329,12 +326,12 @@ contract('Core', accounts => {
     it("user purchase - redeem (with streaming fee)", async () => {
         await fund.setParameter(toBytes32("streamingFeeRate"), toWad(0.31536)); // 0.000864 / day -> 0.00000001 / second
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
         await printFundState(deployer, fund, user1);
         const lastFeeTimeA = Number((await fund.lastFeeTime()).toString());
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         const lastFeeTimeB = Number((await fund.lastFeeTime()).toString());
         assert.equal(fromWad(await fund.totalFeeClaimed()),  (lastFeeTimeB-lastFeeTimeA) * 0.00000001 * 200);
 
@@ -365,11 +362,11 @@ contract('Core', accounts => {
         debug = true;
         await fund.setParameter(toBytes32("streamingFeeRate"), toWad(0.00));
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
         await printFundState(deployer, fund, user1);
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
         await printFundState(deployer, fund, user1);
 
@@ -396,10 +393,10 @@ contract('Core', accounts => {
     it("settle", async () => {
         // await fund.setRedeemingSlippage(fund.address, toWad(0.0));
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
         await fund.setDelegator(deployer.exchange.address, admin);
@@ -416,8 +413,7 @@ contract('Core', accounts => {
         assert.ok(await fund.stopped());
 
         // forbidden
-        await shouldThrows(fund.create(toWad(1), toWad(1)), "Stoppable: stopped");
-        await shouldThrows(fund.purchase(toWad(1), toWad(0.01)), "Stoppable: stopped");
+        await shouldThrows(fund.purchase(toWad(200), toWad(1), toWad(0.01)), "Stoppable: stopped");
         await shouldThrows(fund.bidRedeemingShare(user1, toWad(1), toWad(1), 1), "Stoppable: stopped");
 
         assert.equal(fromWad(await fund.redeemingBalance(fund.address)), fromWad(totalSupply));
@@ -434,13 +430,13 @@ contract('Core', accounts => {
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
         await deployer.perpetual.deposit(toWad(10000), {from: user3, value: toWad(10000)});
 
-        await fund.create(toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await fund.purchase(toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
-        await fund.purchase(toWad(2), toWad(200), { from: user2, value: toWad(400) });
+        await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user2, value: toWad(400) });
         assert.equal(fromWad(await fund.balanceOf(user2)), 2);
 
         assert.equal(fromWad(await fund.totalSupply()), 4);
@@ -476,6 +472,6 @@ contract('Core', accounts => {
         await fund.settle(toWad(2), { from: user2 });
         assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
 
-        await shouldThrows(fund.settle(toWad(1), { from: admin }), "excceeded amount");
+        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount excceeded");
     });
 });
