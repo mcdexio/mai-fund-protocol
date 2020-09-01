@@ -9,7 +9,7 @@ contract TestAuction is Auction {
     address private _mockSelf;
 
     constructor(address perpetual, uint256 cap) public {
-        __ERC20Capped_init_unchained(cap);
+        __ERC20CappedRedeemable_init_unchained(cap);
         __MarginAccount_init_unchained(perpetual);
     }
 

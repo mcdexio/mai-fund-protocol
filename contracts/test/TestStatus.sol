@@ -13,8 +13,7 @@ contract TestStatus is Status {
 
     constructor(string memory name, string memory symbol, uint256 cap, address perpetual) public {
         __ERC20_init_unchained(name, symbol);
-        __ERC20Capped_init_unchained(cap);
-        __ERC20Redeemable_init_unchained();
+        __ERC20CappedRedeemable_init_unchained(cap);
         _perpetual = IPerpetual(perpetual);
     }
 

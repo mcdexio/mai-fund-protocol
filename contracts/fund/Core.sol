@@ -66,8 +66,7 @@ contract Core is
     {
         __Context_init_unchained();
         __ERC20_init_unchained(name, symbol);
-        __ERC20Capped_init_unchained(cap);
-        __ERC20Redeemable_init_unchained();
+        __ERC20CappedRedeemable_init_unchained(cap);
         __MarginAccount_init_unchained(perpetual);
         __Collateral_init_unchained(_collateral(), collateralDecimals);
         __Pausable_init_unchained();
@@ -114,6 +113,8 @@ contract Core is
             _setPerformanceFeeRate(value.toUint256());
         } else if (key == "settledRedeemingSlippage") {
             _setRedeemingSlippage(_self(), value.toUint256());
+        } else if (key == "cap") {
+            _setCap(value.toUint256());
         } else {
             revert("unrecognized key");
         }

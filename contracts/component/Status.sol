@@ -8,11 +8,11 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "../lib/LibTypes.sol";
 import "../lib/LibMathEx.sol";
 
-import "./ERC20Redeemable.sol";
+import "./ERC20CappedRedeemable.sol";
 import "./Fee.sol";
 import "./MarginAccount.sol";
 
-contract Status is ERC20Redeemable, Fee, MarginAccount {
+contract Status is ERC20CappedRedeemable, Fee, MarginAccount {
 
     using Math for uint256;
     using SafeMath for uint256;
@@ -105,6 +105,11 @@ contract Status is ERC20Redeemable, Fee, MarginAccount {
         return _maxNetAssetValuePerShare.sub(netAssetValuePerShare).wdiv(_maxNetAssetValuePerShare);
     }
 
+    /**
+     * @dev Update fee and max nav per share.
+     * @param   netAssetValueBeforeUpdating Net asset value before claiming fee
+     * @return  netAssetValue               Net asset value, fee excluded
+     */
     function _updateFeeState(uint256 netAssetValueBeforeUpdating)
         internal
         virtual

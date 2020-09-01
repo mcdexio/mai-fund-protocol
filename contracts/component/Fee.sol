@@ -6,12 +6,12 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "../lib/LibConstant.sol";
 import "../lib/LibMathEx.sol";
 import "./Context.sol";
-import "./ERC20Redeemable.sol";
+import "./ERC20CappedRedeemable.sol";
 
 /**
  * @title   Fee calculator and status updater.
  */
-contract Fee is Context, ERC20Redeemable {
+contract Fee is Context, ERC20CappedRedeemable {
 
     using SafeMath for uint256;
     using LibMathEx for uint256;

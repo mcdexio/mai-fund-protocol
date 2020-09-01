@@ -8,31 +8,31 @@ contract TestSettlement is Settlement {
 
     bool private _mockEmergency;
     uint256 private _mockDrawdown;
-    int256 private _mockLeverage;   
+    int256 private _mockLeverage;
 
     constructor() public {
-        __ERC20Capped_init_unchained(1000);
-        _mint(_msgSender(), 1);   
+        __ERC20CappedRedeemable_init_unchained(1000);
+        _mint(_msgSender(), 1);
     }
 
 
-    function drawdownHighWaterMark() 
+    function drawdownHighWaterMark()
         external
         view
-        returns (uint256) 
+        returns (uint256)
     {
         return _drawdownHighWaterMark;
     }
 
-    function leverageHighWaterMark() 
+    function leverageHighWaterMark()
         external
         view
-        returns (uint256) 
+        returns (uint256)
     {
         return _leverageHighWaterMark;
     }
 
-    function setDrawdownHighWaterMark(uint256 hwm) 
+    function setDrawdownHighWaterMark(uint256 hwm)
         external
     {
         _setDrawdownHighWaterMark(hwm);
@@ -50,7 +50,7 @@ contract TestSettlement is Settlement {
         _mockEmergency = emergency;
     }
 
-    function _emergency() 
+    function _emergency()
         internal
         view
         override
@@ -65,7 +65,7 @@ contract TestSettlement is Settlement {
         _mockDrawdown = drawdown;
     }
 
-    function _drawdown(uint256) 
+    function _drawdown(uint256)
         internal
         view
         override
@@ -80,7 +80,7 @@ contract TestSettlement is Settlement {
         _mockLeverage = leverage;
     }
 
-    function _leverage(uint256) 
+    function _leverage(uint256)
         internal
         override
         returns (int256)

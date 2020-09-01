@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Capped.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 
 import "../lib/LibConstant.sol";
 import "./Context.sol";
@@ -10,13 +11,14 @@ import "./Context.sol";
 /**
  * @title Implemetation of operations on fund account.
  */
-contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
+contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
 
     using SafeMath for uint256;
 
     // using fixed decimals 18
     uint8 constant private FUND_SHARE_ERC20_DECIMALS = 18;
 
+    uint256 internal _cap;
     uint256 internal _redeemingLockPeriod;
 
     mapping(address => uint256) internal _lastPurchaseTimes;
@@ -30,11 +32,23 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
     event DecreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event SetRedeemingSlippage(address indexed trader, uint256 slippage);
 
-    function __ERC20Redeemable_init_unchained()
+    function __ERC20CappedRedeemable_init_unchained(uint256 cap)
         internal
         initializer
     {
+        require(cap > 0, "cap is 0");
+        _cap = cap;
         _setupDecimals(FUND_SHARE_ERC20_DECIMALS);
+    }
+
+    /**
+     * @dev     Set a new cap.
+     */
+    function _setCap(uint256 newCap)
+        internal
+    {
+        require(newCap != _cap, "same cap");
+        _cap = newCap;
     }
 
     /**
@@ -141,6 +155,11 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
      */
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
+
+        if (from == address(0)) { // When minting tokens
+            require(totalSupply().add(amount) <= _cap, "cap exceeded");
+        }
+
         require(from == address(0) || to == address(0) || amount <= _redeemableShareBalance(from), "amount exceeded");
         // this will affect receipient's _lastPurchaseTime.
         // to prevent early redeeming through transfer
@@ -151,5 +170,5 @@ contract ERC20Redeemable is ERC20CappedUpgradeSafe, Context {
         }
     }
 
-    uint256[16] private __gap;
+    uint256[15] private __gap;
 }

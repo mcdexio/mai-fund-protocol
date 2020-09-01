@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "../component/ERC20Redeemable.sol";
+import "../component/ERC20CappedRedeemable.sol";
 
-contract TestERC20Redeemable is ERC20Redeemable {
+contract TestERC20CappedRedeemable is ERC20CappedRedeemable {
     event DoNothing();
 
     constructor(string memory name, string memory symbol, uint256 cap) public {
         __ERC20_init_unchained(name, symbol);
-        __ERC20Capped_init_unchained(cap);
-        __ERC20Redeemable_init_unchained();
+        __ERC20CappedRedeemable_init_unchained(cap);
     }
 
     function redeemingLockPeriod() external view returns (uint256) {
