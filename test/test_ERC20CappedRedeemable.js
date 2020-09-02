@@ -1,15 +1,15 @@
 const assert = require("assert");
 const { toBytes32, fromBytes32, uintToBytes32, toWad, fromWad, shouldThrows } = require("./utils.js");
 
-const TestERC20Redeemable = artifacts.require('TestERC20Redeemable.sol');
+const TestERC20CappedRedeemable = artifacts.require('TestERC20CappedRedeemable.sol');
 
-contract('TestERC20Redeemable', accounts => {
+contract('TestERC20CappedRedeemable', accounts => {
     var user;
     var redeemable;
 
     const deploy = async () => {
         user = accounts[1];
-        redeemable = await TestERC20Redeemable.new("Redeemable Token", "RTK", toWad(1000));
+        redeemable = await TestERC20CappedRedeemable.new("Redeemable Token", "RTK", toWad(1000));
     }
 
     function sleep(ms) {
@@ -17,6 +17,25 @@ contract('TestERC20Redeemable', accounts => {
     }
 
     beforeEach(deploy);
+
+    it("cap", async () => {
+        await redeemable.mint(user, toWad(1000));
+        await shouldThrows(redeemable.mint(user, 1), "cap exceeded");
+
+        await redeemable.setCap(toWad(2000));
+        await redeemable.mint(user, toWad(1000));
+        await shouldThrows(redeemable.mint(user, 1), "cap exceeded");
+
+        await redeemable.setCap(toWad(0));
+        await shouldThrows(redeemable.mint(user, 1), "cap exceeded");
+
+        await redeemable.setCap(toWad(1000));
+        await redeemable.burn(user, toWad(1500));
+        await redeemable.mint(user, toWad(500));
+        await shouldThrows(redeemable.mint(user, 1), "cap exceeded");
+
+        await shouldThrows(redeemable.setCap(toWad(1000)), "same cap");
+    });
 
     it("can / cannot redeem", async () => {
         await redeemable.setRedeemingLockPeriod(0);

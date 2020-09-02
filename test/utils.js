@@ -237,7 +237,6 @@ const checkEtherBalance = async (doSomething, account, balanceDelta) => {
     // console.log(prev.toFixed());
     var receipt = await doSomething;
     var tx = await web3.eth.getTransaction(receipt.receipt.transactionHash);
-    console.log(tx);
     var gas = new BigNumber(receipt.receipt.cumulativeGasUsed).times(new BigNumber(tx.gasPrice));
     var post = new BigNumber(await web3.eth.getBalance(account));
     // console.log(post.toFixed());

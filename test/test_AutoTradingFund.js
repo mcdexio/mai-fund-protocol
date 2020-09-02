@@ -144,10 +144,7 @@ contract('AutoTradingFund', accounts => {
 
         // 50: 1 -> 1
         await rsistg.setNextTarget(toWad(1));
-        var {amount, side} = await fund.calculateRebalancingTarget.call();
-        await printFundState(deployer, fund, user1);
-        assert.equal(fromWad(amount), 0);
-        assert.equal(side, FLAT);
+        await shouldThrows(fund.calculateRebalancingTarget.call(), "need no rebalance");
 
         // 11: 1 -> -1
         await rsistg.setNextTarget(toWad(-1));
@@ -250,14 +247,7 @@ contract('AutoTradingFund', accounts => {
         console.log("  => NAV", nav/totalSupply);
         assert.equal(nav/totalSupply, 140);
 
-        // 400 -- 0.0025  delta -- 0.0025 * 36000 = 90 (pnl) / 3 = 30
-        // // nav = 200 + 30
         await deployer.setIndex(400, { gasLimit: 8000000 });
-        var nav = fromWad(await fund.netAssetValue.call());
-        var totalSupply = fromWad(await fund.totalSupply());
-        console.log("  => NAV", nav/totalSupply);
-        assert.equal(nav/totalSupply, 230);
-
         var b1 = await web3.eth.getBalance(user1);
         await fund.redeem(toWad(1), toWad(0.00), { from: user1, gasLimit: 8000000 });
         assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);

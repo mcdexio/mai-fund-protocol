@@ -95,9 +95,6 @@ contract Status is ERC20CappedRedeemable, Fee, MarginAccount {
         virtual
         returns (uint256)
     {
-        if (totalSupply() == 0) {
-            return 0;
-        }
         uint256 netAssetValuePerShare = _netAssetValuePerShare(netAssetValue);
         if (netAssetValuePerShare >= _maxNetAssetValuePerShare) {
             return 0;

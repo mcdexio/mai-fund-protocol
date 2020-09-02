@@ -181,6 +181,7 @@ contract('Core', accounts => {
 
         await checkEtherBalance(fund.redeem(toWad(1), toWad(0.2)), admin, toWad(-200));
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
+        assert.equal(fromWad(await fund.withdrawableCollateral(admin)), 0);
     });
 
     it("redeem - has position", async () => {
@@ -201,6 +202,14 @@ contract('Core', accounts => {
         assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 1);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
+
+        await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT, { from: user2 });
+        // 0.005 * 0.01 / 2 = 0.000025,
+        assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 200 - 0.000025);
+        assert.equal(fromWad(await fund.redeemingBalance(user1)), 0);
+
+        await checkEtherBalance(fund.withdrawCollateral(toWad(200 - 0.000025), { from: user1 }), user1, toWad(- 200 + 0.000025));
+        assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);
     });
 
     it("cancelRedeem", async () => {
@@ -406,10 +415,8 @@ contract('Core', accounts => {
         await delegateTrade(admin, user2, 'buy', toWad(200), toWad(1));
 
         var totalSupply = await fund.totalSupply();
-        var totalSupply = await fund.totalSupply();
 
         await fund.shutdown();
-
         assert.ok(await fund.stopped());
 
         // forbidden
@@ -461,17 +468,143 @@ contract('Core', accounts => {
         await shouldThrows(fund.redeem(toWad(1), toWad(0.001), { from: user1 }), "Stoppable: stopped");
         await shouldThrows(fund.settle(toWad(1), { from: user1 }), "cannot redeem now");
 
-        await fund.bidSettledShare(toWad(4), toWad(0.01), LONG, { from: user3 });
-
+       await fund.bidSettledShare(toWad(4), toWad(0.01), LONG, { from: user3 });
 
         assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
         assert.equal(fromWad(await deployer.perpetual.marginBalance.call(fund.address)), 1200);
-        // console.log(fromWad(await fund.balanceOf(admin)));
+
+        console.log(fromWad(await fund.balanceOf(admin)));
+        console.log(fromWad(await fund.netAssetValue.call()));
+
         await fund.settle(toWad(1), { from: admin });
         await fund.settle(toWad(1), { from: user1 });
         await fund.settle(toWad(2), { from: user2 });
-        assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
 
+        assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
+        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount excceeded");
+    });
+
+    it("settle - 3", async () => {
+        await fund.setDelegator(deployer.exchange.address, admin);
+        const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
+
+        await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
+        await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
+        await deployer.perpetual.deposit(toWad(10000), {from: user3, value: toWad(10000)});
+
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
+        assert.equal(fromWad(await fund.balanceOf(admin)), 1);
+
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        assert.equal(fromWad(await fund.balanceOf(user1)), 1);
+
+        await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user2, value: toWad(400) });
+        assert.equal(fromWad(await fund.balanceOf(user2)), 2);
+
+        assert.equal(fromWad(await fund.totalSupply()), 4);
+
+        // 4 * 200 = 800
+        // 400 / 0.005 = 80000
+        await delegateTrade(admin, user3, 'sell', toWad(200), toWad(80000));
+
+        var margin = await deployer.perpetual.getMarginAccount(fund.address);
+        // console.log(margin);
+        assert.equal(margin.side, LONG);
+        assert.equal(fromWad(margin.size), 80000);
+
+        // 0.01 = 0.005 x2
+        await deployer.setIndex(100);
+        // pnl = 0.01 - 0.005 * 80000 = +400
+        assert.equal(fromWad(await deployer.perpetual.pnl.call(fund.address)), 400);
+
+        await deployer.perpetual.beginGlobalSettlement(toWad(0.01));
+
+        await fund.shutdown();
+        assert.ok(await fund.stopped());
+
+        await shouldThrows(fund.redeem(toWad(1), toWad(0.001), { from: user1 }), "Stoppable: stopped");
+        await shouldThrows(fund.settle(toWad(1), { from: user1 }), "cannot redeem now");
+
+        // price
+        // console.log(fromWad(await deployer.perpetual.markPrice.call()));
+        await shouldThrows(fund.bidSettledShare(toWad(4), toWad(0.01), LONG, { from: user3 }), "perpetual emergency");
+        await shouldThrows(fund.settleMarginAccount(), "wrong perpetual status");
+
+        await deployer.perpetual.endGlobalSettlement();
+        await fund.settleMarginAccount();
+
+        await fund.settle(toWad(1), { from: admin });
+        await fund.settle(toWad(1), { from: user1 });
+        await fund.settle(toWad(2), { from: user2 });
+
+
+        assert.equal(fromWad(await fund.netAssetValue.call()), 0);
+        assert.equal(fromWad(await fund.totalSupply()), 0);
+        assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
+        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount excceeded");
+    });
+
+    it("settle - 4", async () => {
+        await fund.setDelegator(deployer.exchange.address, admin);
+        const delegateTrade = createTradingContext(deployer.perpetual, deployer.exchange, fund, admin);
+
+        await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
+        await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
+        await deployer.perpetual.deposit(toWad(10000), {from: user3, value: toWad(10000)});
+
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
+        assert.equal(fromWad(await fund.balanceOf(admin)), 1);
+
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
+        assert.equal(fromWad(await fund.balanceOf(user1)), 1);
+
+        await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user2, value: toWad(400) });
+        assert.equal(fromWad(await fund.balanceOf(user2)), 2);
+
+        assert.equal(fromWad(await fund.totalSupply()), 4);
+
+        // 4 * 200 = 800
+        // 400 / 0.005 = 80000
+        await delegateTrade(admin, user3, 'sell', toWad(200), toWad(80000));
+
+        var margin = await deployer.perpetual.getMarginAccount(fund.address);
+        // console.log(margin);
+        assert.equal(margin.side, LONG);
+        assert.equal(fromWad(margin.size), 80000);
+
+        // 0.01 = 0.005 x2
+        await deployer.setIndex(100);
+        // pnl = 0.01 - 0.005 * 80000 = +400
+        assert.equal(fromWad(await deployer.perpetual.pnl.call(fund.address)), 400);
+
+        await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
+        await fund.bidRedeemingShare(user1, toWad(1), toWad(0.01), LONG);
+        await fund.withdrawCollateral(await fund.withdrawableCollateral(user1), { from: user1 });
+
+        await deployer.perpetual.beginGlobalSettlement(toWad(0.01));
+
+        await fund.shutdown();
+        assert.ok(await fund.stopped());
+
+        await shouldThrows(fund.redeem(toWad(1), toWad(0.001), { from: user1 }), "Stoppable: stopped");
+        await shouldThrows(fund.settle(toWad(1), { from: user1 }), "cannot redeem now");
+
+        // price
+        // console.log(fromWad(await deployer.perpetual.markPrice.call()));
+        await shouldThrows(fund.bidSettledShare(toWad(4), toWad(0.01), LONG, { from: user3 }), "amount excceeded");
+        await shouldThrows(fund.bidSettledShare(toWad(3), toWad(0.01), LONG, { from: user3 }), "perpetual emergency");
+        await shouldThrows(fund.settleMarginAccount(), "wrong perpetual status");
+
+        await deployer.perpetual.endGlobalSettlement();
+        await fund.settleMarginAccount();
+
+        await fund.settle(toWad(1), { from: admin });
+        await shouldThrows(fund.settle(toWad(1), { from: user1 }), "amount excceeded");
+        await fund.settle(toWad(2), { from: user2 });
+
+        assert.equal(fromWad(await fund.netAssetValue.call()), 0);
+        assert.equal(fromWad(await fund.totalSupply()), 0);
+        assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
         await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount excceeded");
     });
 });

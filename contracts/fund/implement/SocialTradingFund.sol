@@ -83,7 +83,7 @@ contract SocialTradingFund is
     {
         if (_manager != newManager) {
             if (_manager != address(0)) {
-                withdrawManagementFee(managementFee());
+                _withdrawManagementFee(managementFee());
             }
             emit SetManager(_manager, newManager);
             _manager = newManager;
@@ -95,7 +95,7 @@ contract SocialTradingFund is
     }
 
     /**
-     * @dev     In extreme case, there will not be enough collateral (may be liquidated) to withdraw.
+     * @notice  In extreme case, there will not be enough collateral (may be liquidated) to withdraw.
      * @param   collateralAmount    Amount of collateral to withdraw.
      */
     function withdrawManagementFee(uint256 collateralAmount)
@@ -103,7 +103,20 @@ contract SocialTradingFund is
         nonReentrant
         whenNotPaused
     {
+        _withdrawManagementFee(collateralAmount);
+    }
+
+    /**
+     * @dev     In extreme case, there will not be enough collateral (may be liquidated) to withdraw.
+     * @param   collateralAmount    Amount of collateral to withdraw.
+     */
+    function _withdrawManagementFee(uint256 collateralAmount)
+        internal
+    {
         claimManagementFee();
+        if (_totalFeeClaimed == 0) {
+            return;
+        }
         _totalFeeClaimed = _totalFeeClaimed.sub(collateralAmount, "insufficient fee");
         _withdraw(collateralAmount);
         _pushToUser(payable(_manager), collateralAmount);

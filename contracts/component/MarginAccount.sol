@@ -161,9 +161,13 @@ contract MarginAccount is Initializable, Context {
     )
         internal
     {
+        require(!_emergency(), "perpetual emergency");
         // align to lotsize
         uint256 lotSize = _perpetual.getGovernance().lotSize;
         uint256 alignedAmount = positionAmount.sub(positionAmount.mod(lotSize));
+        if (alignedAmount == 0) {
+            return;
+        }
         (
             uint256 takerOpened,
             uint256 makerOpened

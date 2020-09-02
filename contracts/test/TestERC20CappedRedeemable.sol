@@ -27,6 +27,14 @@ contract TestERC20CappedRedeemable is ERC20CappedRedeemable {
         return _redeemingBalances[account];
     }
 
+    function cap() external view returns (uint256) {
+        return _cap;
+    }
+
+    function setCap(uint256 newCap) external {
+        _setCap(newCap);
+    }
+
     function setRedeemingLockPeriod(uint256 period)
         external
     {

@@ -13,6 +13,10 @@ contract Getter is Core {
         return _netAssetValue();
     }
 
+    function cap() public view returns (uint256) {
+        return _cap;
+    }
+
     // redeem
     function redeemableShareBalance(address account) public view returns (uint256) {
         return _redeemableShareBalance(account);

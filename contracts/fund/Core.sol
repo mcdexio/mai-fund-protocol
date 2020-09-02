@@ -33,10 +33,10 @@ contract Core is
     using SafeCast for int256;
 
     bool internal _isMarginSettled;
+    uint256 internal _settledNetAssetValue;
     mapping(address => uint256) internal _withdrawableCollaterals;
 
     event Received(address indexed sender, uint256 amount);
-    event Create(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
     event Purchase(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
     event Redeem(address indexed trader, uint256 shareAmount, uint256 slippage);
     event Settle(address indexed trader, uint256 shareAmount);
@@ -132,8 +132,12 @@ contract Core is
     {
         require(_msgSender() == _owner() || _canShutdown(), "caller must be owner or cannot shutdown");
         // claim fee until shutting down
-        _netAssetValue();
-        _redeemingBalances[_self()] = totalSupply();
+        uint256 netAssetValue = _netAssetValue();
+        if (_marginAccount().size > 0) {
+            _redeemingBalances[_self()] = totalSupply();
+        } else {
+            _settledNetAssetValue = netAssetValue;
+        }
         // enter shutting down mode.
         _stop();
         emit Shutdown();
@@ -212,7 +216,6 @@ contract Core is
 
         emit Purchase(_msgSender(), netAssetValuePerShare, shareAmount);
     }
-    // 7616     +1878
 
     /**
      * @notice  Request to redeem share for collateral with a slippage.
@@ -226,39 +229,39 @@ contract Core is
         whenNotStopped
         nonReentrant
     {
+        address account = _msgSender();
         // steps:
         //  1. update redeeming amount in account
         //  2.. create order, push order to list
         require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= balanceOf(_msgSender()), "amount excceeded");
-        require(_canRedeem(_msgSender()), "cannot redeem now");
-        _setRedeemingSlippage(_msgSender(), slippage);
+        require(shareAmount <= balanceOf(account), "amount excceeded");
+        require(_canRedeem(account), "cannot redeem now");
+        _setRedeemingSlippage(account, slippage);
         if (_marginAccount().size > 0) {
-            _increaseRedeemingShareBalance(_msgSender(), shareAmount);
+            _increaseRedeemingShareBalance(account, shareAmount);
         } else {
-            _redeemImmediately(_msgSender(), shareAmount);
+            uint256 collateralToReturn = _netAssetValue().wfrac(shareAmount, totalSupply());
+            _burn(account, shareAmount);
+            _withdraw(_toRawAmount(collateralToReturn));
+            _pushToUser(payable(account), collateralToReturn);
         }
-        emit Redeem(_msgSender(), shareAmount, slippage);
+        emit Redeem(account, shareAmount, slippage);
     }
-    // 9927     +2,311 (_redeemImmediately included)
 
     /**
-     * @notice  Like 'redeem' method but only available on stopped status.
-     * @param   shareAmount At least amount of shares token received by user.
+     * @notice  Withdraw collateral from fund.
+     * @param   collateralAmount    Amount of collateral to withdraw.
      */
-    function settle(uint256 shareAmount)
+    function withdrawCollateral(uint256 collateralAmount)
         external
         whenNotPaused
-        whenStopped
         nonReentrant
     {
-        require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= balanceOf(_msgSender()), "amount excceeded");
-        require(_redeemingBalances[_self()] == 0, "cannot redeem now");
-        _redeemImmediately(_msgSender(), shareAmount);
-        emit Settle(_msgSender(), shareAmount);
+        _withdrawableCollaterals[_msgSender()] = _withdrawableCollaterals[_msgSender()]
+            .sub(collateralAmount, "amount exceeded");
+        _pushToUser(payable(_msgSender()), collateralAmount);
+        emit Withdraw(_msgSender(), collateralAmount);
     }
-    // 10402    +475 (_redeemImmediately excluded)
 
     /**
      * @notice  Cancel redeeming share.
@@ -272,21 +275,6 @@ contract Core is
         require(shareAmount > 0, "amount is 0");
         _decreaseRedeemingShareBalance(_msgSender(), shareAmount);
         emit CancelRedeem(_msgSender(), shareAmount);
-    }
-    // 10907    +505
-
-    /**
-     * @notice  Withdraw collateral from fund.
-     * @param   collateralAmount    Amount of collateral to withdraw.
-     */
-    function withdrawCollateral(uint256 collateralAmount)
-        external
-        whenNotPaused
-        nonReentrant
-    {
-        _decreaseWithdrawableCollateral(_msgSender(), collateralAmount);
-        _pushToUser(payable(_msgSender()), collateralAmount);
-        emit Withdraw(_msgSender(), collateralAmount);
     }
 
     /**
@@ -313,15 +301,16 @@ contract Core is
         require(shareAmount <= _redeemingBalances[trader], "amount excceeded");
         uint256 netAssetValue = _netAssetValue();
         // bid shares
-        uint256 slippageLoss = _bidRedeemingShare(trader, shareAmount, priceLimit, side);
+        uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[trader]);
+        _decreaseRedeemingShareBalance(trader, shareAmount);
         // this is the finally collateral returned to user.
         uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply())
             .sub(slippageLoss, "slippage too high");
         _burn(trader, shareAmount);
         _withdraw(_toRawAmount(collateralToReturn));
-        _increaseWithdrawableCollateral(trader, collateralToReturn);
+        _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader].add(collateralToReturn);
+        emit BidShare(_msgSender(), trader, shareAmount, slippageLoss);
     }
-    // 13931    +3024
 
     /**
      * @notice  Almost be the same with bidRedeemingShare but only works when stopped.
@@ -340,11 +329,16 @@ contract Core is
         nonReentrant
     {
         address account = _self();
+        require(_redeemingBalances[account] > 0, "no share");
         require(shareAmount > 0, "amount is 0");
         require(shareAmount <= _redeemingBalances[account], "amount excceeded");
-        _bidRedeemingShare(account, shareAmount, priceLimit, side);
+        uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[account]);
+        _decreaseRedeemingShareBalance(account, shareAmount);
+        if (_redeemingBalances[account] == 0) {
+            _settledNetAssetValue = _netAssetValue();
+        }
+        emit BidShare(_msgSender(), account, shareAmount, slippageLoss);
     }
-    // 14396    +465
 
     /**
      * @notice Settle margin account of fund.
@@ -357,8 +351,34 @@ contract Core is
     {
         // clean all positions and withdraw
         require(_isMarginSettled == false, "already settled");
-        _settle();
+        _redeemingBalances[_self()] = 0;
+        _settledNetAssetValue = _netAssetValue();
         _isMarginSettled = true;
+        _settle();
+    }
+
+    /**
+     * @notice  Like 'redeem' method but only available on stopped status.
+     * @param   shareAmount At least amount of shares token received by user.
+     */
+    function settle(uint256 shareAmount)
+        external
+        whenNotPaused
+        whenStopped
+        nonReentrant
+    {
+        require(_redeemingBalances[_self()] == 0, "cannot redeem now");
+        address account = _msgSender();
+        require(shareAmount > 0, "amount is 0");
+        require(shareAmount <= balanceOf(account), "amount excceeded");
+        uint256 collateralToReturn = _settledNetAssetValue.wfrac(shareAmount, totalSupply());
+        _settledNetAssetValue = _settledNetAssetValue.sub(collateralToReturn);
+        _burn(account, shareAmount);
+        if (!_isMarginSettled) {
+            _withdraw(_toRawAmount(collateralToReturn));
+        }
+        _pushToUser(payable(account), collateralToReturn);
+        emit Settle(account, shareAmount);
     }
 
     /**
@@ -376,45 +396,6 @@ contract Core is
         slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[trader]);
         _decreaseRedeemingShareBalance(trader, shareAmount);
         emit BidShare(_msgSender(), trader, shareAmount, slippageLoss);
-    }
-
-    /**
-     * @notice  Increase collateral amount which can be withdraw by user.
-     * @param   trader      Address of share owner.
-     * @param   amount      Amount of collateral to increase.
-     */
-    function _increaseWithdrawableCollateral(address trader, uint256 amount)
-        internal
-    {
-        _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader].add(amount);
-        emit IncreaseWithdrawableCollateral(trader, amount);
-    }
-
-    /**
-     * @notice  Decrease collateral amount which can be withdraw by user.
-     * @param   trader      Address of share owner.
-     * @param   amount      Amount of collateral to decrease.
-     */
-    function _decreaseWithdrawableCollateral(address trader, uint256 amount)
-        internal
-    {
-        _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader].sub(amount, "amount exceeded");
-        emit DecreaseWithdrawableCollateral(trader, amount);
-    }
-
-    /**
-     * @notice  Redeem and get collateral immediately.
-     */
-    function _redeemImmediately(address account, uint256 shareAmount)
-        internal
-        returns (uint256 collateralToReturn)
-    {
-        collateralToReturn = _netAssetValue().wfrac(shareAmount, totalSupply());
-        _burn(account, shareAmount);
-        if (!_isMarginSettled) {
-            _withdraw(_toRawAmount(collateralToReturn));
-        }
-        _pushToUser(payable(account), collateralToReturn);
     }
 
     /**

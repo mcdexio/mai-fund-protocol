@@ -154,7 +154,6 @@ contract AutoTradingFund is
             uint256 rebalancingAmount,
             LibTypes.Side rebalancingSide
         ) = calculateRebalancingTarget();
-        require(rebalancingAmount > 0 && rebalancingSide != LibTypes.Side.FLAT, "need no rebalance");
         require(rebalancingSide == side, "unexpected side");
 
         ( uint256 tradingPrice, ) = _biddingPrice(rebalancingSide, _rebalancingSlippage);
@@ -194,12 +193,8 @@ contract AutoTradingFund is
         int256 expectedSize = expectedMarginBalance.wdiv(markPrice.toInt256());
         int256 target = expectedSize.sub(signedSize);
         amount = target.abs().toUint256();
-
-        if (amount == 0) {
-            side = LibTypes.Side.FLAT;
-        } else {
-            side = target > 0? LibTypes.Side.LONG: LibTypes.Side.SHORT;
-        }
+        require(amount != 0, "need no rebalance");
+        side = target > 0? LibTypes.Side.LONG: LibTypes.Side.SHORT;
     }
 
     /**
@@ -223,7 +218,6 @@ contract AutoTradingFund is
         returns (int256)
     {
         int256 nextTarget = _strategy.getNextTarget();
-        // inverse contract
         if (_inversed) {
             return nextTarget.neg();
         }

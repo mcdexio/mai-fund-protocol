@@ -125,7 +125,6 @@ contract Collateral is Initializable {
             _collateralToken.safeTransfer(trader, rawAmount);
         } else {
             Address.sendValue(trader, rawAmount);
-            // trader.transfer(amount);
         }
         return rawAmount;
     }
