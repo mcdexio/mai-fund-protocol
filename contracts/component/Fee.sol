@@ -70,7 +70,10 @@ contract Fee is Context, ERC20CappedRedeemable {
         if (_entranceFeeRate == 0) {
             return 0;
         }
-        return purchasedAssetValue.wfrac(_entranceFeeRate, LibConstant.UNSIGNED_ONE.add(_entranceFeeRate));
+        return purchasedAssetValue.wfrac(
+            _entranceFeeRate,
+            LibConstant.UNSIGNED_ONE.add(_entranceFeeRate)
+        );
     }
 
     /**

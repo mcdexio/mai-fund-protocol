@@ -64,10 +64,12 @@ contract SettleableFund is
     {
         if (key == "drawdownHighWaterMark") {
             _setDrawdownHighWaterMark(value.toUint256());
+
         } else if (key == "leverageHighWaterMark") {
             _setLeverageHighWaterMark(value.toUint256());
+        } else {
+            super.setParameter(key, value);
         }
-        super.setParameter(key, value);
     }
 
     /**

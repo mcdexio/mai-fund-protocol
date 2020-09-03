@@ -8,8 +8,11 @@ BigNumber.config({ EXPONENTIAL_AT: 1000, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 
 contract('TestFee', accounts => {
     var fundFee;
+    var user1;
 
     const deploy = async () => {
+        user1 = accounts[0];
+
         fundFee = await TestFee.new();
     }
 
@@ -31,26 +34,19 @@ contract('TestFee', accounts => {
     })
 
     it("updateMaxNetAssetValuePerShare", async () => {
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(9999), toWad(0));
         assert.equal(await fundFee.maxNetAssetValuePerShare(), 0);
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(100), toWad(1));
+        await fundFee.updateMaxNetAssetValuePerShare(toWad(100));
 
         await sleep(1000);
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001.1), toWad(1));
+        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001.1));
         assert.equal(await fundFee.maxNetAssetValuePerShare(), toWad(1001.1));
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001), toWad(1));
+        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001));
         assert.equal(await fundFee.maxNetAssetValuePerShare(), toWad(1001.1));
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001.11), toWad(1));
+        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001.11));
         assert.equal(await fundFee.maxNetAssetValuePerShare(), toWad(1001.11));
-
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001.11), toWad(2));
-        assert.equal(await fundFee.maxNetAssetValuePerShare(), toWad(1001.11));
-
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(2002.23), toWad(2));
-        assert.equal(await fundFee.maxNetAssetValuePerShare(), toWad(1001.115));
     })
 
     it("entrance fee", async () => {
@@ -67,15 +63,19 @@ contract('TestFee', accounts => {
         await fundFee.setPerformanceFeeRate(toWad(0.05));
 
         var totalSupply = toWad(1);
+        await fundFee.mint(user1, toWad(1));
 
         await fundFee.updateMaxNetAssetValuePerShare(0);
-        assert.equal(await fundFee.performanceFee(toWad(1000), totalSupply), toWad(50));
+        assert.equal(await fundFee.performanceFee(toWad(1000)), toWad(50));
 
         await fundFee.updateMaxNetAssetValuePerShare(toWad(1000));
-        assert.equal(await fundFee.performanceFee(toWad(900), totalSupply), toWad(0));
+        console.log(fromWad(await fundFee.maxNetAssetValuePerShare()));
+        console.log(fromWad(await fundFee.totalSupply()));
+
+        assert.equal(await fundFee.performanceFee(toWad(900)), toWad(0));
 
         await fundFee.updateMaxNetAssetValuePerShare(toWad(900));
-        assert.equal(await fundFee.performanceFee(toWad(1100), totalSupply), toWad(5));
+        assert.equal(await fundFee.performanceFee(toWad(1100)), toWad(5));
     })
 
     describe("streaming fee", async () => {

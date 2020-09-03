@@ -7,13 +7,22 @@ contract TestFee is Fee {
 
     uint256 private _useless;
 
+    constructor() public {
+        __ERC20CappedRedeemable_init_unchained(1000e18);
+    }
+
     function foo() external {
         _useless = _useless + 1;
+    }
+
+    function mint(address account, uint256 amount) external {
+        _mint(account, amount);
     }
 
     function maxNetAssetValuePerShare() external view returns (uint256) {
         return _maxNetAssetValuePerShare;
     }
+
     function lastFeeTime() external view returns (uint256) {
         return _lastFeeTime;
     }

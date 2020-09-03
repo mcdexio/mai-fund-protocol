@@ -124,8 +124,9 @@ contract AutoTradingFund is
             _rebalancingSlippage = value.toUint256();
         } else if (key == "rebalancingTolerance") {
             _rebalancingTolerance = value.toUint256();
+        } else {
+            super.setParameter(key, value);
         }
-        super.setParameter(key, value);
     }
 
     /**

@@ -9,7 +9,6 @@ const {
 
 const MockRSITrendingStrategy = artifacts.require('MockRSITrendingStrategy.sol');
 const AutoTradingFund = artifacts.require('TestAutoTradingFund.sol');
-const LibUtil = artifacts.require('LibUtil.sol');
 
 contract('AutoTradingFund', accounts => {
     const FLAT = 0;
@@ -37,9 +36,6 @@ contract('AutoTradingFund', accounts => {
         await deployer.initialize();
         await deployer.setIndex(200);
         await deployer.createPool();
-
-        var libUtil = await LibUtil.new();
-        await SocialTradingFund.link("LibUtil", libUtil.address);
 
         rsistg = await MockRSITrendingStrategy.new();
         fund = await AutoTradingFund.new();

@@ -10,7 +10,6 @@ const {
 } = require("./utils.js");
 
 const TestSettleableFund = artifacts.require('TestSettleableFund.sol');
-const LibUtil = artifacts.require('LibUtil.sol');
 
 contract('Core', accounts => {
 
@@ -42,10 +41,7 @@ contract('Core', accounts => {
         await deployer.setIndex(200);
         await deployer.createPool();
 
-        var libUtil = await LibUtil.new();
-        await TestSettleableFund.link("LibUtil", libUtil.address);
         fund = await TestSettleableFund.new();
-
         await fund.initialize(
             "Fund Share Token",
             "FST",

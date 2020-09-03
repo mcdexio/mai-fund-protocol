@@ -11,7 +11,6 @@ const {
 const TestCollateral = artifacts.require('TestCollateral.sol');
 const ERC20WithoutDecimals = artifacts.require('ERC20WithoutDecimals.sol');
 const ERC20WithDecimals = artifacts.require('ERC20WithDecimals.sol');
-const LibUtil = artifacts.require('LibUtil.sol');
 
 contract('TestCollateral', accounts => {
 
@@ -33,9 +32,6 @@ contract('TestCollateral', accounts => {
         user1 = accounts[1];
         user2 = accounts[2];
         user3 = accounts[3];
-
-        var libUtil = await LibUtil.new();
-        await TestCollateral.link("LibUtil", libUtil.address);
 
         var token = await ERC20WithDecimals.new("Token", "TKN", 18);
         collateral = await TestCollateral.new();

@@ -1,7 +1,8 @@
 const assert = require("assert");
 const { toBytes32, fromBytes32, uintToBytes32, toWad, fromWad, shouldThrows } = require("./utils.js");
 const { PerpetualDeployer } = require("./perpetual.js");
-const TestCore = artifacts.require('TestCore.sol');
+
+const TestSettleableFund = artifacts.require('TestSettleableFund.sol');
 
 contract('TestCoreParameter', accounts => {
     var fund;
@@ -14,7 +15,7 @@ contract('TestCoreParameter', accounts => {
         await deployer.setIndex(200);
         await deployer.createPool();
 
-        fund = await TestCore.new();
+        fund = await TestSettleableFund.new();
         await fund.initialize(
             "Fund Share Token",
             "FST",
@@ -22,6 +23,7 @@ contract('TestCoreParameter', accounts => {
             deployer.perpetual.address,
             toWad(1000),
         )
+        await deployer.globalConfig.addComponent(deployer.perpetual.address, fund.address);
     }
 
     before(deploy);

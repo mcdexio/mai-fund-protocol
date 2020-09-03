@@ -11,7 +11,6 @@ const {
 BigNumber.set({ ROUNDING_MODE: BigNumber.ROUND_DOWN })
 
 const SocialTradingFund = artifacts.require('TestSocialTradingFund.sol');
-const LibUtil = artifacts.require('LibERC20Util.sol');
 
 contract('SocialTradingFund', accounts => {
 
@@ -40,8 +39,6 @@ contract('SocialTradingFund', accounts => {
         await deployer.setIndex(200);
         await deployer.createPool();
 
-        var libUtil = await LibUtil.new();
-        await SocialTradingFund.link("LibUtil", libUtil.address);
         fund = await SocialTradingFund.new();
         await fund.initialize(
             "Fund Share Token",
