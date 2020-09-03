@@ -72,7 +72,6 @@ contract('BaseFund', accounts => {
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fund                          │                 ");
         console.log("  │    Leverage                   │  ", fromWad(await fund.leverage.call()));
-        // console.log("  │    NeedRebalance              │  ", await fund.needRebalancing.call());
         console.log("  │    TotalSupply                │  ", fromWad(await fund.totalSupply()));
         console.log("  │    NetAssetValuePerShare      │ Ξ", fromWad(await fund.netAssetValue.call()));
         console.log("  │    PositionSize               │  ", fromWad(marginAccount.size));
@@ -262,7 +261,7 @@ contract('BaseFund', accounts => {
         await fund.setParameter(toBytes32("redeemingLockPeriod"), 6);
         await shouldThrows(fund.redeem(toWad(1), toWad(0.01)), "cannot redeem now");
 
-        await sleep(6000);
+        await sleep(7000);
 
         await checkEtherBalance(fund.redeem(toWad(0.5), toWad(0.2)), admin, toWad(-100));
         assert.equal(fromWad(await fund.withdrawableCollateral(admin)), 0);

@@ -101,7 +101,7 @@ contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
         netAssetValue = _totalAssetValue().sub(_totalFeeClaimed, "asset exhausted");
         // - avoid duplicated fee updating
         // - once leave normal state, management fee will not increase anymore.
-        if (_lastFeeTime != _now() || _state == FundState.Normal) {
+        if (_lastFeeTime != _now() && _state == FundState.Normal) {
             uint256 newFee = _managementFee(netAssetValue);
             netAssetValue = netAssetValue.sub(newFee);
             _updateFee(newFee);

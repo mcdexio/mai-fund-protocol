@@ -9,6 +9,7 @@ const {
 
 const MockRSITrendingStrategy = artifacts.require('MockRSITrendingStrategy.sol');
 const AutoTradingFund = artifacts.require('TestAutoTradingFund.sol');
+const LibTargetCalculator = artifacts.require('LibTargetCalculator.sol');
 
 contract('AutoTradingFund', accounts => {
     const FLAT = 0;
@@ -36,6 +37,9 @@ contract('AutoTradingFund', accounts => {
         await deployer.initialize();
         await deployer.setIndex(200);
         await deployer.createPool();
+
+        const lib1 = await LibTargetCalculator.new();
+        AutoTradingFund.link("LibTargetCalculator", lib1.address);
 
         rsistg = await MockRSITrendingStrategy.new();
         fund = await AutoTradingFund.new();
@@ -77,6 +81,8 @@ contract('AutoTradingFund', accounts => {
             return;
         }
         const marginAccount = await deployer.perpetual.getMarginAccount(fund.address);
+        const target = await fund.rebalanceTarget.call();
+
         console.log("  ┌───────────────────────────────┬─────────────────");
         console.log("  │ Oracle                        │                 ");
         console.log("  │    Price                      │ $", (await deployer.priceFeeder.latestAnswer()).div(new BN(1e8)).toString());
@@ -84,7 +90,7 @@ contract('AutoTradingFund', accounts => {
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fund                          │                 ");
         console.log("  │    Leverage                   │  ", fromWad(await fund.getCurrentLeverage.call()));
-        console.log("  │    NeedRebalance              │  ", await fund.needRebalancing.call());
+        console.log("  │    NeedRebalance              │  ", target.needRebalance);
         console.log("  │    TotalSupply                │  ", fromWad(await fund.totalSupply()));
         console.log("  │    NetAssetValue              │ Ξ", fromWad(await fund.getNetAssetValue.call()));
         console.log("  │    NetAssetValuePerShare      │ Ξ", fromWad(await fund.getNetAssetValuePerShare.call()));
@@ -134,8 +140,9 @@ contract('AutoTradingFund', accounts => {
         await rsistg.setNextTarget(toWad(1));
         await printFundState(deployer, fund, user1);
         // 100: 0 -> 1
-        var {amount, side} = await fund.calculateRebalancingTarget.call();
+        var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
         printStrategy(amount, side);
+        assert.equal(needRebalance, true);
         assert.equal(fromWad(amount), 200 / 0.005);
         assert.equal(side, SHORT);
 
@@ -144,12 +151,13 @@ contract('AutoTradingFund', accounts => {
 
         // 50: 1 -> 1
         await rsistg.setNextTarget(toWad(1));
-        await shouldThrows(fund.calculateRebalancingTarget.call(), "need no rebalance");
+        await shouldThrows(fund.rebalanceTarget.call(), "need no rebalance");
 
         // 11: 1 -> -1
         await rsistg.setNextTarget(toWad(-1));
-        var {amount, side} = await fund.calculateRebalancingTarget.call();
+        var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
         printStrategy(amount, side);
+        assert.equal(needRebalance, true);
         assert.equal(fromWad(amount), 200 / 0.005 * 2);
         assert.equal(side, LONG);
 
@@ -158,8 +166,9 @@ contract('AutoTradingFund', accounts => {
 
         // -1 => 0
         await rsistg.setNextTarget(toWad(0));
-        var {amount, side} = await fund.calculateRebalancingTarget.call();
+        var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
         printStrategy(amount, side);
+        assert.equal(needRebalance, true);
         assert.equal(fromWad(amount), 40000);
         assert.equal(side, SHORT);
 
@@ -212,7 +221,7 @@ contract('AutoTradingFund', accounts => {
 
         // 200 -- 0.005
         await deployer.setIndex(200);
-        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200), gasLimit: 8000000 });
         await rsistg.setNextTarget(toWad(1));
 
         var user1 = accounts[2];
@@ -220,15 +229,15 @@ contract('AutoTradingFund', accounts => {
         await deployer.perpetual.deposit(toWad(1000), { from: admin, value: toWad(1000) });
         await deployer.perpetual.deposit(toWad(1000), { from: user1, value: toWad(1000) });
 
-        await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user1, value: toWad(400)});
+        await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user1, value: toWad(400), gasLimit: 8000000});
 
         await rsistg.setNextTarget(toWad(0.3));
-        await fund.rebalance(toWad(40000), toWad(0), SHORT);
+
+        await fund.rebalance(toWad(40000), toWad(0), SHORT, { from: admin, gasLimit: 8000000 });
 
         var nav = fromWad(await fund.netAssetValue.call());
         var totalSupply = fromWad(await fund.totalSupply());
         console.log("  => NAV", nav/totalSupply);
-
         await printFundState(deployer, fund, user1);
 
         // 400 -- 0.0025  delta -- 0.0025 * 36000 = 90 (pnl) / 3 = 30
@@ -253,5 +262,6 @@ contract('AutoTradingFund', accounts => {
         assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT, { from: user1, gasLimit: 8000000 });
         assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 230);
+        return;
     });
 });

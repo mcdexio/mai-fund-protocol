@@ -75,7 +75,6 @@ contract('Core', accounts => {
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fund                          │                 ");
         console.log("  │    Leverage                   │  ", fromWad(await fund.leverage.call()));
-        // console.log("  │    NeedRebalance              │  ", await fund.needRebalancing.call());
         console.log("  │    TotalSupply                │  ", fromWad(await fund.totalSupply()));
         console.log("  │    NetAssetValuePerShare      │ Ξ", fromWad(await fund.netAssetValue.call()));
         console.log("  │    PositionSize               │  ", fromWad(marginAccount.size));
