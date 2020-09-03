@@ -85,7 +85,7 @@ contract MarginAccount is Initializable, Context {
     /**
      * @dev True If perpetual in emergency mode.
      */
-    function _emergency()
+    function _perpetualEmergency()
         internal
         view
         virtual
@@ -161,7 +161,7 @@ contract MarginAccount is Initializable, Context {
     )
         internal
     {
-        require(!_emergency(), "perpetual emergency");
+        require(!_perpetualEmergency(), "perpetual emergency");
         // align to lotsize
         uint256 lotSize = _perpetual.getGovernance().lotSize;
         uint256 alignedAmount = positionAmount.sub(positionAmount.mod(lotSize));

@@ -7,9 +7,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../lib/LibConstant.sol";
 
-interface ITokenWithDecimals {
-    function decimals() external view returns (uint8);
-}
 
 /**
  * @title   Collateral Module
@@ -28,36 +25,36 @@ contract Collateral is Initializable {
 
     /**
      * @dev     Initialize collateral and decimals.
-     * @param   decimals    Decimals of collateral token, will be verified with a staticcall.
+     * @param   collateralAddress   Address of collateral, 0x0 if using ether.
+     * @param   decimals            Decimals of collateral token, will be verified with a staticcall.
      */
-    function __Collateral_init_unchained(address collateral, uint8 decimals)
+    function __Collateral_init_unchained(address collateralAddress, uint8 decimals)
         internal
         initializer
     {
         require(decimals <= LibConstant.MAX_COLLATERAL_DECIMALS, "bad decimals");
-        if (collateral == address(0)) {
+        if (collateralAddress == address(0)) {
             // ether
             require(decimals == 18, "decimals is not 18");
         } else {
             // erc20 token
-            (uint8 retrievedDecimals, bool ok) = _retrieveDecimals(collateral);
+            (uint8 retrievedDecimals, bool ok) = _retrieveDecimals(collateralAddress);
             require(!ok || (ok && retrievedDecimals == decimals), "bad decimals");
         }
-        _collateralToken = IERC20(collateral);
+        _collateralToken = IERC20(collateralAddress);
         _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
     }
 
     /**
-     * @dev     Read decimal from erc20 contract.
-     * @param   token Address of erc20 token to read from.
-     * @return  Decimals of token and if the erc20 contract supports decimals() interface.
+     * @notice  Try to retreive decimals from an erc20 contract.
+     * @return  Decimals and true if success or 0 and false.
      */
-    function _retrieveDecimals(address token)
+    function _retrieveDecimals(address tokenAddress)
         internal
         view
         returns (uint8, bool)
     {
-        (bool success, bytes memory result) = token.staticcall(abi.encodeWithSignature("decimals()"));
+        (bool success, bytes memory result) = tokenAddress.staticcall(abi.encodeWithSignature("decimals()"));
         if (success && result.length >= 32) {
             return (abi.decode(result, (uint8)), success);
         }
@@ -90,19 +87,31 @@ contract Collateral is Initializable {
     }
 
     /**
+     * @dev     Get collateral balance in account.
+     * @param   account     Address of account.
+     * @return  Raw repesentation of collateral balance.
+     */
+    function _rawBalanceOf(address account)
+        internal
+        view
+        returns (uint256)
+    {
+        return _toRawAmount(_isCollateralERC20()? _collateralToken.balanceOf(account): account.balance);
+    }
+
+    /**
      * @dev     Transfer token from user if token is erc20 token.
-     * @param   trader  Address of account owner.
-     * @param   amount  Amount of token to be transferred into contract.
+     * @param   account     Address of account owner.
+     * @param   rawAmount   Amount of token to be transferred into contract.
      * @return Internal representation of the raw amount.
      */
-    function _pullFromUser(address trader, uint256 amount)
+    function _pullFromUser(address account, uint256 rawAmount)
         internal
         returns (uint256)
     {
-        require(amount > 0, "amount is 0");
-        uint256 rawAmount = _toRawAmount(amount);
+        require(rawAmount > 0, "amount is 0");
         if (_isCollateralERC20()) {
-            _collateralToken.safeTransferFrom(trader, address(this), rawAmount);
+            _collateralToken.safeTransferFrom(account, address(this), rawAmount);
         } else {
             require(msg.value == rawAmount, "bad sent value");
         }
@@ -110,38 +119,37 @@ contract Collateral is Initializable {
     }
 
     /**
-     * @dev Transfer token to user no matter erc20 token or ether.
-     * @param trader    Address of account owner.
-     * @param amount    Amount of token to be transferred to user.
-     * @return Internal representation of the raw amount.
+     * @dev     Transfer token to user no matter erc20 token or ether.
+     * @param   account     Address of account owner.
+     * @param   rawAmount   Amount of token to be transferred to user.
+     * @return  Internal representation of the raw amount.
      */
-    function _pushToUser(address payable trader, uint256 amount)
+    function _pushToUser(address payable account, uint256 rawAmount)
         internal
         returns (uint256)
     {
-        require(amount > 0, "amount is 0");
-        uint256 rawAmount = _toRawAmount(amount);
+        require(rawAmount > 0, "amount is 0");
         if (_isCollateralERC20()) {
-            _collateralToken.safeTransfer(trader, rawAmount);
+            _collateralToken.safeTransfer(account, rawAmount);
         } else {
-            Address.sendValue(trader, rawAmount);
+            Address.sendValue(account, rawAmount);
         }
         return rawAmount;
     }
 
     /**
-     * @dev Convert the represention of amount from raw to internal.
-     * @param rawAmount Amount with decimals of token.
-     * @return Amount with internal decimals.
+     * @dev     Convert the represention of amount from raw to internal.
+     * @param   rawAmount     Amount with decimals of token.
+     * @return  Amount with internal decimals.
      */
     function _toInternalAmount(uint256 rawAmount) internal view returns (uint256) {
         return rawAmount.mul(_scaler);
     }
 
     /**
-     * @dev Convert the represention of amount from internal to raw.
-     * @param amount Amount with internal decimals.
-     * @return Amount with decimals of token.
+     * @dev     Convert the represention of amount from internal to raw.
+     * @param   amount  Amount with internal decimals.
+     * @return  Amount  with decimals of token.
      */
     function _toRawAmount(uint256 amount) internal view returns (uint256) {
         return amount.div(_scaler);

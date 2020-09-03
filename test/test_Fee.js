@@ -68,13 +68,13 @@ contract('TestFee', accounts => {
 
         var totalSupply = toWad(1);
 
-        await fundFee.updateMaxNetAssetValuePerShare(0, totalSupply);
+        await fundFee.updateMaxNetAssetValuePerShare(0);
         assert.equal(await fundFee.performanceFee(toWad(1000), totalSupply), toWad(50));
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1000), toWad(1));
+        await fundFee.updateMaxNetAssetValuePerShare(toWad(1000));
         assert.equal(await fundFee.performanceFee(toWad(900), totalSupply), toWad(0));
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(900), toWad(1));
+        await fundFee.updateMaxNetAssetValuePerShare(toWad(900));
         assert.equal(await fundFee.performanceFee(toWad(1100), totalSupply), toWad(5));
     })
 

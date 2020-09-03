@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "./Status.sol";
+import "./Core.sol";
 
 /**
  * @title   An auction module for selling shares.
  * @dev     Handles share auctions in redeeming / settling.
  */
-contract Auction is Status {
+contract Auction is Core {
     /**
      * @dev     Get bidding price according to current markprice and slippage.
      * @param   side        Side of position.

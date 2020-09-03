@@ -11,6 +11,7 @@ const {
 BigNumber.set({ ROUNDING_MODE: BigNumber.ROUND_DOWN })
 
 const SocialTradingFund = artifacts.require('TestSocialTradingFund.sol');
+const LibUtil = artifacts.require('LibERC20Util.sol');
 
 contract('SocialTradingFund', accounts => {
 
@@ -39,6 +40,8 @@ contract('SocialTradingFund', accounts => {
         await deployer.setIndex(200);
         await deployer.createPool();
 
+        var libUtil = await LibUtil.new();
+        await SocialTradingFund.link("LibUtil", libUtil.address);
         fund = await SocialTradingFund.new();
         await fund.initialize(
             "Fund Share Token",
@@ -96,17 +99,6 @@ contract('SocialTradingFund', accounts => {
         console.log("");
     };
 
-    const printStrategy = (amount, side) => {
-        const toSide = (side) => {
-            switch (side.toString()) {
-                case "0": return "stay";
-                case "1": return "short";
-                case "2": return "long";
-            }
-        }
-        console.log("next, we should", toSide(side), "for", fromWad(amount));
-    }
-
     it("normal case - user", async () => {
         await fund.setManager(user1, deployer.exchange.address);
 
@@ -161,9 +153,9 @@ contract('SocialTradingFund', accounts => {
         await printFundState(deployer, fund, user2);
         assert.equal(fromWad(await fund.leverage.call()), -0.13953488372093023255813953488372);
 
-        await fund.claimManagementFee();
+        await fund.withdrawManagementFee(toWad(0)); // update
         await printFundState(deployer, fund, user2);
-        console.log(fromWad(await fund.totalFeeClaimed()));
+        // console.log(fromWad(await fund.totalFeeClaimed()));
 
         await fund.withdrawManagementFee(await fund.totalFeeClaimed());
         assert.equal(fromWad(await fund.totalFeeClaimed()), 0);
@@ -257,7 +249,7 @@ contract('SocialTradingFund', accounts => {
         await fund.redeem(await fund.balanceOf(user1), toWad(0), { from: user1 });
 
         var fee = fromWad(await fund.managementFee.call());
-        await fund.claimManagementFee();
+        await fund.withdrawManagementFee(toWad(0)); // update
         assert.equal(fromWad(await fund.managementFee.call()), fee);
 
         await fund.withdrawManagementFee(await fund.managementFee.call());
@@ -284,7 +276,7 @@ contract('SocialTradingFund', accounts => {
         await deployer.setIndex(400);
         await testPurchaseAmount(calr, 10, 1000, user2);
 
-        await fund.claimManagementFee();
+        await fund.withdrawManagementFee(toWad(0)); // update
         // console.log(await deployer.perpetual.getMarginAccount(fund.address));
         // console.log(fromWad(await fund.managementFee.call()));
 
@@ -323,7 +315,7 @@ contract('SocialTradingFund', accounts => {
         // ---------------- 5 ---------------------
         await fund.setTimestamp(5);
 
-        await fund.claimManagementFee();
+        await fund.withdrawManagementFee(toWad(0)); // update
         var marginBalance = new BigNumber(await deployer.perpetual.marginBalance.call(fund.address));
         assert.equal((await fund.managementFee.call()).toString(), marginBalance.times(new BigNumber(0.00000004)).toFixed());
 
@@ -360,10 +352,12 @@ contract('SocialTradingFund', accounts => {
         // ---------------- 5 ---------------------
         await fund.setTimestamp(5);
 
-        await fund.shutdown();
-        assert.ok(await fund.stopped());
+        await fund.setEmergency();
+        await shouldThrows(fund.withdrawManagementFee(toWad(0)), "bad state"); // update
 
-        await fund.claimManagementFee();
+        await fund.setShutdown();
+
+        await fund.withdrawManagementFee(toWad(0)); // update
         var marginBalance = new BigNumber(await deployer.perpetual.marginBalance.call(fund.address));
         assert.equal((await fund.managementFee.call()).toString(), marginBalance.times(new BigNumber(0.00000004)).toFixed());
 

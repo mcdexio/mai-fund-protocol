@@ -56,15 +56,15 @@ contract TestFee is Fee {
         return (_streamingFee(netAssetValue), now);
     }
 
-    function performanceFee(uint256 netAssetValue, uint256 totalSupply) external view returns (uint256) {
-        return _performanceFee(netAssetValue, totalSupply);
+    function performanceFee(uint256 netAssetValue) external view returns (uint256) {
+        return _performanceFee(netAssetValue);
     }
 
     function updateFee(uint256 fee) external returns (uint256) {
         return _updateFee(fee);
     }
 
-    function updateMaxNetAssetValuePerShare(uint256 netAssetValuePerShare, uint256 totalSupply) external {
-        _updateMaxNetAssetValuePerShare(netAssetValuePerShare, totalSupply);
+    function updateMaxNetAssetValuePerShare(uint256 netAssetValuePerShare) external {
+        _updateMaxNetAssetValuePerShare(netAssetValuePerShare);
     }
 }

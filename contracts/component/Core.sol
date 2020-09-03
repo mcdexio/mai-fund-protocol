@@ -11,28 +11,15 @@ import "../lib/LibMathEx.sol";
 import "./ERC20CappedRedeemable.sol";
 import "./Fee.sol";
 import "./MarginAccount.sol";
+import "./State.sol";
 
-contract Status is ERC20CappedRedeemable, Fee, MarginAccount {
+contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
 
     using Math for uint256;
     using SafeMath for uint256;
     using SafeCast for int256;
     using SafeCast for uint256;
     using LibMathEx for int256;
-    using LibMathEx for uint256;
-
-    /**
-     * @dev     Get net asset value.
-     * @return  Net asset value.
-     */
-    function _netAssetValue()
-        internal
-        virtual
-        returns (uint256)
-    {
-        // claimed fee excluded
-        return _totalAssetValue().sub(_totalFeeClaimed, "total asset value less than fee");
-    }
 
     /**
      * @dev     Get net asset value per share.
@@ -61,7 +48,7 @@ contract Status is ERC20CappedRedeemable, Fee, MarginAccount {
     {
         uint256 streamingFee = _streamingFee(assetValue);
         assetValue = assetValue.sub(streamingFee);
-        uint256 performanceFee = _performanceFee(assetValue, totalSupply());
+        uint256 performanceFee = _performanceFee(assetValue);
         assetValue = assetValue.sub(performanceFee);
         return streamingFee.add(performanceFee);
     }
@@ -103,22 +90,23 @@ contract Status is ERC20CappedRedeemable, Fee, MarginAccount {
     }
 
     /**
-     * @dev Update fee and max nav per share.
-     * @param   netAssetValueBeforeUpdating Net asset value before claiming fee
-     * @return  netAssetValue               Net asset value, fee excluded
+     * @dev     Get net asset value.
+     * @return  netAssetValue   Net asset value.
      */
-    function _updateFeeState(uint256 netAssetValueBeforeUpdating)
+    function _updateNetAssetValue()
         internal
         virtual
         returns (uint256 netAssetValue)
     {
-        if (_lastFeeTime == _now()) {
-            return netAssetValueBeforeUpdating;
+        netAssetValue = _totalAssetValue().sub(_totalFeeClaimed, "asset exhausted");
+        // - avoid duplicated fee updating
+        // - once leave normal state, management fee will not increase anymore.
+        if (_lastFeeTime != _now() || _state == FundState.Normal) {
+            uint256 newFee = _managementFee(netAssetValue);
+            netAssetValue = netAssetValue.sub(newFee);
+            _updateFee(newFee);
+            _updateMaxNetAssetValuePerShare(_netAssetValuePerShare(netAssetValue));
         }
-        uint256 newFee = _managementFee(netAssetValueBeforeUpdating);
-        netAssetValue = netAssetValueBeforeUpdating.sub(newFee);
-        _updateFee(newFee);
-        _updateMaxNetAssetValuePerShare(netAssetValue, totalSupply());
     }
 
     uint256[20] private __gap;

@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 
-import "../Core.sol";
+import "../SettleableFund.sol";
 import "../Getter.sol";
 
 interface IDelegatable {
@@ -18,7 +18,7 @@ interface IDelegatable {
  */
 contract SocialTradingFund is
     Initializable,
-    Core,
+    SettleableFund,
     Getter
 {
     using SafeMath for uint256;
@@ -29,16 +29,16 @@ contract SocialTradingFund is
     event WithdrawManagementFee(address indexed maintainer, uint256 totalFee);
 
     function initialize(
-        string calldata name,
-        string calldata symbol,
+        string calldata tokenName,
+        string calldata tokenSymbol,
         uint8 collateralDecimals,
-        address perpetual,
-        uint256 cap
+        address perpetualAddress,
+        uint256 tokenCap
     )
         external
         initializer
     {
-        __Core_init(name, symbol, collateralDecimals, perpetual, cap);
+        __SettleableFund_init(tokenName, tokenSymbol, collateralDecimals, perpetualAddress, tokenCap);
         __SocialTradingFund_init_unchained();
     }
 
@@ -65,9 +65,9 @@ contract SocialTradingFund is
      */
     function managementFee()
         public
-        returns (uint256 totalFee)
+        returns (uint256)
     {
-        claimManagementFee();
+        _updateNetAssetValue();
         return _totalFeeClaimed;
     }
 
@@ -82,9 +82,7 @@ contract SocialTradingFund is
         nonReentrant
     {
         if (_manager != newManager) {
-            if (_manager != address(0)) {
-                _withdrawManagementFee(managementFee());
-            }
+            _withdrawManagementFee(managementFee());
             emit SetManager(_manager, newManager);
             _manager = newManager;
         }
@@ -102,8 +100,23 @@ contract SocialTradingFund is
         public
         nonReentrant
         whenNotPaused
+        whenNotInState(FundState.Emergency)
     {
         _withdrawManagementFee(collateralAmount);
+    }
+
+    /**
+     * @notice  Usually manager needn't manually call update interface, except willing to claim
+     *          performance fee based on current nav per share.
+     *          But the side effect is that next performance fee claiming will become harder --
+     *          the maxNetValueAssetPerShare is increased.
+     */
+    function updateManagementFee()
+        public
+        whenNotPaused
+        whenInState(FundState.Normal)
+    {
+        _updateNetAssetValue();
     }
 
     /**
@@ -113,24 +126,17 @@ contract SocialTradingFund is
     function _withdrawManagementFee(uint256 collateralAmount)
         internal
     {
-        claimManagementFee();
-        if (_totalFeeClaimed == 0) {
+        _updateNetAssetValue();
+        if (_totalFeeClaimed == 0 || collateralAmount == 0 || _manager == address(0)) {
             return;
         }
         _totalFeeClaimed = _totalFeeClaimed.sub(collateralAmount, "insufficient fee");
-        _withdraw(collateralAmount);
-        _pushToUser(payable(_manager), collateralAmount);
+        uint256 rawCollateralAmount = _toRawAmount(collateralAmount);
+        if (_state == FundState.Normal) {
+            _withdraw(rawCollateralAmount);
+        }
+        _pushToUser(payable(_manager), rawCollateralAmount);
         emit WithdrawManagementFee(_manager, collateralAmount);
-    }
-
-    /**
-     * @dev Claim incentive fee (streaming fee + performance fee).
-     */
-    function claimManagementFee()
-        public
-        whenNotPaused
-    {
-        _netAssetValue();
     }
 
     uint256[19] private __gap;

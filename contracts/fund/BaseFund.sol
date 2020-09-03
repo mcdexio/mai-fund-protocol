@@ -14,17 +14,14 @@ import "../lib/LibMathEx.sol";
 import "../component/Auction.sol";
 import "../component/Collateral.sol";
 import "../component/Context.sol";
-import "../component/Settlement.sol";
-import "../component/Stoppable.sol";
+import "../component/Core.sol";
 
-
-contract Core is
+contract BaseFund is
     Initializable,
     Context,
-    Status,
+    Core,
     Auction,
     Collateral,
-    Settlement,
     PausableUpgradeSafe,
     ReentrancyGuardUpgradeSafe
 {
@@ -32,8 +29,6 @@ contract Core is
     using LibMathEx for uint256;
     using SafeCast for int256;
 
-    bool internal _isMarginSettled;
-    uint256 internal _settledNetAssetValue;
     mapping(address => uint256) internal _withdrawableCollaterals;
 
     event Received(address indexed sender, uint256 amount);
@@ -54,9 +49,9 @@ contract Core is
         emit Received(_msgSender(), msg.value);
     }
 
-    function __Core_init(
-        string calldata name,
-        string calldata symbol,
+    function __BaseFund_init(
+        string calldata tokenName,
+        string calldata tokenSymbol,
         uint8 collateralDecimals,
         address perpetual,
         uint256 cap
@@ -65,25 +60,23 @@ contract Core is
         initializer
     {
         __Context_init_unchained();
-        __ERC20_init_unchained(name, symbol);
+        __ERC20_init_unchained(tokenName, tokenSymbol);
         __ERC20CappedRedeemable_init_unchained(cap);
+        __State_init_unchained();
         __MarginAccount_init_unchained(perpetual);
         __Collateral_init_unchained(_collateral(), collateralDecimals);
         __Pausable_init_unchained();
         __ReentrancyGuard_init_unchained();
-        __Stoppable_init_unchained();
-        __Core_init_unchained();
+        __BaseFund_init_unchained();
     }
 
-    function __Core_init_unchained()
+    function __BaseFund_init_unchained()
         internal
         initializer
     {
-
     }
 
     // =================================== Admin Methods ===================================
-    // from 14404
     modifier onlyOwner() {
         require(_msgSender() == _owner(), "caller must be owner");
         _;
@@ -101,10 +94,6 @@ contract Core is
     {
         if (key == "redeemingLockPeriod") {
             _setRedeemingLockPeriod(value.toUint256());
-        } else if (key == "drawdownHighWaterMark") {
-            _setDrawdownHighWaterMark(value.toUint256());
-        } else if (key == "leverageHighWaterMark") {
-            _setLeverageHighWaterMark(value.toUint256());
         } else if (key == "entranceFeeRate") {
             _setEntranceFeeRate(value.toUint256());
         } else if (key == "streamingFeeRate") {
@@ -120,29 +109,6 @@ contract Core is
         }
         emit SetParameter(key, value);
     }
-    // 15735 (+1331)
-
-    /**
-     * @notice  Call by admin, or by anyone when shutdown conditions are met.
-     * @dev     No way back.
-     */
-    function shutdown()
-        external
-        whenNotStopped
-    {
-        require(_msgSender() == _owner() || _canShutdown(), "caller must be owner or cannot shutdown");
-        // claim fee until shutting down
-        uint256 netAssetValue = _netAssetValue();
-        if (_marginAccount().size > 0) {
-            _redeemingBalances[_self()] = totalSupply();
-        } else {
-            _settledNetAssetValue = netAssetValue;
-        }
-        // enter shutting down mode.
-        _stop();
-        emit Shutdown();
-    }
-    // 16749    (+1014)
 
     /**
      * @notice  Approve perpetual as spender of collateral.
@@ -174,7 +140,6 @@ contract Core is
     {
         _unpause();
     }
-    // 17553    (+804)
 
     // =================================== User Methods ===================================
     /**
@@ -182,34 +147,38 @@ contract Core is
      *          Since the transfer mechanism of ether and erc20 is totally different,
      *          the received amount wiil not be deterministic but only a mininal amount promised.
      * @param   collateralAmount    Amount of collateral paid to purchase.
-     * @param   minimalShareAmount  At least amount of shares token received by user.
+     * @param   shareAmountLimit    At least amount of shares token received by user.
      * @param   pricePerShareLimit  NAV price limit to protect trader's dealing price.
      */
-    function purchase(uint256 collateralAmount, uint256 minimalShareAmount, uint256 pricePerShareLimit)
+    function purchase(uint256 collateralAmount, uint256 shareAmountLimit, uint256 pricePerShareLimit)
         external
         payable
+        whenInState(FundState.Normal)
         whenNotPaused
-        whenNotStopped
         nonReentrant
     {
-        require(minimalShareAmount > 0, "amount is 0");
+        require(collateralAmount > 0, "collateral is 0");
+        require(pricePerShareLimit > 0, "price is 0");
         uint256 netAssetValuePerShare;
         if (totalSupply() == 0) {
+            // when total supply is 0, nav per share cannot be determined by calculation.
             require(pricePerShareLimit >= _maxNetAssetValuePerShare, "nav too low");
             netAssetValuePerShare = pricePerShareLimit;
             _maxNetAssetValuePerShare = pricePerShareLimit;
         } else {
-            uint256 netAssetValue = _netAssetValue();
+            // normal case
+            uint256 netAssetValue = _updateNetAssetValue();
             require(netAssetValue > 0, "nav is 0");
             netAssetValuePerShare = _netAssetValuePerShare(netAssetValue);
-            require(netAssetValuePerShare <= pricePerShareLimit, "nav exceeded");
+            require(netAssetValuePerShare <= pricePerShareLimit, "price not met");
         }
         uint256 entranceFee = _entranceFee(collateralAmount);
         uint256 shareAmount = collateralAmount.sub(entranceFee).wdiv(netAssetValuePerShare);
-        require(shareAmount >= minimalShareAmount, "min share not met");
+        require(shareAmount >= shareAmountLimit, "share amount not met");
         // pay collateral + fee, collateral -> perpetual, fee -> fund
-        _pullFromUser(_msgSender(), collateralAmount);
-        _deposit(_toRawAmount(collateralAmount));
+        uint256 rawcollateralAmount = _toRawAmount(collateralAmount);
+        _pullFromUser(_msgSender(), rawcollateralAmount);
+        _deposit(_toRawAmount(rawcollateralAmount));
         _mint(_msgSender(), shareAmount);
         // - update manager status
         _updateFee(entranceFee);
@@ -218,15 +187,18 @@ contract Core is
     }
 
     /**
-     * @notice  Request to redeem share for collateral with a slippage.
-     *          An off-chain keeper will bid the underlaying position then push collateral back to redeeming trader.
+     * @notice  Request to redeem share for collateral with a loss up to a slippage.
+     *          An off-chain keeper will bid the underlaying position then push collateral to fund, then caller will be
+     *          able to withdraw through `withdrawCollateral` method.
+     *          Note that the slippage given will override existed value of the same account.
+     *          This is to say, the slippage is by account, not by per redeem call.
      * @param   shareAmount At least amount of shares token received by user.
      * @param   slippage    NAV price limit to protect trader's dealing price.
      */
     function redeem(uint256 shareAmount, uint256 slippage)
         external
         whenNotPaused
-        whenNotStopped
+        whenInState(FundState.Normal)
         nonReentrant
     {
         address account = _msgSender();
@@ -236,31 +208,21 @@ contract Core is
         require(shareAmount > 0, "amount is 0");
         require(shareAmount <= balanceOf(account), "amount excceeded");
         require(_canRedeem(account), "cannot redeem now");
-        _setRedeemingSlippage(account, slippage);
+
+        _setRedeemingSlippage(_msgSender(), slippage);
         if (_marginAccount().size > 0) {
+            // have to wait for keeper to take redeemed shares (positions).
             _increaseRedeemingShareBalance(account, shareAmount);
         } else {
-            uint256 collateralToReturn = _netAssetValue().wfrac(shareAmount, totalSupply());
+            // direct withdraw, no waiting, no slippage.
+            uint256 collateralToReturn = _updateNetAssetValue().wfrac(shareAmount, totalSupply());
+            uint256 rawCollateralAmount = _toRawAmount(collateralToReturn);
             _burn(account, shareAmount);
-            _withdraw(_toRawAmount(collateralToReturn));
-            _pushToUser(payable(account), collateralToReturn);
+            _withdraw(rawCollateralAmount);
+            _pushToUser(payable(account), rawCollateralAmount);
         }
-        emit Redeem(account, shareAmount, slippage);
-    }
 
-    /**
-     * @notice  Withdraw collateral from fund.
-     * @param   collateralAmount    Amount of collateral to withdraw.
-     */
-    function withdrawCollateral(uint256 collateralAmount)
-        external
-        whenNotPaused
-        nonReentrant
-    {
-        _withdrawableCollaterals[_msgSender()] = _withdrawableCollaterals[_msgSender()]
-            .sub(collateralAmount, "amount exceeded");
-        _pushToUser(payable(_msgSender()), collateralAmount);
-        emit Withdraw(_msgSender(), collateralAmount);
+        emit Redeem(account, shareAmount, slippage);
     }
 
     /**
@@ -270,7 +232,7 @@ contract Core is
     function cancelRedeem(uint256 shareAmount)
         external
         whenNotPaused
-        whenNotStopped
+        whenInState(FundState.Normal)
     {
         require(shareAmount > 0, "amount is 0");
         _decreaseRedeemingShareBalance(_msgSender(), shareAmount);
@@ -294,16 +256,14 @@ contract Core is
     )
         external
         whenNotPaused
-        whenNotStopped
+        whenInState(FundState.Normal)
         nonReentrant
     {
         require(shareAmount > 0, "amount is 0");
         require(shareAmount <= _redeemingBalances[trader], "amount excceeded");
-        uint256 netAssetValue = _netAssetValue();
-        // bid shares
+        uint256 netAssetValue = _updateNetAssetValue();
         uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[trader]);
         _decreaseRedeemingShareBalance(trader, shareAmount);
-        // this is the finally collateral returned to user.
         uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply())
             .sub(slippageLoss, "slippage too high");
         _burn(trader, shareAmount);
@@ -313,106 +273,19 @@ contract Core is
     }
 
     /**
-     * @notice  Almost be the same with bidRedeemingShare but only works when stopped.
-     * @param   shareAmount Amount of share balance to bid.
-     * @param   priceLimit  Price limit of dealing price. Calculated differently for long and short.
-     * @param   side        Side of underlaying position held by fund margin account.
+     * @notice  Withdraw collateral from fund.
+     * @param   collateralAmount    Amount of collateral to withdraw.
      */
-    function bidSettledShare(
-        uint256 shareAmount,
-        uint256 priceLimit,
-        LibTypes.Side side
-    )
+    function withdrawCollateral(uint256 collateralAmount)
         external
         whenNotPaused
-        whenStopped
         nonReentrant
     {
-        address account = _self();
-        require(_redeemingBalances[account] > 0, "no share");
-        require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= _redeemingBalances[account], "amount excceeded");
-        uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[account]);
-        _decreaseRedeemingShareBalance(account, shareAmount);
-        if (_redeemingBalances[account] == 0) {
-            _settledNetAssetValue = _netAssetValue();
-        }
-        emit BidShare(_msgSender(), account, shareAmount, slippageLoss);
+        _withdrawableCollaterals[_msgSender()] = _withdrawableCollaterals[_msgSender()]
+            .sub(collateralAmount, "amount exceeded");
+        _pushToUser(payable(_msgSender()), _toRawAmount(collateralAmount));
+        emit Withdraw(_msgSender(), collateralAmount);
     }
 
-    /**
-     * @notice Settle margin account of fund.
-     */
-    function settleMarginAccount()
-        external
-        whenNotPaused
-        whenStopped
-        nonReentrant
-    {
-        // clean all positions and withdraw
-        require(_isMarginSettled == false, "already settled");
-        _redeemingBalances[_self()] = 0;
-        _settledNetAssetValue = _netAssetValue();
-        _isMarginSettled = true;
-        _settle();
-    }
-
-    /**
-     * @notice  Like 'redeem' method but only available on stopped status.
-     * @param   shareAmount At least amount of shares token received by user.
-     */
-    function settle(uint256 shareAmount)
-        external
-        whenNotPaused
-        whenStopped
-        nonReentrant
-    {
-        require(_redeemingBalances[_self()] == 0, "cannot redeem now");
-        address account = _msgSender();
-        require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= balanceOf(account), "amount excceeded");
-        uint256 collateralToReturn = _settledNetAssetValue.wfrac(shareAmount, totalSupply());
-        _settledNetAssetValue = _settledNetAssetValue.sub(collateralToReturn);
-        _burn(account, shareAmount);
-        if (!_isMarginSettled) {
-            _withdraw(_toRawAmount(collateralToReturn));
-        }
-        _pushToUser(payable(account), collateralToReturn);
-        emit Settle(account, shareAmount);
-    }
-
-    /**
-     * @dev Code shared by bidRedeemingShare and bidSettledShare.
-     */
-    function _bidRedeemingShare(
-        address trader,
-        uint256 shareAmount,
-        uint256 priceLimit,
-        LibTypes.Side side
-    )
-        internal
-        returns (uint256 slippageLoss)
-    {
-        slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[trader]);
-        _decreaseRedeemingShareBalance(trader, shareAmount);
-        emit BidShare(_msgSender(), trader, shareAmount, slippageLoss);
-    }
-
-    /**
-     * @notice  Override net asset value, update fee.
-     */
-    function _netAssetValue()
-        internal
-        virtual
-        override
-        returns (uint256)
-    {
-        uint256 netAssetValue = super._netAssetValue();
-        if (!stopped()) {
-            netAssetValue = _updateFeeState(netAssetValue);
-        }
-        return netAssetValue;
-    }
-
-    uint256[18] private __gap;
+    uint256[19] private __gap;
 }

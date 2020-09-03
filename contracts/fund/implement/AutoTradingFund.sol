@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.s
 
 import "../../lib/LibTypes.sol";
 import "../../lib/LibMathEx.sol";
-import "../Core.sol";
+import "../SettleableFund.sol";
 import "../Getter.sol";
 
 interface ITradingStrategy {
@@ -19,7 +19,7 @@ interface ITradingStrategy {
 
 contract AutoTradingFund is
     Initializable,
-    Core,
+    SettleableFund,
     Getter
 {
     using Math for uint256;
@@ -39,30 +39,30 @@ contract AutoTradingFund is
     event Rebalance(LibTypes.Side side, uint256 price, uint256 amount);
 
     function initialize(
-        string calldata name,
-        string calldata symbol,
+        string calldata tokenName,
+        string calldata tokenSymbol,
         uint8 collateralDecimals,
-        address perpetual,
-        uint256 cap,
-        address strategy,
-        bool inversed
+        address perpetualAddress,
+        uint256 tokenCap,
+        address strategyAddress,
+        bool inversedContract
     )
         external
         initializer
     {
-        __Core_init(name, symbol, collateralDecimals, perpetual, cap);
-        __AutoTradingFund_init_unchained(strategy, inversed);
+        __SettleableFund_init(tokenName, tokenSymbol, collateralDecimals, perpetualAddress, tokenCap);
+        __AutoTradingFund_init_unchained(strategyAddress, inversedContract);
     }
 
     function __AutoTradingFund_init_unchained(
-        address strategy,
-        bool inversed
+        address strategyAddress,
+        bool inversedContract
     )
         internal
         initializer
     {
-        _strategy = ITradingStrategy(strategy);
-        _inversed = inversed;
+        _strategy = ITradingStrategy(strategyAddress);
+        _inversed = inversedContract;
     }
 
     /**
@@ -146,7 +146,7 @@ contract AutoTradingFund is
     function rebalance(uint256 maxPositionAmount, uint256 priceLimit, LibTypes.Side side)
         external
         whenNotPaused
-        whenNotStopped
+        whenInState(FundState.Normal)
     {
         require(maxPositionAmount > 0, "amount is 0");
         require(needRebalancing(), "need no rebalance");
@@ -189,7 +189,7 @@ contract AutoTradingFund is
         int256 signedSize = _signedSize();    // -40000
         int256 nextTarget = _nextTarget();    // -40000 - 40000
 
-        int256 expectedMarginBalance = _netAssetValue().toInt256().wmul(nextTarget);
+        int256 expectedMarginBalance = _updateNetAssetValue().toInt256().wmul(nextTarget);
         int256 expectedSize = expectedMarginBalance.wdiv(markPrice.toInt256());
         int256 target = expectedSize.sub(signedSize);
         amount = target.abs().toUint256();

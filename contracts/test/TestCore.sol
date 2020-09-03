@@ -2,37 +2,130 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "../interface/IPerpetual.sol";
+import "../lib/LibTypes.sol";
+import "../component/Core.sol";
 
-import "../fund/Core.sol";
-import "../fund/Getter.sol";
+contract TestCore is Core {
+    address private _mockSelf;
+    uint256 private _mockStreamingFee;
+    uint256 private _mockPerformanceFee;
 
-interface IDelegatable {
-    function setDelegator(address perpetual, address newDelegator) external;
-    function isDelegator(address trader, address perpetual, address target) external view returns (bool);
-}
-
-contract TestCore is
-    Initializable,
-    Core,
-    Getter
-{
-    function initialize(
-        string calldata name,
-        string calldata symbol,
-        uint8 collateralDecimals,
-        address perpetual,
-        uint256 cap
-    )
-        external
-        initializer
-    {
-        __Core_init(name, symbol, collateralDecimals, perpetual, cap);
+    constructor(string memory name, string memory symbol, uint256 cap, address perpetualAddress) public {
+        __ERC20_init_unchained(name, symbol);
+        __ERC20CappedRedeemable_init_unchained(cap);
+        __MarginAccount_init_unchained(perpetualAddress);
     }
 
-    function setDelegator(address exchangeAddress, address delegator)
+    function totalFeeClaimed() external view returns (uint256) {
+        return _totalFeeClaimed;
+    }
+
+    function setTotalFeeClaimed(uint256 __totalFeeClaimed)
         external
     {
-        IDelegatable(exchangeAddress).setDelegator(address(_perpetual), delegator);
+        _totalFeeClaimed = __totalFeeClaimed;
+    }
+
+    function mint(address trader, uint256 shareAmount)
+        external
+    {
+        _mint(trader, shareAmount);
+    }
+
+    function setSelf(address mockSelf)
+        external
+    {
+        _mockSelf = mockSelf;
+    }
+
+    function _self()
+        internal
+        view
+        virtual
+        override
+        returns (address)
+    {
+        return _mockSelf;
+    }
+
+    function setStreamingFee(uint256 streamingFee)
+        external
+    {
+        _mockStreamingFee = streamingFee;
+    }
+
+    function _streamingFee(uint256)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _mockStreamingFee;
+    }
+
+    function setPerformanceFee(uint256 performanceFee)
+        external
+    {
+        _mockPerformanceFee = performanceFee;
+    }
+
+    function _performanceFee(uint256)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _mockPerformanceFee;
+    }
+
+    function setMaxNetAssetValuePerShare(uint256 maxNetAssetValuePerShare)
+        external
+    {
+        _maxNetAssetValuePerShare = maxNetAssetValuePerShare;
+    }
+
+    function netAssetValue()
+        external
+        virtual
+        returns (uint256)
+    {
+        // claimed fee excluded
+        return _updateNetAssetValue();
+    }
+
+    function netAssetValuePerShare(uint256 netAssetValue_)
+        external
+        view
+        virtual
+        returns (uint256)
+    {
+        return _netAssetValuePerShare(netAssetValue_);
+    }
+
+    function managementFee(uint256 assetValue)
+        external
+        view
+        virtual
+        returns (uint256)
+    {
+        return _managementFee(assetValue);
+    }
+
+    function leverage()
+        external
+        returns (int256)
+    {
+        return _leverage(_updateNetAssetValue());
+    }
+
+    function drawdown()
+        external
+        returns (uint256)
+    {
+        return _drawdown(_updateNetAssetValue());
     }
 }
+

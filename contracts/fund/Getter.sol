@@ -2,15 +2,19 @@
 pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "./Core.sol";
+import "./SettleableFund.sol";
 
-contract Getter is Core {
+contract Getter is SettleableFund {
     // asset value
     /**
      * @dev This is overrided version from Core.sol
      */
     function netAssetValue() public returns (uint256) {
-        return _netAssetValue();
+        return _updateNetAssetValue();
+    }
+
+    function state() public view returns (FundState) {
+        return _state;
     }
 
     function cap() public view returns (uint256) {
@@ -79,11 +83,11 @@ contract Getter is Core {
     }
 
     function leverage() public returns (int256) {
-        return _leverage(_netAssetValue());
+        return _leverage(_updateNetAssetValue());
     }
 
     function drawdown() public returns (uint256) {
-        return _drawdown(_netAssetValue());
+        return _drawdown(_updateNetAssetValue());
     }
 
     // withdraw

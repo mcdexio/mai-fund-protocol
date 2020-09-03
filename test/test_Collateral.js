@@ -11,6 +11,7 @@ const {
 const TestCollateral = artifacts.require('TestCollateral.sol');
 const ERC20WithoutDecimals = artifacts.require('ERC20WithoutDecimals.sol');
 const ERC20WithDecimals = artifacts.require('ERC20WithDecimals.sol');
+const LibUtil = artifacts.require('LibUtil.sol');
 
 contract('TestCollateral', accounts => {
 
@@ -32,6 +33,9 @@ contract('TestCollateral', accounts => {
         user1 = accounts[1];
         user2 = accounts[2];
         user3 = accounts[3];
+
+        var libUtil = await LibUtil.new();
+        await TestCollateral.link("LibUtil", libUtil.address);
 
         var token = await ERC20WithDecimals.new("Token", "TKN", 18);
         collateral = await TestCollateral.new();
@@ -158,17 +162,17 @@ contract('TestCollateral', accounts => {
         await collateral.initialize(token.address, 8);
         assert.equal(await token.balanceOf(user1), "1000000000");
 
-        await shouldThrows(collateral.pullFromUser(user1, toWad(1)), "low-level call failed");
+        await shouldThrows(collateral.pullFromUser(user1, toToken(1)), "low-level call failed");
         await token.approve(collateral.address, toWad(9999999), { from: user1 });
-        await collateral.pullFromUser(user1, toWad(1));
+        await collateral.pullFromUser(user1, toToken(1));
         assert.equal(await token.balanceOf(user1), "900000000");
         assert.equal(await token.balanceOf(collateral.address), "100000000");
 
-        await collateral.pushToUser(user1, toWad(0.01));
+        await collateral.pushToUser(user1, toToken(0.01));
         assert.equal(await token.balanceOf(user1), "901000000");
         assert.equal(await token.balanceOf(collateral.address), "99000000");
 
-        await collateral.pushToUser(user1, toWad(0.99));
+        await collateral.pushToUser(user1, toToken(0.99));
         assert.equal(await token.balanceOf(user1), "1000000000");
         assert.equal(await token.balanceOf(collateral.address), "0");
     });

@@ -98,7 +98,7 @@ contract Fee is Context, ERC20CappedRedeemable {
      * @param   netAssetValue   Amount of total asset value, streaming fee excluded.
      * @return  Amount of performance fee.
      */
-    function _performanceFee(uint256 netAssetValue, uint256 totalSupply)
+    function _performanceFee(uint256 netAssetValue)
         internal
         view
         virtual
@@ -107,7 +107,7 @@ contract Fee is Context, ERC20CappedRedeemable {
         if (_performanceFeeRate == 0) {
             return 0;
         }
-        uint256 _maxNetAssetValue = _maxNetAssetValuePerShare.wmul(totalSupply);
+        uint256 _maxNetAssetValue = _maxNetAssetValuePerShare.wmul(totalSupply());
         if (netAssetValue <= _maxNetAssetValue) {
             return 0;
         }
@@ -129,16 +129,11 @@ contract Fee is Context, ERC20CappedRedeemable {
 
     /**
      * @dev     Update max asset value per share, for drawdown and performance fee calculating.
-     * @param   netAssetValue   Value of net asset.
-     * @param   totalSupply     Value of net asset.
+     * @param   netAssetValuePerShare   Value of net asset.
      */
-    function _updateMaxNetAssetValuePerShare(uint256 netAssetValue, uint256 totalSupply)
+    function _updateMaxNetAssetValuePerShare(uint256 netAssetValuePerShare)
         internal
     {
-        if (totalSupply == 0) {
-            return;
-        }
-        uint256 netAssetValuePerShare = netAssetValue.wdiv(totalSupply);
         if (netAssetValuePerShare > _maxNetAssetValuePerShare) {
             _maxNetAssetValuePerShare = netAssetValuePerShare;
         }

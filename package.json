@@ -25,6 +25,7 @@
     "web3": "^1.2.0"
   },
   "devDependencies": {
+    "eth-gas-reporter": "^0.2.17",
     "prettier": "^1.19.1",
     "prettier-plugin-solidity": "^1.0.0-alpha.37",
     "sol-merger": "^3.1.0"
