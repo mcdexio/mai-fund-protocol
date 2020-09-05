@@ -23,7 +23,6 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
     // period => period index => price
     EnumerableSet.UintSet internal _periods;
     mapping(uint256 => uint256) internal _firstPeriodIndexes;
-    // timespan index => price
     mapping(uint256 => LibEnumerableMap.AppendOnlyUintToUintMap) internal _buckets;
 
     event FirstIndex(uint256 period, uint256 periodIndex);

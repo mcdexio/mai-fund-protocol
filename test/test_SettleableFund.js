@@ -11,7 +11,7 @@ const {
 
 const TestSettleableFund = artifacts.require('TestSettleableFund.sol');
 
-contract('Core', accounts => {
+contract('TestSettleableFund', accounts => {
 
     const SHORT = 1;
     const LONG = 2;
@@ -270,7 +270,6 @@ contract('Core', accounts => {
 
         await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0.01), LONG);
-        await fund.withdrawCollateral(await fund.withdrawableCollateral(user1), { from: user1 });
 
         await deployer.perpetual.beginGlobalSettlement(toWad(0.01));
 

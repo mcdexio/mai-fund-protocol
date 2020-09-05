@@ -8,36 +8,28 @@ import "./Core.sol";
  * @dev     Handles share auctions in redeeming / settling.
  */
 contract Auction is Core {
+
     /**
      * @dev     Get bidding price according to current markprice and slippage.
-     * @param   side        Side of position.
-     * @param   slippage    Slippage of price, fixed float in decimals 18.
-     * @return  priceLimit  Price with slippage.
-     * @return  priceLoss   Total loss caused by slippage.
+     * @param   side            Side of position.
+     * @param   priceLimit      Price limit.
+     * @param   slippage        Slippage of price, fixed float in decimals 18.
+     * @return  tradingPrice    Trading price plus / minus slippage.
+     * @return  priceLoss       Total loss caused by slippage.
      */
-    function _biddingPrice(LibTypes.Side side, uint256 slippage)
+    function _biddingPrice(LibTypes.Side side, uint256 priceLimit, uint256 slippage)
         internal
-        returns (uint256 priceLimit, uint256 priceLoss)
+        returns (uint256 tradingPrice, uint256 priceLoss)
     {
         uint256 markPrice = _markPrice();
         priceLoss = markPrice.wmul(slippage);
-        priceLimit = side == LibTypes.Side.LONG? markPrice.sub(priceLoss): markPrice.add(priceLoss);
-    }
-
-    /**
-     * @dev     Validate price for given side and pricelimit.
-     * @param   side        Bidding side.
-     * @param   price       Bidding price.
-     * @param   priceLimit  Limit of bidding price.1
-     */
-    function _validatePrice(LibTypes.Side side, uint256 price, uint256 priceLimit)
-        internal
-        pure
-    {
-        require(
-            (side == LibTypes.Side.LONG && price <= priceLimit) || (side == LibTypes.Side.SHORT && price >= priceLimit),
-            "price not match"
-        );
+        if (side == LibTypes.Side.LONG) {
+            tradingPrice = markPrice.sub(priceLoss);
+            require(tradingPrice <= priceLimit, "price too high");
+        } else {
+            tradingPrice = markPrice.add(priceLoss);
+            require(tradingPrice >= priceLimit, "price too low");
+        }
     }
 
     /**
@@ -61,8 +53,7 @@ contract Auction is Core {
         require(marginAccount.size > 0, "position size is 0");
         require(marginAccount.side == side, "unexpected side");
         uint256 tradingAmount = marginAccount.size.wfrac(shareAmount, totalSupply());
-        ( uint256 tradingPrice, uint256 priceLoss ) = _biddingPrice(side, slippage);
-        _validatePrice(side, tradingPrice, priceLimit);
+        ( uint256 tradingPrice, uint256 priceLoss ) = _biddingPrice(side, priceLimit, slippage);
         _tradePosition(_msgSender(), _self(), side, tradingPrice, tradingAmount);
         slippageValue = priceLoss.wmul(tradingAmount);
     }

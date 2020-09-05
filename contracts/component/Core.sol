@@ -21,6 +21,8 @@ contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
     using SafeCast for uint256;
     using LibMathEx for int256;
 
+    event UpdateNetAssetValue(uint256 netAssetValue, uint256 totalFeeClaimed);
+
     /**
      * @dev     Get net asset value per share.
      * @return  Net asset value.
@@ -98,15 +100,19 @@ contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
         virtual
         returns (uint256 netAssetValue)
     {
-        netAssetValue = _totalAssetValue().sub(_totalFeeClaimed, "asset exhausted");
+        netAssetValue = _totalAssetValue();
+        if (_state != FundState.Shutdown) {
+            netAssetValue = netAssetValue.sub(_totalFeeClaimed, "asset exhausted");
+        }
         // - avoid duplicated fee updating
         // - once leave normal state, management fee will not increase anymore.
-        if (_lastFeeTime != _now() && _state == FundState.Normal) {
+        if (_state == FundState.Normal && _lastFeeTime != _now()) {
             uint256 newFee = _managementFee(netAssetValue);
             netAssetValue = netAssetValue.sub(newFee);
             _updateFee(newFee);
             _updateMaxNetAssetValuePerShare(_netAssetValuePerShare(netAssetValue));
         }
+        emit UpdateNetAssetValue(netAssetValue, _totalFeeClaimed);
     }
 
     uint256[20] private __gap;

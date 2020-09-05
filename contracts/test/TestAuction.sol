@@ -35,13 +35,6 @@ contract TestAuction is Auction {
         _mint(_mockSelf, totalSupply);
     }
 
-    function validatePrice(LibTypes.Side side, uint256 price, uint256 priceLimit)
-        external
-        pure
-    {
-        return _validatePrice(side, price, priceLimit);
-    }
-
     function bidShare(
         uint256 shareAmount,
         uint256 priceLimit,
@@ -54,10 +47,10 @@ contract TestAuction is Auction {
         return _bidShare(shareAmount, priceLimit, side, slippage);
     }
 
-    function biddingPrice(LibTypes.Side side, uint256 slippage)
+    function biddingPrice(LibTypes.Side side, uint256 priceLimit, uint256 slippage)
         external
         returns (uint256 tradingPrice, uint256 priceLoss)
     {
-        return _biddingPrice(side, slippage);
+        return _biddingPrice(side, priceLimit, slippage);
     }
 }

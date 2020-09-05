@@ -51,37 +51,32 @@ contract('TestAuction', accounts => {
     });
 
     it("price", async () => {
-        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(LONG, toWad(0.01));
+        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(LONG, toWad(0.00495), toWad(0.01));
         assert.equal(fromWad(tradingPrice), 0.005 * 0.99);
         assert.equal(fromWad(priceLoss), 0.005 * 0.01);
-        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(SHORT, toWad(0.01));
+        await shouldThrows(auction.biddingPrice.call(LONG, toWad(0.00494), toWad(0.01)), "price too high");
+
+        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(SHORT, toWad(0.00505), toWad(0.01));
         assert.equal(fromWad(tradingPrice), 0.005 * 1.01);
         assert.equal(fromWad(priceLoss), 0.005 * 0.01);
+        await shouldThrows(auction.biddingPrice.call(SHORT, toWad(0.00506), toWad(0.01)), "price too low");
 
-        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(LONG, toWad(0.03));
+        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(LONG, toWad(0.00485), toWad(0.03));
         assert.equal(fromWad(tradingPrice), 0.005 * 0.97);
         assert.equal(fromWad(priceLoss), 0.005 * 0.03);
-        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(SHORT, toWad(0.03));
+
+        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(SHORT, toWad(0.00515), toWad(0.03));
         assert.equal(fromWad(tradingPrice), 0.005 * 1.03);
         assert.equal(fromWad(priceLoss), 0.005 * 0.03);
 
-        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(LONG, toWad(1));
+        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(LONG, toWad(0), toWad(1));
         assert.equal(fromWad(tradingPrice), 0.005 * 0);
         assert.equal(fromWad(priceLoss), 0.005 * 1);
-        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(SHORT, toWad(1));
+
+        var {tradingPrice, priceLoss} = await auction.biddingPrice.call(SHORT, toWad(0.01), toWad(1));
         assert.equal(fromWad(tradingPrice), 0.005 * 2);
         assert.equal(fromWad(priceLoss), 0.005 * 1);
     });
-
-    it("validate price", async () => {
-        assert.ok(await auction.validatePrice(LONG, 1000, 1000));
-        assert.ok(await auction.validatePrice(LONG, 1000, 1002));
-        await shouldThrows(auction.validatePrice(LONG, 1000, 999), "price not match");
-
-        assert.ok(await auction.validatePrice(SHORT, 1000, 1000));
-        assert.ok(await auction.validatePrice(SHORT, 1000, 999));
-        await shouldThrows(auction.validatePrice(SHORT, 1000, 1001), "price not match");
-    })
 
     const prepare = async (side) => {
         await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});

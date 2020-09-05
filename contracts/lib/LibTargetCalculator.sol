@@ -26,6 +26,21 @@ library LibTargetCalculator {
         return marginAccount.side == LibTypes.Side.SHORT? size.neg(): size;
     }
 
+    /**
+     * @notice  Get amount / side to rebalance.
+     *          To compact with _tradePosition, side is reversed.
+     *          delta is, eg:
+     *           - expected = 1,  current = 1  -->  no adjust
+     *           - expected = 2,  current = 1  -->  2 -  1 =  1,   LONG for 1
+     *           - expected = 0,  current = 1  -->  0 -  1 = -1,   SHORT for 1
+     *           - expected = 0,  current = -1  -->  0 -  -1 = 1,   LONG for 1
+     *           - expected = -1, current = 1  --> -1 -  1 = -2,   SHORT for 2
+     *           - expected = 2,  current = -1 -->  2 - -1 =  3,   LONG for 3
+     *           - expected = -2, current = -1 --> -2 - -1 = -1,   SHORT for 1
+     *           ...
+     * @return  amount  Amount of positions needed for rebalance to target leverage.
+     * @return  side    Side of positions needed for rebalance to target leverage.
+     */
     function calculateRebalanceTarget(
         IPerpetual perpetual,
         uint256 netAssetValue,

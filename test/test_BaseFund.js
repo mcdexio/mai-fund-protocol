@@ -181,7 +181,6 @@ contract('BaseFund', accounts => {
 
         await checkEtherBalance(fund.redeem(toWad(1), toWad(0.2)), admin, toWad(-200));
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
-        assert.equal(fromWad(await fund.withdrawableCollateral(admin)), 0);
     });
 
     it("redeem - has position", async () => {
@@ -197,22 +196,30 @@ contract('BaseFund', accounts => {
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
         await delegateTrade(admin, user2, 'buy', toWad(200), toWad(1));
 
-        assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);
-        await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
-        assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);
+        // await fund.redeem(toWad(1), toWad(0.00), { from: user1 });
+        // assert.equal(fromWad(await fund.redeemingBalance(user1)), 1);
+        // assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0);
+
+        // var prev = new BigNumber(await web3.eth.getBalance(user1));
+        // await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT, { from: user2 });
+        // var post = new BigNumber(await web3.eth.getBalance(user1));
+
+        // assert.equal(fromWad(post.minus(prev)), 200);
+
+        await fund.redeem(toWad(1), toWad(0.1), { from: user1 });
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 1);
-        assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
+        assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.1);
 
+        var prev = new BigNumber(await web3.eth.getBalance(user1));
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT, { from: user2 });
-        // 0.005 * 0.01 / 2 = 0.000025,
-        assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 200 - 0.000025);
-        assert.equal(fromWad(await fund.redeemingBalance(user1)), 0);
+        var post = new BigNumber(await web3.eth.getBalance(user1));
 
-        await checkEtherBalance(fund.withdrawCollateral(toWad(200 - 0.000025), { from: user1 }), user1, toWad(- 200 + 0.000025));
-        assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);
+        assert.equal(fromWad(post.minus(prev)), 200 - 0.00025);
+        // 0.005 * 0.01 / 2 = 0.000025,
+        assert.equal(fromWad(await fund.redeemingBalance(user1)), 0);
     });
 
-    it("cancelRedeem", async () => {
+    it("cancelRedeeming", async () => {
         await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
@@ -225,29 +232,27 @@ contract('BaseFund', accounts => {
         await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
         await delegateTrade(admin, user2, 'buy', toWad(200), toWad(1));
 
-        assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);
         await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
-        assert.equal(fromWad(await fund.withdrawableCollateral(user1)), 0);
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 1);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
 
-        await fund.cancelRedeem(toWad(0.5), { from: user1 });
+        await fund.cancelRedeeming(toWad(0.5), { from: user1 });
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 0.5);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
 
-        await shouldThrows(fund.cancelRedeem(toWad(0.51), { from: user1 }), "amount exceeded");
-        await shouldThrows(fund.cancelRedeem(toWad(0), { from: user1 }), "amount is 0");
+        await shouldThrows(fund.cancelRedeeming(toWad(0.51), { from: user1 }), "amount exceeded");
+        await shouldThrows(fund.cancelRedeeming(toWad(0), { from: user1 }), "amount is 0");
 
-        await fund.cancelRedeem(toWad(0.5), { from: user1 });
+        await fund.cancelRedeeming(toWad(0.5), { from: user1 });
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 0);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
 
-        await shouldThrows(fund.cancelRedeem(toWad(0), { from: user1 }), "amount is 0");
-        await shouldThrows(fund.cancelRedeem(toWad(1), { from: user1 }), "amount exceeded");
+        await shouldThrows(fund.cancelRedeeming(toWad(0), { from: user1 }), "amount is 0");
+        await shouldThrows(fund.cancelRedeeming(toWad(1), { from: user1 }), "amount exceeded");
     });
 
     it("withdrawCollateral", async () => {
-        debug = true;
+        debug = false;
 
         await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
@@ -264,7 +269,6 @@ contract('BaseFund', accounts => {
         await sleep(7000);
 
         await checkEtherBalance(fund.redeem(toWad(0.5), toWad(0.2)), admin, toWad(-100));
-        assert.equal(fromWad(await fund.withdrawableCollateral(admin)), 0);
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
 
         await shouldThrows(fund.redeem(toWad(0.6), toWad(0.2)), "amount excceeded");

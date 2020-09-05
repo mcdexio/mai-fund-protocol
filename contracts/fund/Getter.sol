@@ -13,6 +13,10 @@ contract Getter is SettleableFund {
         return _updateNetAssetValue();
     }
 
+    function netAssetValuePerShare() public returns (uint256) {
+        return _netAssetValuePerShare(_updateNetAssetValue());
+    }
+
     function state() public view returns (FundState) {
         return _state;
     }
@@ -90,8 +94,8 @@ contract Getter is SettleableFund {
         return _drawdown(_updateNetAssetValue());
     }
 
-    // withdraw
-    function withdrawableCollateral(address account) public view returns (uint256) {
-        return _withdrawableCollaterals[account];
-    }
+    // // withdraw
+    // function withdrawableCollateral(address account) public view returns (uint256) {
+    //     return _withdrawableCollaterals[account];
+    // }
 }

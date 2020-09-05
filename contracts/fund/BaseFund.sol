@@ -29,14 +29,16 @@ contract BaseFund is
     using LibMathEx for uint256;
     using SafeCast for int256;
 
-    mapping(address => uint256) internal _withdrawableCollaterals;
+    // uint256 internal _totalWithdrawableCollateral;
+    // mapping(address => uint256) internal _withdrawableCollaterals;
 
     event Received(address indexed sender, uint256 amount);
-    event Purchase(address indexed trader, uint256 netAssetValue, uint256 shareAmount);
-    event Redeem(address indexed trader, uint256 shareAmount, uint256 slippage);
-    event Settle(address indexed trader, uint256 shareAmount);
-    event CancelRedeem(address indexed trader, uint256 shareAmount);
-    event Withdraw(address indexed trader, uint256 collateralAmount);
+    event Purchase(address indexed account, uint256 netAssetValue, uint256 shareAmount);
+    event RequestToRedeem(address indexed account, uint256 shareAmount, uint256 slippage);
+    event Redeem(address indexed account, uint256 shareAmount, uint256 returnedCollateral);
+    event Settle(address indexed account, uint256 shareAmount);
+    event CancelRedeeming(address indexed account, uint256 shareAmount);
+    event Withdraw(address indexed account, uint256 collateralAmount);
     event BidShare(address indexed bidder, address indexed account, uint256 shareAmount, uint256 slippage);
     event SetParameter(bytes32 key, int256 value);
 
@@ -53,17 +55,17 @@ contract BaseFund is
         string calldata tokenName,
         string calldata tokenSymbol,
         uint8 collateralDecimals,
-        address perpetual,
-        uint256 cap
+        address perpetualAddress,
+        uint256 tokenCap
     )
         internal
         initializer
     {
         __Context_init_unchained();
         __ERC20_init_unchained(tokenName, tokenSymbol);
-        __ERC20CappedRedeemable_init_unchained(cap);
+        __ERC20CappedRedeemable_init_unchained(tokenCap);
         __State_init_unchained();
-        __MarginAccount_init_unchained(perpetual);
+        __MarginAccount_init_unchained(perpetualAddress);
         __Collateral_init_unchained(_collateral(), collateralDecimals);
         __Pausable_init_unchained();
         __ReentrancyGuard_init_unchained();
@@ -100,7 +102,7 @@ contract BaseFund is
             _setStreamingFeeRate(value.toUint256());
         } else if (key == "performanceFeeRate") {
             _setPerformanceFeeRate(value.toUint256());
-        } else if (key == "settledRedeemingSlippage") {
+        } else if (key == "globalRedeemingSlippage") {
             _setRedeemingSlippage(_self(), value.toUint256());
         } else if (key == "cap") {
             _setCap(value.toUint256());
@@ -148,9 +150,9 @@ contract BaseFund is
      *          the received amount wiil not be deterministic but only a mininal amount promised.
      * @param   collateralAmount    Amount of collateral paid to purchase.
      * @param   shareAmountLimit    At least amount of shares token received by user.
-     * @param   pricePerShareLimit  NAV price limit to protect trader's dealing price.
+     * @param   priceLimit          NAV price limit to protect account's dealing price.
      */
-    function purchase(uint256 collateralAmount, uint256 shareAmountLimit, uint256 pricePerShareLimit)
+    function purchase(uint256 collateralAmount, uint256 shareAmountLimit, uint256 priceLimit)
         external
         payable
         whenInState(FundState.Normal)
@@ -158,19 +160,19 @@ contract BaseFund is
         nonReentrant
     {
         require(collateralAmount > 0, "collateral is 0");
-        require(pricePerShareLimit > 0, "price is 0");
+        require(priceLimit > 0, "price is 0");
         uint256 netAssetValuePerShare;
         if (totalSupply() == 0) {
             // when total supply is 0, nav per share cannot be determined by calculation.
-            require(pricePerShareLimit >= _maxNetAssetValuePerShare, "nav too low");
-            netAssetValuePerShare = pricePerShareLimit;
-            _maxNetAssetValuePerShare = pricePerShareLimit;
+            require(priceLimit >= _maxNetAssetValuePerShare, "nav too low");
+            netAssetValuePerShare = priceLimit;
+            _maxNetAssetValuePerShare = priceLimit;
         } else {
             // normal case
             uint256 netAssetValue = _updateNetAssetValue();
             require(netAssetValue > 0, "nav is 0");
             netAssetValuePerShare = _netAssetValuePerShare(netAssetValue);
-            require(netAssetValuePerShare <= pricePerShareLimit, "price not met");
+            require(netAssetValuePerShare <= priceLimit, "price not met");
         }
         uint256 entranceFee = _entranceFee(collateralAmount);
         uint256 shareAmount = collateralAmount.sub(entranceFee).wdiv(netAssetValuePerShare);
@@ -193,7 +195,7 @@ contract BaseFund is
      *          Note that the slippage given will override existed value of the same account.
      *          This is to say, the slippage is by account, not by per redeem call.
      * @param   shareAmount At least amount of shares token received by user.
-     * @param   slippage    NAV price limit to protect trader's dealing price.
+     * @param   slippage    NAV price limit to protect account's dealing price.
      */
     function redeem(uint256 shareAmount, uint256 slippage)
         external
@@ -203,7 +205,7 @@ contract BaseFund is
     {
         address account = _msgSender();
         // steps:
-        //  1. update redeeming amount in account
+        //  1. update redeem amount in account
         //  2.. create order, push order to list
         require(shareAmount > 0, "amount is 0");
         require(shareAmount <= balanceOf(account), "amount excceeded");
@@ -213,43 +215,39 @@ contract BaseFund is
         if (_marginAccount().size > 0) {
             // have to wait for keeper to take redeemed shares (positions).
             _increaseRedeemingShareBalance(account, shareAmount);
+            emit RequestToRedeem(account, shareAmount, slippage);
         } else {
             // direct withdraw, no waiting, no slippage.
             uint256 collateralToReturn = _updateNetAssetValue().wfrac(shareAmount, totalSupply());
-            uint256 rawCollateralAmount = _toRawAmount(collateralToReturn);
-            _burn(account, shareAmount);
-            _withdraw(rawCollateralAmount);
-            _pushToUser(payable(account), rawCollateralAmount);
+            _redeem(account, shareAmount, collateralToReturn);
         }
-
-        emit Redeem(account, shareAmount, slippage);
     }
 
     /**
-     * @notice  Cancel redeeming share.
-     * @param   shareAmount Amount of redeeming share to cancel.
+     * @notice  Cancel redeem share.
+     * @param   shareAmount Amount of redeem share to cancel.
      */
-    function cancelRedeem(uint256 shareAmount)
+    function cancelRedeeming(uint256 shareAmount)
         external
         whenNotPaused
         whenInState(FundState.Normal)
     {
         require(shareAmount > 0, "amount is 0");
         _decreaseRedeemingShareBalance(_msgSender(), shareAmount);
-        emit CancelRedeem(_msgSender(), shareAmount);
+        emit CancelRedeeming(_msgSender(), shareAmount);
     }
 
     /**
      * @notice  Take underlaying position from fund. Size of position to bid is measured by the ratio
      *          of share amount and total share supply.
      * @dev     size = position size * share / total share supply.
-     * @param   trader      Amount of collateral to withdraw.
+     * @param   account     Amount of collateral to withdraw.
      * @param   shareAmount Amount of share balance to bid.
      * @param   priceLimit  Price limit of dealing price. Calculated differently for long and short.
      * @param   side        Side of underlaying position held by fund margin account.
      */
     function bidRedeemingShare(
-        address trader,
+        address account,
         uint256 shareAmount,
         uint256 priceLimit,
         LibTypes.Side side
@@ -260,32 +258,24 @@ contract BaseFund is
         nonReentrant
     {
         require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= _redeemingBalances[trader], "amount excceeded");
-        uint256 netAssetValue = _updateNetAssetValue();
-        uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[trader]);
-        _decreaseRedeemingShareBalance(trader, shareAmount);
-        uint256 collateralToReturn = netAssetValue.wfrac(shareAmount, totalSupply())
-            .sub(slippageLoss, "slippage too high");
-        _burn(trader, shareAmount);
-        _withdraw(_toRawAmount(collateralToReturn));
-        _withdrawableCollaterals[trader] = _withdrawableCollaterals[trader].add(collateralToReturn);
-        emit BidShare(_msgSender(), trader, shareAmount, slippageLoss);
+        require(shareAmount <= _redeemingBalances[account], "amount excceeded");
+        uint256 collateralToReturn = _updateNetAssetValue().wfrac(shareAmount, totalSupply());
+        uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[account]);
+        _decreaseRedeemingShareBalance(account, shareAmount);
+        _redeem(account, shareAmount, collateralToReturn.sub(slippageLoss, "loss too high"));
+        emit BidShare(_msgSender(), account, shareAmount, slippageLoss);
     }
 
-    /**
-     * @notice  Withdraw collateral from fund.
-     * @param   collateralAmount    Amount of collateral to withdraw.
-     */
-    function withdrawCollateral(uint256 collateralAmount)
-        external
-        whenNotPaused
-        nonReentrant
+
+    function _redeem(address account, uint256 shareAmount, uint256 collateralToReturn)
+        internal
     {
-        _withdrawableCollaterals[_msgSender()] = _withdrawableCollaterals[_msgSender()]
-            .sub(collateralAmount, "amount exceeded");
-        _pushToUser(payable(_msgSender()), _toRawAmount(collateralAmount));
-        emit Withdraw(_msgSender(), collateralAmount);
+        uint256 rawCollateralAmount = _toRawAmount(collateralToReturn);
+        _burn(account, shareAmount);
+        _withdraw(rawCollateralAmount);
+        _pushToUser(payable(account), rawCollateralAmount);
+        emit Redeem(account, shareAmount, collateralToReturn);
     }
 
-    uint256[19] private __gap;
+    uint256[20] private __gap;
 }

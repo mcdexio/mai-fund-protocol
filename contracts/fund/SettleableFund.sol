@@ -64,12 +64,13 @@ contract SettleableFund is
     {
         if (key == "drawdownHighWaterMark") {
             _setDrawdownHighWaterMark(value.toUint256());
-
         } else if (key == "leverageHighWaterMark") {
             _setLeverageHighWaterMark(value.toUint256());
         } else {
             super.setParameter(key, value);
+            return;
         }
+        emit SetParameter(key, value);
     }
 
     /**
@@ -156,7 +157,7 @@ contract SettleableFund is
     // 16749    (+1014)
 
     /**
-     * @notice  Almost be the same with bidRedeemingShare but only works when stopped.
+     * @notice  Almost be the same with bidRedeemShare but only works when stopped.
      * @param   shareAmount Amount of share balance to bid.
      * @param   priceLimit  Price limit of dealing price. Calculated differently for long and short.
      * @param   side        Side of underlaying position held by fund margin account.

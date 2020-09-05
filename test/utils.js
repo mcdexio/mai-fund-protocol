@@ -238,9 +238,19 @@ const checkEtherBalance = async (doSomething, account, balanceDelta) => {
     var receipt = await doSomething;
     var tx = await web3.eth.getTransaction(receipt.receipt.transactionHash);
     var gas = new BigNumber(receipt.receipt.cumulativeGasUsed).times(new BigNumber(tx.gasPrice));
+    var value = new BigNumber(tx.value);
     var post = new BigNumber(await web3.eth.getBalance(account));
     // console.log(post.toFixed());
-    assert.equal(prev.minus(post).minus(gas).toFixed(), balanceDelta);
+    assert.equal(prev.minus(post).minus(gas).minus(value).toFixed(), balanceDelta);
+}
+
+const checkEtherBalanceNoGas = async (doSomething, account, balanceDelta) => {
+    var prev = new BigNumber(await web3.eth.getBalance(account));
+    // console.log(prev.toFixed());
+    var receipt = await doSomething;
+    var post = new BigNumber(await web3.eth.getBalance(account));
+    // console.log(post.toFixed());
+    assert.equal(prev.minus(post).toFixed(), balanceDelta);
 }
 
 function sleep(ms) {
@@ -336,5 +346,6 @@ module.exports = {
     shouldThrows,
     uintToBytes32,
     approximatelyEqual,
-    checkEtherBalance
+    checkEtherBalance,
+    checkEtherBalanceNoGas,
 };
