@@ -239,12 +239,16 @@ contract BaseFund is
 
     /**
      * @notice  Take underlaying position from fund. Size of position to bid is measured by the ratio
-     *          of share amount and total share supply.
+     *          of share amount and total share supply. In redeeming, fund always CLOSE positions. 
+     &*
+     *
+     *          !!! Note that the side paramter is the expected trading direction for CALLER, not the fund's. 
+     *          
      * @dev     size = position size * share / total share supply.
      * @param   account     Amount of collateral to withdraw.
      * @param   shareAmount Amount of share balance to bid.
      * @param   priceLimit  Price limit of dealing price. Calculated differently for long and short.
-     * @param   side        Side of underlaying position held by fund margin account.
+     * @param   side        Trding side for caller.
      */
     function bidRedeemingShare(
         address account,

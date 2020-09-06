@@ -118,6 +118,10 @@ contract AutoTradingFund is
 
     /**
      * @notice  Rebalance current position to target leverage.
+     *
+     *          !!! Though this methods looks like `bidRedeemingShare` in BaseFund, they are quite different things.
+     *          Side parameter in this method represents the FUND's trading direction, not the caller's.
+     *
      * @param   maxPositionAmount   Max amount of underlaying position caller want to take (align to lotsize)
      * @param   priceLimit          Max price of underlaying position.
      * @param   side                Expected side of underlaying positon.
@@ -137,7 +141,6 @@ contract AutoTradingFund is
         require(targetSide == side, "unexpected side");
         uint256 tradingAmount = Math.min(maxPositionAmount, targetAmount);
         ( uint256 tradingPrice, ) = _biddingPrice(targetSide, priceLimit, _rebalanceSlippage);
-        // to reuse _tradePosition, we have to swap taker and maker then take the counterSide
         _tradePosition(_self(), _msgSender(), targetSide, tradingPrice, tradingAmount);
         emit Rebalance(targetSide, tradingPrice, tradingAmount);
     }
