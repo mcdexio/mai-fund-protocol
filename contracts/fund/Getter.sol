@@ -86,6 +86,10 @@ contract Getter is SettleableFund {
         return _leverageHighWaterMark;
     }
 
+    function canShutdown() public returns (bool) {
+        return _canShutdown();
+    }
+
     function leverage() public returns (int256) {
         return _leverage(_updateNetAssetValue());
     }

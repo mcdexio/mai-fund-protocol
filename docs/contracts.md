@@ -1,42 +1,34 @@
 # CONTRACTS
 
-- [CONTRACTS](#contracts)
-  - [Core.sol](#coresol)
-    - [ERC20Redeemable.sol](#erc20redeemablesol)
-    - [MarginAccount.sol](#marginaccountsol)
-    - [Fee.sol](#feesol)
-    - [Status.sol](#statussol)
-    - [Collateral.sol](#collateralsol)
-    - [Auction.sol](#auctionsol)
-    - [Settlement.sol](#settlementsol)
-  - [Getter.sol](#gettersol)
-  - [SocialTradingFund.sol](#socialtradingfundsol)
-  - [AutoTradingFund.sol](#autotradingfundsol)
-
-
 Mai Fund Protocol mainly works in two different way: auto trading by in-contract strategy or manual trading by fund manager.
 
 Therefore we introduce two smart contract implemetations: AutoTradingFund and SocialTradingFund.
 
-
 -----
 
-## Core.sol
+## Components
 
-Core is the base of fund, implements every basic methods to interactive with fund.
+- Core.sol
+  - ERC20CappedRedeemable.sol
 
-It is consists of many smaller component:
+  - Fee.sol
 
-### ERC20Redeemable.sol
+  - MarginAccount.sol
+  - State.sol
 
-ERC20Redeemable is a extended erc20, inherited from ERC20CappedUpgradeSafe (a standard erc20 with amount cap) provided by openzeppelin.
+### Core.sol
 
-ERC20Redeemable adds some members to store user's redeeeming status.
+Core is the base of fund, containing states of fund and method to access backend (perpetual). It consists of several component:
+
+### ERC20CappedRedeemable.sol
+
+ERC20CappedRedeemable is a extended erc20, inherited from ERC20UpgradeSafe (a standard erc20 with amount cap) provided by openzeppelin.
+
+ERC20CappedRedeemable adds some members to store user's redeeming status and cap of erc20. There is a interface for administrator to update the value of cap, that is the only difference to ERC20CappedUpgradeSafe from openzeppelin.
 
 ### MarginAccount.sol
 
-MarginAccount is a helper of performing operation on fund's margin account, such as getting margin balance, mark price
-and perpetual status.
+MarginAccount is a wrapper to interact with fund's margin account, such as getting margin balance, mark price, perpetual status, ETC.
 
 ### Fee.sol
 
@@ -52,9 +44,11 @@ Currently, management fee includes:
 
 Check [management_fee.md](./fee.md) for details.
 
-### Status.sol
+### State.sol
 
-Status assembles ERC20Redeemable, MarginAccount and Fee component, providing some primary status of fund.
+State defined three state for fund: normal, emergency and shutdown.
+
+When a fund breaks the risk constrains or its underlaying perpetual is settled, the fund will be set into emergency state, waiting keeper to settle all the position hold by fund's margin, and then shutdown state.
 
 ### Collateral.sol
 
@@ -68,35 +62,97 @@ When user wants to redeem from a fund contract, a periodic-running share bidder 
 
 Auction.sol contains methods for share biddings.
 
-### Settlement.sol
-
-Settlement defines method to determine when a fund contract should be shutdown for emergency situation:
-
-- underlaying perpetual is in emergency / settled status.
-- leverage > leverage high water mark
-- drawdown > drawdown high water mark
 
 
-All parts together form the Core.sol, the infrastructure of fund.
+## Funds
 
------
+- AutoTradingFund.sol
 
-## Getter.sol
+  - SettleableFund.sol
+    - BaseFund.sol
+      - Core.sol
+      - Auction.sol
+      - Collateral.sol
 
-Getter contrains read-only methods to retrieve basic properties of fund.
+  - Getter.sol
 
------
+    
 
-## SocialTradingFund.sol
+- SocialTradingFund.sol
+
+  - SettleableFund.sol
+    - BaseFund.sol
+      - Core.sol
+      - Auction.sol
+      - Collateral.sol
+  - Getter.sol
+
+### Getter.sol
+
+Getter contrains read-only methods to retrieve properties of fund.
+
+### BaseFund.sol
+
+Base fund contains all interface available in normal state. 
+
+```
+    - [Pub] setParameter #
+       - modifiers: onlyOwner
+    - [Ext] approvePerpetual #
+       - modifiers: onlyOwner
+    - [Ext] pause #
+       - modifiers: onlyOwner
+    - [Ext] unpause #
+       - modifiers: onlyOwner
+    - [Ext] purchase ($)
+       - modifiers: whenInState(FundState.Normal),whenNotPaused,nonReentrant
+    - [Ext] redeem #
+       - modifiers: whenInState(FundState.Normal),whenInState,nonReentrant
+    - [Ext] cancelRedeeming #
+       - modifiers: whenInState(FundState.Normal),whenNotPaused
+    - [Ext] bidRedeemingShare #
+       - modifiers: whenInState(FundState.Normal),whenNotPaused,nonReentrant
+```
+
+### SettleableFund.sol
+
+Inheriting from BaseFund, SettleableFund add methods that handles user's asset in emergency / shutdown state.
+
+```
+    - [Pub] setParameter #
+       - modifiers: onlyOwner
+    - [Pub] setEmergency #
+       - modifiers: whenInState
+    - [Pub] setShutdown #
+       - modifiers: whenInState,nonReentrant
+    - [Ext] bidSettledShare #
+       - modifiers: whenNotPaused,whenInState,nonReentrant
+    - [Ext] settleMarginAccount #
+       - modifiers: whenNotPaused,whenInState,nonReentrant
+    - [Ext] settle #
+       - modifiers: whenNotPaused,whenInState,nonReentrant
+```
+
+### SocialTradingFund.sol
 
 SocialTradingFund allows a fund manager performing delegate trading for a fund.
 
 It is empowered by a new feature 'delegate trading' introduced in latest exchange contract.
 
-A real trader (fund manager) will be set as the delegator of fund margin account. User deposited their collateral into the fund is acturally doing a copy trading according to the strategy provided by fund manager.
+A real trader (fund manager) will be set as the delegator of fund margin account. User deposited their collateral into the fund is actually doing a copy trading according to the strategy provided by fund manager.
 
 In this mode, a manager is able to choose any combination of fee parameters.
 
-## AutoTradingFund.sol
+### AutoTradingFund.sol
 
 AutoTradingFund accept a contract as target leverage indicator. When the target changed, anyone can rebalance the position of fund through calling 'rebalance' method.
+
+The strategy implementation should contains a `getNextTarget` method like:
+
+```
+interface ITradingStrategy {
+    function getNextTarget() external returns (int256);
+}
+```
+
+Its output should be a signed integer, where the absolute value of the integer represents the target leverage and the sign indicates the trading direction.

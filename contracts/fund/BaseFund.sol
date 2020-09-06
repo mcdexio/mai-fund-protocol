@@ -229,8 +229,8 @@ contract BaseFund is
      */
     function cancelRedeeming(uint256 shareAmount)
         external
-        whenNotPaused
         whenInState(FundState.Normal)
+        whenNotPaused
     {
         require(shareAmount > 0, "amount is 0");
         _decreaseRedeemingShareBalance(_msgSender(), shareAmount);
@@ -253,8 +253,8 @@ contract BaseFund is
         LibTypes.Side side
     )
         external
-        whenNotPaused
         whenInState(FundState.Normal)
+        whenNotPaused
         nonReentrant
     {
         require(shareAmount > 0, "amount is 0");

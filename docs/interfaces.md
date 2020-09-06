@@ -1,11 +1,5 @@
 # INTERFACE
 
-- [INTERFACE](#interface)
-  - [ERC20](#erc20)
-  - [Core](#core)
-  - [AutoTradingFund](#autotradingfund)
-  - [SocialTradingFund](#socialtradingfund)
-
 ## ERC20
 
 The Fund itself has a fully ERC20 compatible interface. Check [ERC20](https://eips.ethereum.org/EIPS/eip-20) for details.

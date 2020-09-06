@@ -8,7 +8,7 @@ MFP shares the same aministrator with perpetual contract (defined in global conf
 
 Administrator of fund is able to modify parameters of system to control risk and profits.
 
-Check [] for all available parameters.
+Check [parameters.md](./parameters.md) for all available parameters.
 
 ## Manager
 

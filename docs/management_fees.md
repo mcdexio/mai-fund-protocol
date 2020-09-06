@@ -1,10 +1,5 @@
 # MANAGEMENT FEE
 
-- [MANAGEMENT FEE](#management-fee)
-  - [Entrance Fee](#entrance-fee)
-  - [Streaming Fee](#streaming-fee)
-  - [Performance Fee](#performance-fee)
-
 Management fee is a major incentive for social traders to maintain their fund and improve trading strategies.
 
 There are three different types of extra fees that may arise during the interaction with the MFP (Mai Fund Protocol): entrance fee, streaming fee and performance fee. Each fee rate can be set between [0% - 100%) individually.
@@ -62,6 +57,12 @@ NAV_{max},&otherwise
 \end{cases}
 $$
 
-In contract, the max NAV is called HWM (high water mark) of NAV, which is a monotone increasing value.
+In contract, the max NAV is called HWM (high water mark) of NAV, which is a monotone increasing value. 
 
-For example: assume a 20% performance fee rate, the NAV per share of fund is Ξ200 and has been recorded as the max NAV. When NAV per share goes up to Ξ400 per share,  the manager will receive Ξ40 ( (Ξ400 - Ξ200) * 20% ) as performance fee; when the NAV comes to Ξ500 the manager will get Ξ10 ( (Ξ500 - Ξ400) * 20% ).
+There are some constrains on max NAV:
+
+- NAV is update lazily on every functions which require the real-time NAV value;
+- NAV may not match the curve of real mark price without manually or automatically updated;
+- Update NAV to a higher value not only means more profit on performance fee, but also higer risk on drawdown.
+
+For example: assume a 20% performance fee rate, the NAV per share of fund is Ξ200 and has been recorded as the max NAV. When NAV per share goes up to Ξ400 per share, the manager will receive Ξ40 ( (Ξ400 - Ξ200) * 20% ) as performance fee; when the NAV comes to Ξ500 the manager will get Ξ10 ( (Ξ500 - Ξ400) * 20% ).

@@ -1,13 +1,5 @@
 # REDEEMING
 
-- [REDEEMING](#redeeming)
-  - [Defines](#defines)
-  - [Steps](#steps)
-    - [When not stopped](#when-not-stopped)
-      - [position size of fund is not 0](#position-size-of-fund-is-not-0)
-      - [position size of fund is 0](#position-size-of-fund-is-0)
-    - [When stopped](#when-stopped)
-
 ## Defines
 
 - $ManagementFee = PerformanceFee + StreamingFee + EntranceFee$
