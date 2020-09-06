@@ -107,117 +107,142 @@ contract('AutoTradingFund', accounts => {
         console.log("");
     };
 
-    // const printStrategy = (amount, side) => {
-    //     const toSide = (side) => {
-    //         switch (side.toString()) {
-    //             case "0": return "stay";
-    //             case "1": return "short";
-    //             case "2": return "long";
-    //         }
-    //     }
-    //     console.log("next, we should", toSide(side), "for", fromWad(amount));
-    // }
+    const printStrategy = (amount, side) => {
+        const toSide = (side) => {
+            switch (side.toString()) {
+                case "0": return "stay";
+                case "1": return "short";
+                case "2": return "long";
+            }
+        }
+        console.log("next, we should", toSide(side), "for", fromWad(amount));
+    }
 
-    // it("rebalance", async () => {
-    //     var user1 = accounts[2];
-    //     await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
-    //     await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
+    it("rebalance", async () => {
+        var user1 = accounts[2];
+        await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
 
-    //     await rsistg.setNextTarget(toWad(1));
-    //     await shouldThrows(fund.rebalance(toWad(0), toWad(0), SHORT), "amount is 0");
-    //     await shouldThrows(fund.rebalance(toWad(40000), toWad(0), LONG), "unexpected side");
-    //     await fund.rebalance(toWad(40000), toWad(0), SHORT);
+        await rsistg.setNextTarget(toWad(1));
+        await shouldThrows(fund.rebalance(toWad(0), toWad(0), SHORT), "amount is 0");
+        await shouldThrows(fund.rebalance(toWad(40000), toWad(0), LONG), "unexpected side");
+        await fund.rebalance(toWad(40000), toWad(0.005), SHORT);
 
-    //     await rsistg.setNextTarget(toWad(1));
-    //     await shouldThrows(fund.rebalance(toWad(40000), toWad(0), SHORT), "need no rebalance");
-    // })
+        await rsistg.setNextTarget(toWad(1));
+        await shouldThrows(fund.rebalance(toWad(40000), toWad(0), SHORT), "need no rebalance");
+    })
 
-    // it("normal case", async () => {
+    it("rebalance - slippage", async () => {
+        await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
+        await deployer.perpetual.deposit(toWad(1000), {from: user2, value: toWad(1000)});
 
-    //     var user1 = accounts[2];
-    //     await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
 
-    //     await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
+        await fund.setParameter(toBytes32("rebalanceSlippage"), toWad(0.05));
 
-    //     await rsistg.setNextTarget(toWad(1));
-    //     await printFundState(deployer, fund, user1);
-    //     // 100: 0 -> 1
-    //     var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
-    //     printStrategy(amount, side);
-    //     assert.equal(needRebalance, true);
-    //     assert.equal(fromWad(amount), 200 / 0.005);
-    //     assert.equal(side, SHORT);
+        await rsistg.setNextTarget(toWad(1));
+        await shouldThrows(fund.rebalance(toWad(0), toWad(0), SHORT), "amount is 0");
+        await shouldThrows(fund.rebalance(toWad(40000), toWad(0), LONG), "unexpected side");
+        await fund.rebalance(toWad(40000), toWad(1), SHORT, { from: user2 });
 
-    //     await fund.rebalance(toWad(40000), toWad(0), side);
-    //     await printFundState(deployer, fund, user1);
+        // 0.005 * 0.05 = 0.00025 * 40000 = 10
+        approximatelyEqual(await deployer.perpetual.pnl.call(user2), toWad(10));
+        var maUser2 = await deployer.perpetual.getMarginAccount(user2);
+        approximatelyEqual(maUser2.size, toWad(40000));
+        assert.equal(maUser2.side, LONG);
 
-    //     // 50: 1 -> 1
-    //     await rsistg.setNextTarget(toWad(1));
-    //     await shouldThrows(fund.rebalanceTarget.call(), "need no rebalance");
+        // await rsistg.setNextTarget(toWad(1));
+        // await shouldThrows(fund.rebalance(toWad(40000), toWad(0), SHORT), "need no rebalance");
+    })
 
-    //     // 11: 1 -> -1
-    //     await rsistg.setNextTarget(toWad(-1));
-    //     var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
-    //     printStrategy(amount, side);
-    //     assert.equal(needRebalance, true);
-    //     assert.equal(fromWad(amount), 200 / 0.005 * 2);
-    //     assert.equal(side, LONG);
+    it("normal case", async () => {
 
-    //     await fund.rebalance(amount, toWad(100000), side);
-    //     await printFundState(deployer, fund, user1);
+        var user1 = accounts[2];
+        await deployer.perpetual.deposit(toWad(1000), {from: user1, value: toWad(1000)});
 
-    //     // -1 => 0
-    //     await rsistg.setNextTarget(toWad(0));
-    //     var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
-    //     printStrategy(amount, side);
-    //     assert.equal(needRebalance, true);
-    //     assert.equal(fromWad(amount), 40000);
-    //     assert.equal(side, SHORT);
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
 
-    //     await fund.rebalance(amount, toWad(0), side);
-    //     await printFundState(deployer, fund, user1);
-    // });
+        await rsistg.setNextTarget(toWad(1));
+        await printFundState(deployer, fund, user1);
+        // 100: 0 -> 1
+        var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
+        printStrategy(amount, side);
+        assert.equal(needRebalance, true);
+        assert.equal(fromWad(amount), 200 / 0.005);
+        assert.equal(side, SHORT);
 
+        await fund.rebalance(toWad(40000), toWad(0.005), side);
+        await printFundState(deployer, fund, user1);
 
-    // it("normal case - user", async () => {
+        // 50: 1 -> 1
+        await rsistg.setNextTarget(toWad(1));
+        await shouldThrows(fund.rebalanceTarget.call(), "need no rebalance");
 
-    //     await deployer.perpetual.deposit(toWad(1000), { value: toWad(1000) });
+        // 11: 1 -> -1
+        await rsistg.setNextTarget(toWad(-1));
+        var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
+        printStrategy(amount, side);
+        assert.equal(needRebalance, true);
+        assert.equal(fromWad(amount), 200 / 0.005 * 2);
+        assert.equal(side, LONG);
 
-    //     await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
-    //     await rsistg.setNextTarget(toWad(1));
+        await fund.rebalance(amount, toWad(0.005), side);
+        await printFundState(deployer, fund, user1);
 
-    //     var user1 = accounts[2];
-    //     var balancer = accounts[3];
-    //     await deployer.perpetual.deposit(toWad(1000), {from: balancer, value: toWad(1000)});
+        // -1 => 0
+        await rsistg.setNextTarget(toWad(0));
+        var {needRebalance, amount, side} = await fund.rebalanceTarget.call();
+        printStrategy(amount, side);
+        assert.equal(needRebalance, true);
+        assert.equal(fromWad(amount), 40000);
+        assert.equal(side, SHORT);
 
-    //     await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user1, value: toWad(400)});
-    //     await printFundState(deployer, fund, user1);
-
-    //     // -0.3
-    //     await rsistg.setNextTarget(toWad(0.3));
-    //     // acturally 200 * 3 * 0.3 / 0.005 = 36000
-    //     await fund.rebalance(toWad(40000), toWad(0), SHORT);
-    //     await printFundState(deployer, fund, user1);
-
-    //     console.log((await fund.balanceOf(admin)).toString());
-    //     console.log((await fund.balanceOf(user1)).toString());
-
-    //     await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
-    //     await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT);
-
-    //     await printFundState(deployer, fund, user1);
-
-    //     await rsistg.setNextTarget(toWad(-1));
-
-    //     await fund.rebalance(toWad(120000), toWad(100), LONG);
-    //     await printFundState(deployer, fund, user1);
+        await fund.rebalance(amount, toWad(0.005), side);
+        await printFundState(deployer, fund, user1);
+    });
 
 
-    //     await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
-    //     await fund.bidRedeemingShare(user1, toWad(1), toWad(1), LONG);
+    it("normal case - user", async () => {
 
-    //     await printFundState(deployer, fund, user1);
-    // });
+        await deployer.perpetual.deposit(toWad(1000), { value: toWad(1000) });
+
+        await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
+        await rsistg.setNextTarget(toWad(1));
+
+        var user1 = accounts[2];
+        var balancer = accounts[3];
+        await deployer.perpetual.deposit(toWad(1000), {from: balancer, value: toWad(1000)});
+
+        await fund.purchase(toWad(400), toWad(2), toWad(200), { from: user1, value: toWad(400)});
+        await printFundState(deployer, fund, user1);
+
+        // -0.3
+        await rsistg.setNextTarget(toWad(0.3));
+        // acturally 200 * 3 * 0.3 / 0.005 = 36000
+        await fund.rebalance(toWad(40000), toWad(0.005), SHORT);
+        await printFundState(deployer, fund, user1);
+
+        // console.log((await fund.balanceOf(admin)).toString());
+        // console.log((await fund.balanceOf(user1)).toString());
+
+        await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
+        await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT);
+
+        await printFundState(deployer, fund, user1);
+
+        await rsistg.setNextTarget(toWad(-1));
+
+        console.log("!!!", fromWad(await deployer.perpetual.markPrice.call()));
+
+        await fund.rebalance(toWad(120000), toWad(0.005), LONG);
+        await printFundState(deployer, fund, user1);
+
+
+        await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
+        await fund.bidRedeemingShare(user1, toWad(1), toWad(0.005), LONG);
+
+        await printFundState(deployer, fund, user1);
+    });
 
     it("normal case - price change", async () => {
 
@@ -235,7 +260,7 @@ contract('AutoTradingFund', accounts => {
 
         await rsistg.setNextTarget(toWad(0.3));
 
-        await fund.rebalance(toWad(40000), toWad(0), SHORT, { from: admin, gasLimit: 8000000 });
+        await fund.rebalance(toWad(40000), toWad(0.005), SHORT, { from: admin, gasLimit: 8000000 });
 
         console.log("lv", fromWad(await fund.leverage.call()));
 
