@@ -34,6 +34,7 @@ contract BaseFund is
 
     event Received(address indexed sender, uint256 amount);
     event Purchase(address indexed account, uint256 netAssetValue, uint256 shareAmount);
+    event SetSlippage(address indexed account, uint256 slippage);
     event RequestToRedeem(address indexed account, uint256 shareAmount, uint256 slippage);
     event Redeem(address indexed account, uint256 shareAmount, uint256 returnedCollateral);
     event Settle(address indexed account, uint256 shareAmount);
@@ -189,15 +190,28 @@ contract BaseFund is
     }
 
     /**
+     * @notice  Set slippage when redeem share tokens.
+     * @param   slippage    Slippage, a fixed point float, decimals == 18.
+     */
+    function setRedeemingSlippage(uint256 slippage)
+        external
+        whenNotPaused
+        whenInState(FundState.Normal)
+    {
+        require(_redeemingSlippages[_msgSender()] != slippage, "same slippage");
+        _setRedeemingSlippage(_msgSender(), slippage);
+        emit SetSlippage(_msgSender(), slippage);
+    }
+
+    /**
      * @notice  Request to redeem share for collateral with a loss up to a slippage.
      *          An off-chain keeper will bid the underlaying position then push collateral to fund, then caller will be
      *          able to withdraw through `withdrawCollateral` method.
      *          Note that the slippage given will override existed value of the same account.
      *          This is to say, the slippage is by account, not by per redeem call.
      * @param   shareAmount At least amount of shares token received by user.
-     * @param   slippage    NAV price limit to protect account's dealing price.
      */
-    function redeem(uint256 shareAmount, uint256 slippage)
+    function redeem(uint256 shareAmount)
         external
         whenNotPaused
         whenInState(FundState.Normal)
@@ -210,12 +224,10 @@ contract BaseFund is
         require(shareAmount > 0, "amount is 0");
         require(shareAmount <= balanceOf(account), "amount excceeded");
         require(_canRedeem(account), "cannot redeem now");
-
-        _setRedeemingSlippage(_msgSender(), slippage);
         if (_marginAccount().size > 0) {
             // have to wait for keeper to take redeemed shares (positions).
             _increaseRedeemingShareBalance(account, shareAmount);
-            emit RequestToRedeem(account, shareAmount, slippage);
+            emit RequestToRedeem(account, shareAmount, _redeemingSlippages[account]);
         } else {
             // direct withdraw, no waiting, no slippage.
             uint256 collateralToReturn = _updateNetAssetValue().wfrac(shareAmount, totalSupply());
@@ -239,11 +251,11 @@ contract BaseFund is
 
     /**
      * @notice  Take underlaying position from fund. Size of position to bid is measured by the ratio
-     *          of share amount and total share supply. In redeeming, fund always CLOSE positions. 
+     *          of share amount and total share supply. In redeeming, fund always CLOSE positions.
      &*
      *
-     *          !!! Note that the side paramter is the expected trading direction for CALLER, not the fund's. 
-     *          
+     *          !!! Note that the side paramter is the expected trading direction for CALLER, not the fund's.
+     *
      * @dev     size = position size * share / total share supply.
      * @param   account     Amount of collateral to withdraw.
      * @param   shareAmount Amount of share balance to bid.
@@ -280,6 +292,8 @@ contract BaseFund is
         _pushToUser(payable(account), rawCollateralAmount);
         emit Redeem(account, shareAmount, collateralToReturn);
     }
+
+
 
     uint256[20] private __gap;
 }

@@ -72,17 +72,25 @@ Inputs:
 - `pricePerShareLimit` Max price per share that trader can afford . Transaction will fail if not met.
 
 ```
-function redeem(uint256 shareAmount, uint256 slippage)
+function setRedeemingSlippage(uint256 slippage)
+```
+
+Slippage when redeeming shares. This is a setting within scope of account. Only the last setting takes effect and will affect all the redeeming shares.
+
+Inputs:
+- `slippage` Slippage when keeper bids shares. The higher the slippage is, the more likely the keeper is to bid for the shares.
+
+```
+function redeem(uint256 shareAmount)
 ```
 
 Redeem collaterals back with shares of fund.
 
-The result of redeem method is different according to current positions held by fund margin account: user will get collateral back immediately if fund currently has no position; otherwise, user has to wait for keeper who bids for redeeming shares, then get collateral back through calling `withdrawCollateral` method.
+The result of redeem method is different according to current positions held by fund margin account: user will get collateral back immediately if fund currently has no position; otherwise, user has to wait for keeper who bids for redeeming shares, then get collateral sent by keeper.
 
 Inputs:
 
 - `shareAmount` Amount of share to redeem.
-- `slippage` Slippage when keeper bids shares. The higher the slippage is, the more likely the keeper is to bid for the shares.
 
 ```
 function settle(uint256 shareAmount)

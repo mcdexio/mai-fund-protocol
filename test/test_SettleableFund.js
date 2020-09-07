@@ -110,7 +110,7 @@ contract('TestSettleableFund', accounts => {
 
         // forbidden
         await shouldThrows(fund.purchase(toWad(200), toWad(1), toWad(0.01)), "bad state");
-        await shouldThrows(fund.redeem(toWad(1), toWad(0)), "bad state");
+        await shouldThrows(fund.redeem(toWad(1)), "bad state");
         await shouldThrows(fund.bidRedeemingShare(user1, toWad(1), toWad(1), 1), "bad state");
 
         assert.equal(fromWad(await fund.redeemingBalance(fund.address)), fromWad(totalSupply));
@@ -268,7 +268,8 @@ contract('TestSettleableFund', accounts => {
         // pnl = 0.01 - 0.005 * 80000 = +400
         assert.equal(fromWad(await deployer.perpetual.pnl.call(fund.address)), 400);
 
-        await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
+        await fund.setRedeemingSlippage(toWad(0.01), { from: user1 });
+        await fund.redeem(toWad(1), { from: user1 });
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0.01), LONG);
 
         await deployer.perpetual.beginGlobalSettlement(toWad(0.01));

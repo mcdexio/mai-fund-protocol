@@ -76,7 +76,7 @@ Auction.sol contains methods for share biddings.
 
   - Getter.sol
 
-    
+
 
 - SocialTradingFund.sol
 
@@ -93,7 +93,7 @@ Getter contrains read-only methods to retrieve properties of fund.
 
 ### BaseFund.sol
 
-Base fund contains all interface available in normal state. 
+Base fund contains all interface available in normal state.
 
 ```
     - [Pub] setParameter #
@@ -106,6 +106,8 @@ Base fund contains all interface available in normal state.
        - modifiers: onlyOwner
     - [Ext] purchase ($)
        - modifiers: whenInState(FundState.Normal),whenNotPaused,nonReentrant
+    - [Ext] setRedeemingSlippage #
+       - modifiers: whenInState(FundState.Normal),whenNotPaused
     - [Ext] redeem #
        - modifiers: whenInState(FundState.Normal),whenInState,nonReentrant
     - [Ext] cancelRedeeming #

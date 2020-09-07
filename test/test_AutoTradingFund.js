@@ -224,8 +224,8 @@ contract('AutoTradingFund', accounts => {
 
         // console.log((await fund.balanceOf(admin)).toString());
         // console.log((await fund.balanceOf(user1)).toString());
-
-        await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
+        await fund.setRedeemingSlippage(toWad(0.01), {from: user1});
+        await fund.redeem(toWad(1), { from: user1 });
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT);
 
         await printFundState(deployer, fund, user1);
@@ -238,7 +238,7 @@ contract('AutoTradingFund', accounts => {
         await printFundState(deployer, fund, user1);
 
 
-        await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
+        await fund.redeem(toWad(1), { from: user1 });
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0.005), LONG);
 
         await printFundState(deployer, fund, user1);
@@ -281,7 +281,8 @@ contract('AutoTradingFund', accounts => {
         var nav = new BigNumber(await fund.netAssetValue.call());
         // net asset value -> 689.999999999999999999 == 689 / 3 = 229.999999999999999999
         // 400 -- 0.0025 X 12000 = 30 + 200
-        await fund.redeem(toWad(1), 0, { from: user1, gasLimit: 8000000 });
+
+        await fund.redeem(toWad(1), { from: user1, gasLimit: 8000000 });
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT, { from: user2, gasLimit: 8000000 });
         approximatelyEqual(await fund.netAssetValue.call(), nav.times(2).div(3));
     });
