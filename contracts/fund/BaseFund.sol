@@ -33,15 +33,12 @@ contract BaseFund is
     // mapping(address => uint256) internal _withdrawableCollaterals;
 
     event Received(address indexed sender, uint256 amount);
+    event SetParameter(bytes32 key, int256 value);
     event Purchase(address indexed account, uint256 netAssetValue, uint256 shareAmount);
-    event SetSlippage(address indexed account, uint256 slippage);
     event RequestToRedeem(address indexed account, uint256 shareAmount, uint256 slippage);
     event Redeem(address indexed account, uint256 shareAmount, uint256 returnedCollateral);
-    event Settle(address indexed account, uint256 shareAmount);
     event CancelRedeeming(address indexed account, uint256 shareAmount);
-    event Withdraw(address indexed account, uint256 collateralAmount);
     event BidShare(address indexed bidder, address indexed account, uint256 shareAmount, uint256 slippage);
-    event SetParameter(bytes32 key, int256 value);
 
     /**
      * @notice only accept ether from pereptual when collateral is ether. otherwise, revert.
@@ -200,7 +197,6 @@ contract BaseFund is
     {
         require(_redeemingSlippages[_msgSender()] != slippage, "same slippage");
         _setRedeemingSlippage(_msgSender(), slippage);
-        emit SetSlippage(_msgSender(), slippage);
     }
 
     /**

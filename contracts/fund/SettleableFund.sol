@@ -24,6 +24,8 @@ contract SettleableFund is
     uint256 internal _drawdownHighWaterMark;
     uint256 internal _leverageHighWaterMark;
 
+    event Settle(address indexed account, uint256 shareAmount);
+
     function __SettleableFund_init(
         string calldata tokenName,
         string calldata tokenSymbol,

@@ -25,7 +25,6 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
     mapping(address => uint256) internal _redeemingBalances;
     mapping(address => uint256) internal _redeemingSlippages;
 
-    event Purchase(address indexed trader, uint256 amount, uint256 lastPurchaseTime);
     event IncreaseRedeemingShareBalance(address indexed trader, uint256 amount);
     event DecreaseRedeemingShareBalance(address indexed trader, uint256 amount);
     event IncreaseWithdrawableCollateral(address indexed trader, uint256 amount);
