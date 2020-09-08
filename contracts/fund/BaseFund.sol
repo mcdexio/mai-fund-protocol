@@ -178,7 +178,7 @@ contract BaseFund is
         // pay collateral + fee, collateral -> perpetual, fee -> fund
         uint256 rawcollateralAmount = _toRawAmount(collateralAmount);
         _pullFromUser(_msgSender(), rawcollateralAmount);
-        _deposit(_toRawAmount(rawcollateralAmount));
+        _deposit(rawcollateralAmount);
         _mint(_msgSender(), shareAmount);
         // - update manager status
         _updateFee(entranceFee);
