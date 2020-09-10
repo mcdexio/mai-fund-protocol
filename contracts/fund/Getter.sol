@@ -50,7 +50,11 @@ contract Getter is SettleableFund {
         return _maxNetAssetValuePerShare;
     }
 
-    // collateral
+    // basic
+    function perpetual() public view returns (address) {
+        return address(_perpetual);
+    }
+
     function collateral() public view returns (address) {
         return address(_collateralToken);
     }
@@ -97,9 +101,4 @@ contract Getter is SettleableFund {
     function drawdown() public returns (uint256) {
         return _drawdown(_updateNetAssetValue());
     }
-
-    // // withdraw
-    // function withdrawableCollateral(address account) public view returns (uint256) {
-    //     return _withdrawableCollaterals[account];
-    // }
 }
