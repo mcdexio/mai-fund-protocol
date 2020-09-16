@@ -83,7 +83,7 @@ contract('TestCollateral', accounts => {
         await collateral.initialize(token.address, 18);
 
         assert.equal(await collateral.collateral(), token.address);
-        assert.equal(await collateral.scaler(), "1");
+        assert.equal(await collateral.scalar(), "1");
         assert.ok(await collateral.isCollateralERC20());
 
 
@@ -92,7 +92,7 @@ contract('TestCollateral', accounts => {
         await collateral.initialize(token.address, 0);
 
         assert.equal(await collateral.collateral(), token.address);
-        assert.equal(await collateral.scaler(), "1000000000000000000");
+        assert.equal(await collateral.scalar(), "1000000000000000000");
         assert.ok(await collateral.isCollateralERC20());
 
 
@@ -101,7 +101,7 @@ contract('TestCollateral', accounts => {
         await collateral.initialize(token.address, 8);
 
         assert.equal(await collateral.collateral(), token.address);
-        assert.equal(await collateral.scaler(), "10000000000");
+        assert.equal(await collateral.scalar(), "10000000000");
         assert.ok(await collateral.isCollateralERC20());
 
 
@@ -110,7 +110,7 @@ contract('TestCollateral', accounts => {
         await collateral.initialize(token.address, 18);
 
         assert.equal(await collateral.collateral(), token.address);
-        assert.equal(await collateral.scaler(), "1");
+        assert.equal(await collateral.scalar(), "1");
         assert.ok(await collateral.isCollateralERC20());
 
         var token = await ERC20WithDecimals.new("Token", "TKN", 19);
@@ -131,7 +131,7 @@ contract('TestCollateral', accounts => {
         await collateral.initialize("0x0000000000000000000000000000000000000000", 18);
 
         assert.equal(await collateral.collateral(), "0x0000000000000000000000000000000000000000");
-        assert.equal(await collateral.scaler(), "1");
+        assert.equal(await collateral.scalar(), "1");
         assert.ok(!(await collateral.isCollateralERC20()));
 
         var collateral = await TestCollateral.new();
