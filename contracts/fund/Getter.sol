@@ -55,8 +55,8 @@ contract Getter is SettleableFund {
         return address(_collateralToken);
     }
 
-    function scaler() public view returns (uint256) {
-        return _scaler;
+    function scalar() public view returns (uint256) {
+        return _scalar;
     }
 
     function totalFeeClaimed() public view returns (uint256) {

@@ -21,7 +21,7 @@ contract Collateral is Initializable {
     using SafeERC20 for IERC20;
 
     IERC20 internal _collateralToken;
-    uint256 internal _scaler;
+    uint256 internal _scalar;
 
     /**
      * @dev     Initialize collateral and decimals.
@@ -42,7 +42,7 @@ contract Collateral is Initializable {
             require(!ok || (ok && retrievedDecimals == decimals), "bad decimals");
         }
         _collateralToken = IERC20(collateralAddress);
-        _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
+        _scalar = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
     }
 
     /**
@@ -143,7 +143,7 @@ contract Collateral is Initializable {
      * @return  Amount with internal decimals.
      */
     function _toInternalAmount(uint256 rawAmount) internal view returns (uint256) {
-        return rawAmount.mul(_scaler);
+        return rawAmount.mul(_scalar);
     }
 
     /**
@@ -152,7 +152,7 @@ contract Collateral is Initializable {
      * @return  Amount  with decimals of token.
      */
     function _toRawAmount(uint256 amount) internal view returns (uint256) {
-        return amount.div(_scaler);
+        return amount.div(_scalar);
     }
 
     uint256[18] private __gap;

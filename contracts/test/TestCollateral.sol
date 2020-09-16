@@ -20,12 +20,12 @@ contract TestCollateral is Collateral {
         return address(_collateralToken);
     }
 
-    function scaler()
+    function scalar()
         external
         view
         returns (uint256)
     {
-        return _scaler;
+        return _scalar;
     }
 
     function retrieveDecimals(address token)
