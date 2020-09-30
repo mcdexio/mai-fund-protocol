@@ -3,7 +3,9 @@
   "contracts": {
     "SocialTradingFund": "SocialTradingFund",
     "ERC20WithDecimals": "ERC20WithDecimals",
-    "AutoTradingFund": "AutoTradingFund"
+    "AutoTradingFund": "AutoTradingFund",
+    "TestPriceFeeder": "TestPriceFeeder",
+    "PeriodicPriceBucket": "PeriodicPriceBucket"
   },
   "dependencies": {},
   "name": "mai-fund-protocol",

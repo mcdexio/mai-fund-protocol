@@ -33,7 +33,7 @@ contract State is Initializable {
     }
 
     /**
-     * @dev     Set state to emergency, only available in Normal state.
+     * @dev Set state to emergency, only available in Normal state.
      */
     function _setEmergency()
         internal
@@ -45,7 +45,7 @@ contract State is Initializable {
     }
 
     /**
-     * @dev     Set state to shutdown, only available in shutdown state.
+     * @dev Set state to shutdown, only available in shutdown state.
      */
     function _setShutdown()
         internal

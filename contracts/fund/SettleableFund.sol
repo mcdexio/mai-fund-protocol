@@ -70,7 +70,7 @@ contract SettleableFund is
             _setLeverageHighWaterMark(value.toUint256());
         } else {
             super.setParameter(key, value);
-            return;
+            return; 
         }
         emit SetParameter(key, value);
     }
