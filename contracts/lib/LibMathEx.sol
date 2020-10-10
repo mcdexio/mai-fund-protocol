@@ -38,7 +38,7 @@ library LibMathEx {
     }
 
     function abs(int256 x) internal pure returns (int256) {
-        return x >= 0? x: -x;
+        return x >= 0? x: neg(x);
     }
 
     function neg(int256 a) internal pure returns (int256) {
