@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.10;
 
-import "@openzeppelin/contracts/utils/EnumerableMap.sol";
-import "@openzeppelin/contracts/utils/Arrays.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/EnumerableMap.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/Arrays.sol";
 
 library LibEnumerableMap {
+
+    using SafeMath for uint256;
 
     struct MapEntry {
         uint256 _key;
@@ -37,7 +40,7 @@ library LibEnumerableMap {
             map._indexes[key] = map._entries.length;
             return true;
         } else {
-            map._entries[keyIndex - 1]._value = value;
+            map._entries[keyIndex.sub(1)]._value = value;
             return false;
         }
     }
@@ -79,7 +82,7 @@ library LibEnumerableMap {
         if (keyIndex == 0) {
             return 0;
         }
-        return at(map, keyIndex - 1);
+        return at(map, keyIndex.sub(1));
     }
 
     function findLastNonZeroValue(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
@@ -88,8 +91,8 @@ library LibEnumerableMap {
         }
         uint256 low = 0;
         uint256 high = map._entries.length;
-        while (low < high - 1) {
-            uint256 mid = (low + high) / 2;
+        while (low < high.sub(1)) {
+            uint256 mid = low.add(high).div(2);
             if (key < map._entries[mid]._key) {
                 high = mid;
             } else {
@@ -108,6 +111,6 @@ library LibEnumerableMap {
      */
     function get(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
         uint256 keyIndex = map._indexes[key];
-        return keyIndex != 0? map._entries[keyIndex - 1]._value: 0;
+        return keyIndex != 0? map._entries[keyIndex.sub(1)]._value: 0;
     }
 }
