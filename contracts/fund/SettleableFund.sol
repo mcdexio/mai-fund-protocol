@@ -210,7 +210,7 @@ contract SettleableFund is
         address account = _msgSender();
         require(shareAmount > 0, "amount is 0");
         require(shareAmount <= balanceOf(account), "amount excceeded");
-        uint256 collateralSettled = _rawBalanceOf(_self()).sub(_totalFeeClaimed);
+        uint256 collateralSettled = _internalBalanceOf(_self()).sub(_totalFeeClaimed);
         uint256 collateralToReturn = collateralSettled.wfrac(shareAmount, totalSupply());
         _burn(account, shareAmount);
         _pushToUser(payable(account), _toRawAmount(collateralToReturn));
