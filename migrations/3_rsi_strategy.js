@@ -8,7 +8,7 @@ module.exports = async function(deployer) {
   const unit = 10**18;
   await deployer.deploy(RSITrendingStrategy,
     PeriodicPriceBucket.address,
-    432,
+    30,
     13,
     [ toWad(40), toWad(50), toWad(60)],
     [

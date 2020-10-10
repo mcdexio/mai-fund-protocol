@@ -8,4 +8,5 @@ module.exports = async function(deployer) {
   const bucket = await PeriodicPriceBucket.deployed();
   await bucket.initialize(TestPriceFeeder.address);
   await bucket.addBucket(432);
+  await bucket.addBucket(30);
 };

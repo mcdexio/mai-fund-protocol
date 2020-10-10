@@ -105,6 +105,10 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         emit RemoveBucket(period);
     }
 
+    function firstPeriodIndexes(uint256 period) public view returns (uint256) {
+        return _firstPeriodIndexes[period];
+    }
+
     function setPriceFeeder(address newPriceFeeder)
         external
         onlyOwner
