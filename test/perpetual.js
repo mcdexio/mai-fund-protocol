@@ -13,7 +13,7 @@ const Proxy = truffleContract(require('@mcdex/mai-protocol-v2-build/build/contra
 const ShareToken = truffleContract(require('@mcdex/mai-protocol-v2-build/build/contracts/ShareToken.json'));
 
 class PerpetualDeployer {
-    constructor(accounts, inversed) {
+    constructor(accounts, inversed, cDecimals=18) {
         this.accounts = accounts;
         this.inversed = inversed;
 
@@ -57,6 +57,7 @@ class PerpetualDeployer {
         this.perpetual = null;
         this.proxy = null;
         this.amm = null;
+        this.cDecimals = cDecimals;
     }
 
     async deploy() {
@@ -64,14 +65,14 @@ class PerpetualDeployer {
         if (this.inversed) {
             collateral = { address: "0x0000000000000000000000000000000000000000" }
         } else {
-            collateral = await TestToken.new("TT", "TestToken", 18);
+            collateral = await TestToken.new("TT", "TestToken", this.cDecimals);
         }
         var globalConfig = await GlobalConfig.new();
         var exchange = await Exchange.new(globalConfig.address);
         var priceFeeder = await PriceFeeder.new();
         var chainlinkAdapter = await ChainlinkAdapter.new(priceFeeder.address, 3600 * 6, this.inversed);
         var share = await ShareToken.new("ST", "STK", 18);
-        var perpetual = await Perpetual.new(globalConfig.address, this.dev, collateral.address, 18);
+        var perpetual = await Perpetual.new(globalConfig.address, this.dev, collateral.address, this.cDecimals);
         var proxy = await Proxy.new(perpetual.address);
         var amm = await AMM.new(globalConfig.address, proxy.address, chainlinkAdapter.address, share.address);
 

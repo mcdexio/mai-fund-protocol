@@ -69,7 +69,7 @@ contract Collateral is Initializable {
     function _approvalTo(address spender, uint256 rawAmount)
         internal
     {
-        require(!_isCollateralERC20(), "need no approve");
+        require(_isCollateralERC20(), "need no approve");
         _collateralToken.safeApprove(spender, rawAmount);
     }
 
@@ -91,12 +91,12 @@ contract Collateral is Initializable {
      * @param   account     Address of account.
      * @return  Raw repesentation of collateral balance.
      */
-    function _rawBalanceOf(address account)
+    function _internalBalanceOf(address account)
         internal
         view
         returns (uint256)
     {
-        return _toRawAmount(_isCollateralERC20()? _collateralToken.balanceOf(account): account.balance);
+        return _toInternalAmount(_isCollateralERC20()? _collateralToken.balanceOf(account): account.balance);
     }
 
     /**

@@ -6,7 +6,8 @@ const { PerpetualDeployer } = require("./perpetual.js");
 const {
     toBytes32, fromBytes32, uintToBytes32, toWad, fromWad, shouldThrows,
     createEVMSnapshot, restoreEVMSnapshot, sleep, approximatelyEqual,
-    checkEtherBalance
+    checkEtherBalance,
+    infinity
 } = require("./utils.js");
 
 const TestSettleableFund = artifacts.require('TestSettleableFund.sol');
@@ -293,5 +294,53 @@ contract('TestSettleableFund', accounts => {
         assert.equal(fromWad(await fund.totalSupply()), 0);
         assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
         await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount excceeded");
+    });
+
+    it("settle - C01", async () => {
+        // collateral.decimals = 16
+        deployer = await new PerpetualDeployer(accounts, false, 6);
+        await deployer.deploy();
+        await deployer.initialize();
+        await deployer.setIndex(200);
+        await deployer.createPool();
+
+        fund = await TestSettleableFund.new();
+        await fund.initialize(
+            "Fund Share Token",
+            "FST",
+            6,
+            deployer.perpetual.address,
+            toWad(1000),
+        )
+
+        await deployer.globalConfig.addComponent(deployer.perpetual.address, fund.address);
+        // 1% entrance fee
+        await fund.setParameter(web3.utils.fromAscii("entranceFeeRate"), toWad(0.01));
+
+        const _unit = new BigNumber('1000000');
+        const toToken = (...xs) => {
+            let sum = new BigNumber(0);
+            for (var x of xs) {
+                sum = sum.plus(new BigNumber(x).times(_unit));
+            }
+            return sum.toFixed();
+        };
+
+        await deployer.collateral.transfer(user1, toToken(1010));
+        await deployer.collateral.approve(fund.address, infinity, { from: user1 });
+
+        await fund.approvePerpetual(infinity);
+        await fund.purchase(toWad(1010), toWad(1), toWad(1000), { from: user1 });
+        assert.equal(fromWad(await deployer.collateral.balanceOf(user1)), 0);
+
+        assert.equal(fromWad(await fund.balanceOf(user1)), 1);
+        assert.equal(fromWad(await fund.totalFeeClaimed()), 10);
+
+        await fund.setEmergency();
+        await fund.setShutdown();
+
+        assert.equal(await deployer.collateral.balanceOf(user1), 0);
+        await fund.settle(toWad(1), { from: user1 });
+        assert.equal(await deployer.collateral.balanceOf(user1), toToken(1000));
     });
 });
