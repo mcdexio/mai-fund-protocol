@@ -118,7 +118,7 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
         if (_redeemingLockPeriod == 0) {
             return true;
         }
-        return _lastPurchaseTimes[trader].add(_redeemingLockPeriod) < _now();
+        return _lastPurchaseTimes[trader].add(_redeemingLockPeriod) <= _now();
     }
 
     /**
@@ -160,13 +160,6 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
         }
 
         require(from == address(0) || to == address(0) || amount <= _redeemableShareBalance(from), "amount exceeded");
-        // this will affect receipient's _lastPurchaseTime.
-        // to prevent early redeeming through transfer
-        // but there is a side effect: if a account continously purchase && transfer shares to another account.
-        // the target account may be blocked by such unexpeced manner.
-        if (amount > 0 && _lastPurchaseTimes[from] > _lastPurchaseTimes[to]) {
-            _lastPurchaseTimes[to] = _lastPurchaseTimes[from];
-        }
     }
 
     uint256[15] private __gap;
