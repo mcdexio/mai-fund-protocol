@@ -36,14 +36,7 @@ contract SettleableFund is
         internal
         initializer
     {
-        __Context_init_unchained();
-        __ERC20_init_unchained(tokenName, tokenSymbol);
-        __ERC20CappedRedeemable_init_unchained(tokenCap);
-        __State_init_unchained();
-        __MarginAccount_init_unchained(perpetualAddress);
-        __Collateral_init_unchained(_collateral(), collateralDecimals);
-        __Pausable_init_unchained();
-        __ReentrancyGuard_init_unchained();
+        __BaseFund_init(tokenName, tokenSymbol, collateralDecimals, perpetualAddress, tokenCap);
         __SettleableFund_init_unchained();
     }
 
