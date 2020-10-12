@@ -51,7 +51,7 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
     }
 
     /**
-     * @dev     Before actually sold (redeemed), the share will still belongs to redeeming account.
+     * @dev     Before actually sold (redeemed), the share will still belong to redeeming account.
      * @param   trader  Address of share owner.
      * @return  Amount of redeemable share balance.
      */
@@ -77,7 +77,7 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
     /**
      * @dev     Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
      * @param   trader      Address of share owner.
-     * @param   slippage    Slipage percent of redeeming rate.
+     * @param   slippage    Slippage percent of redeeming rate.
      */
     function _setRedeemingSlippage(address trader, uint256 slippage)
         internal
@@ -150,7 +150,7 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
     }
 
     /**
-     * @dev Hook to check redeemable amount before transfer && update purchase time.
+     * @dev Hook to check redeemable amount before transfer and update purchase time.
      */
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
@@ -160,10 +160,10 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
         }
 
         require(from == address(0) || to == address(0) || amount <= _redeemableShareBalance(from), "amount exceeded");
-        // this will affect receipient's _lastPurchaseTime.
+        // this will affect recipient's _lastPurchaseTime.
         // to prevent early redeeming through transfer
-        // but there is a side effect: if a account continously purchase && transfer shares to another account.
-        // the target account may be blocked by such unexpeced manner.
+        // but there is a side effect: if an account continuously purchases and transfers shares to another account.
+        // the target account may be blocked by such unexpected manner.
         if (amount > 0 && _lastPurchaseTimes[from] > _lastPurchaseTimes[to]) {
             _lastPurchaseTimes[to] = _lastPurchaseTimes[from];
         }

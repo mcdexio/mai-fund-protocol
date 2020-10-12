@@ -34,7 +34,7 @@ contract Auction is Core {
 
     /**
      * @dev     Bid share from redeeming or shutdown account. Bidders will have a discount on dealing price,
-     *          which makes profits to bidder.
+     *          which gives profits to bidder.
      * @param   shareAmount Amount of share to bid.
      * @param   priceLimit  Price limit.
      * @param   side        Side of position to bid.

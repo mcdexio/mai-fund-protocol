@@ -76,7 +76,7 @@ contract SettleableFund is
     }
 
     /**
-     * @dev     Set drawdonw high water mark. Exceeding hwm will cause emergency shutdown.
+     * @dev     Set drawdown high water mark. Exceeding hwm will cause emergency shutdown.
      * @param   hwm High water mark for drawdown.
      */
     function _setDrawdownHighWaterMark(uint256 hwm)
@@ -101,7 +101,7 @@ contract SettleableFund is
      * @dev     Test can shutdown or not.
      *          1. This is NOT view because method in perpetual.
      *          2. shutdown conditions:
-     *              - leveraga reaches limit;
+     *              - leverage reaches limit;
      *              - max drawdown reaches limit.
      * @return True if any condition is met.
      */
@@ -176,7 +176,7 @@ contract SettleableFund is
     {
         address account = _self();
         require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= _redeemingBalances[account], "amount excceeded");
+        require(shareAmount <= _redeemingBalances[account], "amount exceeded");
         uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[account]);
         _decreaseRedeemingShareBalance(account, shareAmount);
         emit BidShare(_msgSender(), account, shareAmount, slippageLoss);
@@ -209,7 +209,7 @@ contract SettleableFund is
     {
         address account = _msgSender();
         require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= balanceOf(account), "amount excceeded");
+        require(shareAmount <= balanceOf(account), "amount exceeded");
         uint256 collateralSettled = _rawBalanceOf(_self()).sub(_totalFeeClaimed);
         uint256 collateralToReturn = collateralSettled.wfrac(shareAmount, totalSupply());
         _burn(account, shareAmount);
