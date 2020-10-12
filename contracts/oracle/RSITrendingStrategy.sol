@@ -61,7 +61,7 @@ contract RSITrendingStrategy is RSIReader {
         require(seperators.length > 0, "no seperators");
         for (uint256 i = 0; i < seperators.length; i++) {
             require(seperators[i] > RSI_LOWERBOUND && seperators[i] < RSI_UPPERBOUND, "seperators out of range");
-            require(i == 0 || seperators[i] > seperators[i.sub(1)], "seperators must be monoture increasing");
+            require(i == 0 || seperators[i] > seperators[i.sub(1)], "seperators must be monotonically increasing");
         }
         uint256 maxSegment = seperators.length.add(1);
         for (uint256 i = 0; i < transferEntries.length; i++) {
