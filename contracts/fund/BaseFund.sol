@@ -141,9 +141,9 @@ contract BaseFund is
     /**
      * @notice  Purchase share, Total collataral required == amount * nav per share.
      *          Since the transfer mechanism of ether and erc20 is totally different,
-     *          the received amount wiil not be deterministic but only a mininal amount promised.
+     *          the received amount will not be deterministic but only a mininal amount promised.
      * @param   collateralAmount    Amount of collateral paid to purchase.
-     * @param   shareAmountLimit    At least amount of shares token received by user.
+     * @param   shareAmountLimit    At least amount of share tokens received by user.
      * @param   priceLimit          NAV price limit to protect account's dealing price.
      */
     function purchase(uint256 collateralAmount, uint256 shareAmountLimit, uint256 priceLimit)
@@ -214,7 +214,7 @@ contract BaseFund is
         //  1. update redeem amount in account
         //  2.. create order, push order to list
         require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= balanceOf(account), "amount excceeded");
+        require(shareAmount <= balanceOf(account), "amount exceeded");
         require(_canRedeem(account), "cannot redeem now");
         if (_marginAccount().size > 0) {
             // have to wait for keeper to take redeemed shares (positions).
@@ -252,7 +252,7 @@ contract BaseFund is
      * @param   account     Amount of collateral to withdraw.
      * @param   shareAmount Amount of share balance to bid.
      * @param   priceLimit  Price limit of dealing price. Calculated differently for long and short.
-     * @param   side        Trding side for caller.
+     * @param   side        Trading side for caller.
      */
     function bidRedeemingShare(
         address account,
@@ -266,7 +266,7 @@ contract BaseFund is
         nonReentrant
     {
         require(shareAmount > 0, "amount is 0");
-        require(shareAmount <= _redeemingBalances[account], "amount excceeded");
+        require(shareAmount <= _redeemingBalances[account], "amount exceeded");
         uint256 collateralToReturn = _updateNetAssetValue().wfrac(shareAmount, totalSupply());
         uint256 slippageLoss = _bidShare(shareAmount, priceLimit, side, _redeemingSlippages[account]);
         _decreaseRedeemingShareBalance(account, shareAmount);
