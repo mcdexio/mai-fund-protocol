@@ -56,7 +56,6 @@ library LibTargetCalculator {
         int256 targetSize = targetMargin.wdiv(markPrice.toInt256());
         int256 target = targetSize.sub(currentSize);
         amount = target.abs().toUint256();
-        require(amount > 0, "need no rebalance");
         side = target > 0? LibTypes.Side.LONG: LibTypes.Side.SHORT;
     }
 
