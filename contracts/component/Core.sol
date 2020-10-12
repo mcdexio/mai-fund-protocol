@@ -51,7 +51,6 @@ contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
         uint256 streamingFee = _streamingFee(assetValue);
         assetValue = assetValue.sub(streamingFee);
         uint256 performanceFee = _performanceFee(assetValue);
-        assetValue = assetValue.sub(performanceFee);
         return streamingFee.add(performanceFee);
     }
 
