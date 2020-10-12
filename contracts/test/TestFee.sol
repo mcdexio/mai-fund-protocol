@@ -70,7 +70,8 @@ contract TestFee is Fee {
     }
 
     function updateFee(uint256 fee) external returns (uint256) {
-        return _updateFee(fee);
+        _updateFee(fee);
+        return _totalFeeClaimed;
     }
 
     function updateMaxNetAssetValuePerShare(uint256 netAssetValuePerShare) external {

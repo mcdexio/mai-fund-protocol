@@ -123,11 +123,9 @@ contract Fee is Context, ERC20CappedRedeemable {
      */
     function _updateFee(uint256 fee)
         internal
-        returns (uint256)
     {
         _totalFeeClaimed = _totalFeeClaimed.add(fee);
         _lastFeeTime = _now();
-        return _totalFeeClaimed;
     }
 
     /**
