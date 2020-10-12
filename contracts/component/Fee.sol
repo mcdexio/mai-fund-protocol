@@ -97,7 +97,7 @@ contract Fee is Context, ERC20CappedRedeemable {
     }
 
     /**
-     * @dev     Calculate performance fee. mature part and immature part are calculated separately.
+     * @dev     Calculate performance fee. Return 0 if current nav is less then max nav since fund launched.
      * @param   netAssetValue   Amount of total asset value, streaming fee excluded.
      * @return  Amount of performance fee.
      */
