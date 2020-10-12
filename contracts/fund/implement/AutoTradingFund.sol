@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
 
 import "../../lib/LibTypes.sol";
 import "../../lib/LibMathEx.sol";
@@ -61,6 +62,8 @@ contract AutoTradingFund is
         internal
         initializer
     {
+        require(strategyAddress != address(0), "invalid strategy");
+        require(Address.isContract(strategyAddress), "strategy must be contract");
         _strategy = ITradingStrategy(strategyAddress);
         _inversed = inversedContract;
     }
