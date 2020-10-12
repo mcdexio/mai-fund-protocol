@@ -21,7 +21,7 @@ contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
     using SafeCast for uint256;
     using LibMathEx for int256;
 
-    event UpdateNetAssetValue(uint256 netAssetValue, uint256 totalFeeClaimed);
+    event UpdateNetAssetValue(uint256 netAssetValue, uint256 totalFeeClaimable);
 
     /**
      * @dev     Get net asset value per share.
@@ -85,10 +85,10 @@ contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
         returns (uint256)
     {
         uint256 netAssetValuePerShare = _netAssetValuePerShare(netAssetValue);
-        if (netAssetValuePerShare >= _maxNetAssetValuePerShare) {
+        if (netAssetValuePerShare >= _historicMaxNetAssetValuePerShare) {
             return 0;
         }
-        return _maxNetAssetValuePerShare.sub(netAssetValuePerShare).wdiv(_maxNetAssetValuePerShare);
+        return _historicMaxNetAssetValuePerShare.sub(netAssetValuePerShare).wdiv(_historicMaxNetAssetValuePerShare);
     }
 
     /**
@@ -102,7 +102,7 @@ contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
     {
         netAssetValue = _totalAssetValue();
         if (_state != FundState.Shutdown) {
-            netAssetValue = netAssetValue.sub(_totalFeeClaimed, "asset exhausted");
+            netAssetValue = netAssetValue.sub(_totalFeeClaimable, "asset exhausted");
         }
         // - avoid duplicated fee updating
         // - once leave normal state, management fee will not increase anymore.
@@ -110,9 +110,9 @@ contract Core is ERC20CappedRedeemable, Fee, MarginAccount, State {
             uint256 newFee = _managementFee(netAssetValue);
             netAssetValue = netAssetValue.sub(newFee);
             _updateFee(newFee);
-            _updateMaxNetAssetValuePerShare(_netAssetValuePerShare(netAssetValue));
+            _updateHistoricMaxNetAssetValuePerShare(_netAssetValuePerShare(netAssetValue));
         }
-        emit UpdateNetAssetValue(netAssetValue, _totalFeeClaimed);
+        emit UpdateNetAssetValue(netAssetValue, _totalFeeClaimable);
     }
 
     uint256[20] private __gap;

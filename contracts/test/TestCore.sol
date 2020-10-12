@@ -17,14 +17,14 @@ contract TestCore is Core {
         __MarginAccount_init_unchained(perpetualAddress);
     }
 
-    function totalFeeClaimed() external view returns (uint256) {
-        return _totalFeeClaimed;
+    function totalFeeClaimable() external view returns (uint256) {
+        return _totalFeeClaimable;
     }
 
-    function setTotalFeeClaimed(uint256 __totalFeeClaimed)
+    function setTotalFeeClaimed(uint256 __totalFeeClaimable)
         external
     {
-        _totalFeeClaimed = __totalFeeClaimed;
+        _totalFeeClaimable = __totalFeeClaimable;
     }
 
     function mint(address trader, uint256 shareAmount)
@@ -81,10 +81,10 @@ contract TestCore is Core {
         return _mockPerformanceFee;
     }
 
-    function setMaxNetAssetValuePerShare(uint256 maxNetAssetValuePerShare)
+    function setHistoricMaxNetAssetValuePerShare(uint256 historicMaxNetAssetValuePerShare)
         external
     {
-        _maxNetAssetValuePerShare = maxNetAssetValuePerShare;
+        _historicMaxNetAssetValuePerShare = historicMaxNetAssetValuePerShare;
     }
 
     function netAssetValue()
