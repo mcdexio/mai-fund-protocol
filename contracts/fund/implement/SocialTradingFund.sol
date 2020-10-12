@@ -81,6 +81,7 @@ contract SocialTradingFund is
         onlyOwner
         nonReentrant
     {
+        require(newManager != address(0), "invalid manager");
         if (_manager != newManager) {
             _withdrawManagementFee(managementFee());
             emit SetManager(_manager, newManager);
