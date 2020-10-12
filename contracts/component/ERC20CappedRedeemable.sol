@@ -27,8 +27,6 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
 
     event IncreaseRedeemingShareBalance(address indexed trader, uint256 amount);
     event DecreaseRedeemingShareBalance(address indexed trader, uint256 amount);
-    event IncreaseWithdrawableCollateral(address indexed trader, uint256 amount);
-    event DecreaseWithdrawableCollateral(address indexed trader, uint256 amount);
     event SetRedeemingSlippage(address indexed trader, uint256 slippage);
 
     function __ERC20CappedRedeemable_init_unchained(uint256 cap)

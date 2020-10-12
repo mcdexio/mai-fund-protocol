@@ -23,12 +23,6 @@ contract Fee is Context, ERC20CappedRedeemable {
     uint256 internal _streamingFeeRate;
     uint256 internal _performanceFeeRate;
 
-    event SetFeeRates(
-        uint256 entranceFeeRate,
-        uint256 streamingFeeRate,
-        uint256 performanceFeeRate
-    );
-
     /**
      * @dev     Set entrance fee rete.
      * @param   newRate Rate of entrance fee. 0 < rate <= 100%
