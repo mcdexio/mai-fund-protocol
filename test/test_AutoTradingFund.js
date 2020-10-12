@@ -176,7 +176,8 @@ contract('AutoTradingFund', accounts => {
 
         // 50: 1 -> 1
         await rsistg.setNextTarget(toWad(1));
-        await shouldThrows(fund.rebalanceTarget.call(), "need no rebalance");
+        var target = await fund.rebalanceTarget.call();
+        assert.equal(target.needRebalance, false);
 
         // 11: 1 -> -1
         await rsistg.setNextTarget(toWad(-1));
