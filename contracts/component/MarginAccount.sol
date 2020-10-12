@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.so
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
 
 import "../interface/IPerpetual.sol";
 import "./Context.sol";
@@ -32,6 +33,7 @@ contract MarginAccount is Initializable, Context {
         initializer
     {
         require(perpetualAddress != address(0), "zero perpetual address");
+        require(Address.isContract(perpetualAddress), "perpetual must be contract");
         _perpetual = IPerpetual(perpetualAddress);
     }
 

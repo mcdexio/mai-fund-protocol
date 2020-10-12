@@ -4,6 +4,7 @@ pragma solidity 0.6.10;
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/EnumerableSet.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
 
 import "../lib/LibEnumerableMap.sol";
 
@@ -109,6 +110,7 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         external
         onlyOwner
     {
+        require(Address.isContract(newPriceFeeder), "price feeder must be contract");
         _setPriceFeeder(newPriceFeeder);
     }
 
