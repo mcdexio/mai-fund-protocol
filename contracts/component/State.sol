@@ -45,7 +45,7 @@ contract State is Initializable {
     }
 
     /**
-     * @dev     Set state to shutdown, only available in shutdown state.
+     * @dev     Set state to shutdown, only available in emergency state.
      */
     function _setShutdown()
         internal

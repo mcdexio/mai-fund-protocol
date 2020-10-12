@@ -47,10 +47,10 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
     }
 
     /**
-     * @notice  Return all available period as an array.
+     * @notice  Return all available periods as an array.
      * @dev     According to the implementation of EnumerableSet,
-     *          order of data may change after remove.
-     * @return  Array of all available period.
+     *          order of data may change after removal.
+     * @return  Array of all available periods.
      */
     function buckets()
         external
@@ -66,8 +66,8 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
     }
 
     /**
-     * @notice  Test a period is exist.
-     * @return  Return true if a bucket is already existed.
+     * @notice  Test if a period exists.
+     * @return  Return true if a bucket already exists.
      */
     function hasBucket(uint256 period)
         external
@@ -86,7 +86,7 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         onlyOwner
     {
         require(period > 0, "period must be greater than 0");
-        require(_periods.length() < MAX_BUCKETS, "number of buckets reaches limit");
+        require(_periods.length() < MAX_BUCKETS, "number of buckets has already reached the limit");
         require(_periods.add(period), "period is duplicated");
         emit AddBucket(period);
     }
@@ -99,7 +99,7 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         external
         onlyOwner
     {
-        require(_periods.remove(period), "period is not exist");
+        require(_periods.remove(period), "period does not exist");
         delete _buckets[period];
         delete _firstPeriodIndexes[period];
         emit RemoveBucket(period);
@@ -131,7 +131,7 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
             _buckets[period].set(periodIndex , newPrice);
             if (_firstPeriodIndexes[period] == 0) {
                 // here, when the periodIndex == 0
-                // the _firstPeriodIndexes will be overrided.
+                // the _firstPeriodIndexes will be overwritten.
                 // but this is not possible in production environment
                 // so let's ignore it.
                 _firstPeriodIndexes[period] = periodIndex;
@@ -158,7 +158,7 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         returns (uint256[] memory)
     {
         require(beginTimestamp <= endTimestamp, "begin must be earlier than end");
-        require(_periods.contains(period), "period is not exist");
+        require(_periods.contains(period), "period does not exist");
 
         uint256 beginIndex = beginTimestamp.div(period);
         require(beginIndex >= _firstPeriodIndexes[period], "begin is earlier than first time");

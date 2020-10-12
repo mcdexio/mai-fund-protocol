@@ -10,10 +10,10 @@ import "../lib/LibConstant.sol";
 
 /**
  * @title   Collateral Module
- * @dev     Handle underlaying collaterals.
+ * @dev     Handle underlying collaterals.
  *          In this file, parameter named with:
  *              - [amount] means internal amount
- *              - [rawAmount] means amount in decimals of underlaying collateral
+ *              - [rawAmount] means amount in decimals of underlying collateral
  *
  */
 contract Collateral is Initializable {
