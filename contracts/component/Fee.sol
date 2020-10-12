@@ -58,10 +58,10 @@ contract Fee is Context, ERC20CappedRedeemable {
 
     /**
      * @dev     Calculate purchase fee. nav * amount * feerate
-     * @param   purchasedAssetValue   Total asset value to purchase.
+     * @param   collateralAmount   Total collateral spent for purchasing shares.
      * @return  Amount of purchase fee.
      */
-    function _entranceFee(uint256 purchasedAssetValue)
+    function _entranceFee(uint256 collateralAmount)
         internal
         view
         virtual
@@ -70,7 +70,7 @@ contract Fee is Context, ERC20CappedRedeemable {
         if (_entranceFeeRate == 0) {
             return 0;
         }
-        return purchasedAssetValue.wfrac(
+        return collateralAmount.wfrac(
             _entranceFeeRate,
             LibConstant.UNSIGNED_ONE.add(_entranceFeeRate)
         );
