@@ -8,7 +8,7 @@ interface IGlobalConfig {
 
     function addBroker(address broker) external;
 
-    function removeBroker() external;
+    function removeBroker(address broker) external;
 
     function addComponent(address perpetual, address component) external;
 
