@@ -78,7 +78,7 @@ contract('BaseFund', accounts => {
         console.log("  │    PositionSide               │  ", marginAccount.side == SHORT? "SHORT": marginAccount.side == LONG? "LONG": "FLAT");
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fee                           │                 ");
-        console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimed()));
+        console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimable()));
         console.log("  │    LastFeeTime                │  ", (await fund.lastFeeTime()).toString());
         console.log("  └───────────────────────────────┴─────────────────");
         console.log("");
@@ -345,7 +345,7 @@ contract('BaseFund', accounts => {
 
         await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
         const lastFeeTimeB = Number((await fund.lastFeeTime()).toString());
-        assert.equal(fromWad(await fund.totalFeeClaimed()),  (lastFeeTimeB-lastFeeTimeA) * 0.00000001 * 200);
+        assert.equal(fromWad(await fund.totalFeeClaimable()),  (lastFeeTimeB-lastFeeTimeA) * 0.00000001 * 200);
 
         // assert.equal(fromWad(await fund.balanceOf(user1)), 1);
         await printFundState(deployer, fund, user1);

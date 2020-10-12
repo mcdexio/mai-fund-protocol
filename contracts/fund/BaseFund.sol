@@ -162,9 +162,9 @@ contract BaseFund is
         uint256 netAssetValuePerShare;
         if (totalSupply() == 0) {
             // when total supply is 0, nav per share cannot be determined by calculation.
-            require(priceLimit >= _maxNetAssetValuePerShare, "nav too low");
+            require(priceLimit >= _historicMaxNetAssetValuePerShare, "nav too low");
             netAssetValuePerShare = priceLimit;
-            _maxNetAssetValuePerShare = priceLimit;
+            _historicMaxNetAssetValuePerShare = priceLimit;
         } else {
             // normal case
             uint256 netAssetValue = _updateNetAssetValue();

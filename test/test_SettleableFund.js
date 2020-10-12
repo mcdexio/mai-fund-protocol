@@ -81,7 +81,7 @@ contract('TestSettleableFund', accounts => {
         console.log("  │    PositionSide               │  ", marginAccount.side == SHORT? "SHORT": marginAccount.side == LONG? "LONG": "FLAT");
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fee                           │                 ");
-        console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimed()));
+        console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimable()));
         console.log("  │    LastFeeTime                │  ", (await fund.lastFeeTime()).toString());
         console.log("  └───────────────────────────────┴─────────────────");
         console.log("");
