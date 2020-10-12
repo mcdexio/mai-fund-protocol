@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
 
 import "../../lib/LibTypes.sol";
 import "../../lib/LibMathEx.sol";
@@ -37,6 +38,7 @@ contract AutoTradingFund is
     uint256 internal _rebalanceTolerance;
 
     event Rebalance(LibTypes.Side side, uint256 price, uint256 amount);
+    event SetStrategy(address previousStrategy, address newStrategy);
 
     function initialize(
         string calldata tokenName,
@@ -61,10 +63,18 @@ contract AutoTradingFund is
         internal
         initializer
     {
-        _strategy = ITradingStrategy(strategyAddress);
+        _setStrategy(strategyAddress);
         _inversed = inversedContract;
     }
 
+    /**
+     * Return description of current strategy.
+     *
+     * @return  strategy            Address of current strategy.
+     * @return  inversed            True if current underlying perpetual is inversed.
+     * @return  rebalanceSlippage   Slippage of rebalance.
+     * @return  rebalanceTolerance  Tolerance (delta value of leverage) of rebalance.
+     */
     function description()
         external
         view
@@ -77,7 +87,7 @@ contract AutoTradingFund is
     }
 
     /**
-     * @notice  Set slippage and tolerance of rebalance.
+     * @notice  Set strategy, slippage and tolerance of rebalance.
      */
     function setParameter(bytes32 key, int256 value)
         public
@@ -85,7 +95,9 @@ contract AutoTradingFund is
         override
         onlyOwner
     {
-        if (key == "rebalanceSlippage") {
+        if (key == "strategy") {
+            _setStrategy(address(uint160(value)));
+        } else if (key == "rebalanceSlippage") {
             _rebalanceSlippage = value.toUint256();
         } else if (key == "rebalanceTolerance") {
             _rebalanceTolerance = value.toUint256();
@@ -157,6 +169,15 @@ contract AutoTradingFund is
             return nextTargetLeverage.neg();
         }
         return nextTargetLeverage;
+    }
+
+    function _setStrategy(address strategyAddress)
+        internal
+    {
+        require(strategyAddress != address(0), "invalid strategy");
+        require(Address.isContract(strategyAddress), "strategy must be contract");
+        emit SetStrategy(address(_strategy), strategyAddress);
+        _strategy = ITradingStrategy(strategyAddress);
     }
 
     uint256[16] private __gap;
