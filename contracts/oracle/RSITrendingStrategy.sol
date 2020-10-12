@@ -51,8 +51,8 @@ contract RSITrendingStrategy is RSIReader {
         require(Address.isContract(priceReader), "price reader must be contract");
         uint256 maxSegment = seperators.length.add(1);
         for (uint256 i = 0; i < transferEntries.length; i++) {
-            require(transferEntries[i].begin <= maxSegment, "begin out of range");
-            require(transferEntries[i].end <= maxSegment, "end out of range");
+            require(transferEntries[i].begin < maxSegment, "begin out of range");
+            require(transferEntries[i].end < maxSegment, "end out of range");
             require(
                 transferEntries[i].target <= TARGET_UPPERBOUND &&
                 transferEntries[i].target >= TARGET_LOWERBOUND,
