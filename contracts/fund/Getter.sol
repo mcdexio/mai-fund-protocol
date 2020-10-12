@@ -97,9 +97,4 @@ contract Getter is SettleableFund {
     function drawdown() public returns (uint256) {
         return _drawdown(_updateNetAssetValue());
     }
-
-    // // withdraw
-    // function withdrawableCollateral(address account) public view returns (uint256) {
-    //     return _withdrawableCollaterals[account];
-    // }
 }
