@@ -46,17 +46,6 @@ contract RSITrendingStrategy is RSIReader {
         public
         RSIReader(priceReader, period, numPeriod)
     {
-        // require(thresholds.length > 0, "threshold cannot be empty");
-        // require(thresholds.length.add(1) == targets.length, "thresholds does not match with targets");
-        // // ensure thresholds are in increasing order and no duplicated value
-        // // ensure target between [-10 ~ +10]
-        // for (uint256 i = 0; i < thresholds.length; i++) {
-        //     require(thresholds[i] <= RSI_UPPERBOUND, "threshold is out of range");
-        //     require(targets[i] >= TARGET_LOWERBOUND && targets[i] <= TARGET_UPPERBOUND, "target is out of range");
-        //     require(i == 0 || thresholds[i] > thresholds[i - 1], "thresholds must be monotune increasing");
-        // }
-        // _seperators = thresholds;
-        // _targets = targets;
         uint256 maxSegment = seperators.length.add(1);
         for (uint256 i = 0; i < transferEntries.length; i++) {
             require(transferEntries[i].begin <= maxSegment, "begin out of range");
