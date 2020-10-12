@@ -10,7 +10,7 @@
     "@mcdex/mai-protocol-v2-build": "^2.0.5",
     "@openzeppelin/cli": "^2.8.2",
     "@openzeppelin/contracts": "3.1.0",
-    "@openzeppelin/contracts-ethereum-package": "^3.0.0",
+    "@openzeppelin/contracts-ethereum-package": "3.0.0",
     "@openzeppelin/upgrades": "^2.8.0",
     "bignumber.js": "^7.2.1",
     "byzantine": "^1.1.0",
