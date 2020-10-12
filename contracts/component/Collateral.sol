@@ -4,6 +4,7 @@ pragma solidity 0.6.10;
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/SafeCast.sol";
 
 import "../lib/LibConstant.sol";
 
@@ -42,7 +43,7 @@ contract Collateral is Initializable {
             require(!ok || (ok && retrievedDecimals == decimals), "bad decimals");
         }
         _collateralToken = IERC20(collateralAddress);
-        _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(decimals)));
+        _scaler = uint256(10**(LibConstant.MAX_COLLATERAL_DECIMALS.sub(uint256(decimals))));
     }
 
     /**
