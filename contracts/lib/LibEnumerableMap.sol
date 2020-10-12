@@ -70,10 +70,16 @@ library LibEnumerableMap {
         return map._entries[index]._value;
     }
 
+    /**
+     * @dev Returns the position `index` for given key.
+     */
     function index(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
         return map._indexes[key];
     }
 
+    /**
+     * @dev Returns the element at previous `index` position of given key.
+     */
     function previous(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
         uint256 keyIndex = map._indexes[key];
         if (keyIndex == 0) {
@@ -82,6 +88,9 @@ library LibEnumerableMap {
         return at(map, keyIndex - 1);
     }
 
+    /**
+     * @dev Find `last` none zero value in the set with binary search , in index sequence.
+     */
     function findLastNonZeroValue(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
         if (map._entries.length == 0) {
             return 0;
