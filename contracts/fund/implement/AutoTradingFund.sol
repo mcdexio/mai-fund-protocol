@@ -97,7 +97,13 @@ contract AutoTradingFund is
     }
 
     /**
-     * @notice  Return true if rebalance is needed.
+     * @notice Get rebalance target info according to current rsi and leverage. Eg. if the return values are
+     *         [true, 1000, short], that means the caller need to call rebalance(1000, expected price, short) to
+     *         help the fund move to the rebalance target.
+     *
+     * @return needRebalance    True if rebalance is needed.
+     * @return amount           Total amount of position to trade before reaching target leverage.
+     * @return side             Trading side of caller of rebalance method.
      */
     function rebalanceTarget()
         public
@@ -106,7 +112,7 @@ contract AutoTradingFund is
         uint256 currentNetAssetValue = _updateNetAssetValue();
         int256 nextTargetLeverage = _nextTargetLeverage();
         int256 currentLeverage = _leverage(currentNetAssetValue);
-        needRebalance = currentLeverage.sub(nextTargetLeverage).abs().toUint256() >= _rebalanceTolerance;
+        needRebalance = currentLeverage.sub(nextTargetLeverage).abs().toUint256() > _rebalanceTolerance;
         if (needRebalance) {
             ( amount, side ) = LibTargetCalculator.calculateRebalanceTarget(
                 _perpetual,
