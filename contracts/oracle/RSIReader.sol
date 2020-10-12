@@ -21,6 +21,7 @@ contract RSIReader {
     using LibMathEx for uint256;
 
     uint256 public constant BALANCED_RSI = 10 ** 18 * 50;
+    uint256 public constant RSI_LOWERBOUND = 0;
     uint256 public constant RSI_UPPERBOUND = 10 ** 18 * 100;
 
     IPriceSeriesRetriever internal _priceSeriesRetriever;
