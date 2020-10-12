@@ -124,7 +124,8 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
             uint256 newPrice,
             uint256 newTimestamp
         ) =  _priceFeeder.price();
-        require(newPrice != 0, "invalid price");
+        require(newPrice > 0, "invalid price");
+        require(newTimestamp > 0, "invalid timestamp");
 
         for (uint256 i = 0; i < _periods.length(); i++) {
             uint256 period = _periods.at(i);
