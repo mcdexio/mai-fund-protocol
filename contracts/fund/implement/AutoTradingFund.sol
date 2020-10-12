@@ -150,7 +150,7 @@ contract AutoTradingFund is
     function rebalance(uint256 maxPositionAmount, uint256 priceLimit, LibTypes.Side side)
         external
         whenNotPaused
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
     {
         require(maxPositionAmount > 0, "amount is 0");
         (

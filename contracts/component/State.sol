@@ -6,14 +6,14 @@ import "@openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol";
 
 contract State is Initializable {
 
-    enum FundState { Normal, Emergency, Shutdown }
+    enum FundState { NORMAL, EMERGENCY, SHUTDOWN }
 
     FundState internal _state;
 
     event UpdateState(FundState newState);
 
     function __State_init_unchained() internal initializer {
-        _state = FundState.Normal;
+        _state = FundState.NORMAL;
     }
 
     /**
@@ -38,10 +38,10 @@ contract State is Initializable {
     function _setEmergency()
         internal
         virtual
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
     {
-        _state = FundState.Emergency;
-        emit UpdateState(FundState.Emergency);
+        _state = FundState.EMERGENCY;
+        emit UpdateState(FundState.EMERGENCY);
     }
 
     /**
@@ -50,10 +50,10 @@ contract State is Initializable {
     function _setShutdown()
         internal
         virtual
-        whenInState(FundState.Emergency)
+        whenInState(FundState.EMERGENCY)
     {
-        _state = FundState.Shutdown;
-        emit UpdateState(FundState.Shutdown);
+        _state = FundState.SHUTDOWN;
+        emit UpdateState(FundState.SHUTDOWN);
     }
 
     uint256[19] private __gap;

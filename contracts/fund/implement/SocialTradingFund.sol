@@ -101,7 +101,7 @@ contract SocialTradingFund is
         public
         nonReentrant
         whenNotPaused
-        whenNotInState(FundState.Emergency)
+        whenNotInState(FundState.EMERGENCY)
     {
         _withdrawManagementFee(collateralAmount);
     }
@@ -115,7 +115,7 @@ contract SocialTradingFund is
     function updateManagementFee()
         public
         whenNotPaused
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
     {
         _updateNetAssetValue();
     }
@@ -133,7 +133,7 @@ contract SocialTradingFund is
         }
         _totalFeeClaimable = _totalFeeClaimable.sub(collateralAmount, "insufficient fee");
         uint256 rawCollateralAmount = _toRawAmount(collateralAmount);
-        if (_state == FundState.Normal) {
+        if (_state == FundState.NORMAL) {
             _withdraw(rawCollateralAmount);
         }
         _pushToUser(payable(_manager), rawCollateralAmount);

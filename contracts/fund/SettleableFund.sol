@@ -123,7 +123,7 @@ contract SettleableFund is
     function setEmergency()
         public
         virtual
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
     {
         require(_msgSender() == _owner() || _canShutdown(), "caller must be owner or cannot shutdown");
         if (_marginAccount().size > 0) {
@@ -139,7 +139,7 @@ contract SettleableFund is
     function setShutdown()
         public
         virtual
-        whenInState(FundState.Emergency)
+        whenInState(FundState.EMERGENCY)
         nonReentrant
     {
         require(_redeemingBalances[_self()] == 0, "redeem balance is not 0");
@@ -164,7 +164,7 @@ contract SettleableFund is
     )
         external
         whenNotPaused
-        whenInState(FundState.Emergency)
+        whenInState(FundState.EMERGENCY)
         nonReentrant
     {
         address account = _self();
@@ -182,7 +182,7 @@ contract SettleableFund is
     function settleMarginAccount()
         external
         whenNotPaused
-        whenInState(FundState.Emergency)
+        whenInState(FundState.EMERGENCY)
         nonReentrant
     {
         // settle and withdraw to fund.
@@ -197,7 +197,7 @@ contract SettleableFund is
     function settle(uint256 shareAmount)
         external
         whenNotPaused
-        whenInState(FundState.Shutdown)
+        whenInState(FundState.SHUTDOWN)
         nonReentrant
     {
         address account = _msgSender();
