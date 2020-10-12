@@ -32,9 +32,6 @@ contract RSIReader {
     uint256 internal _numPeriod;
     uint256 internal _totalPeriod;
 
-    event SetPeriod(uint256 oldValue, uint256 newValue);
-    event SetNumPeriod(uint256 oldValue, uint256 newValue);
-
     constructor(address priceSeriesRetriever, uint256 period, uint256 numPeriod) internal {
         require(priceSeriesRetriever != address(0), "invalid price reader");
         require(Address.isContract(priceSeriesRetriever), "price reader must be contract");
