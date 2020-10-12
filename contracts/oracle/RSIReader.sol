@@ -3,6 +3,7 @@ pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
 
 import "../lib/LibConstant.sol";
 import "../lib/LibMathEx.sol";
@@ -21,6 +22,7 @@ contract RSIReader {
     using LibMathEx for uint256;
 
     uint256 public constant BALANCED_RSI = 10 ** 18 * 50;
+    uint256 public constant RSI_LOWERBOUND = 0;
     uint256 public constant RSI_UPPERBOUND = 10 ** 18 * 100;
 
     IPriceSeriesRetriever internal _priceSeriesRetriever;
@@ -35,6 +37,7 @@ contract RSIReader {
 
     constructor(address priceSeriesRetriever, uint256 period, uint256 numPeriod) internal {
         require(priceSeriesRetriever != address(0), "invalid price reader");
+        require(Address.isContract(priceSeriesRetriever), "price reader must be contract");
         require(period > 0, "period must be greater than 0");
         require(numPeriod > 0, "num period must be greater than 0");
 
