@@ -161,7 +161,7 @@ contract AutoTradingFund is
         require(needRebalance, "need no rebalance");
         require(targetSide == side, "unexpected side");
         uint256 tradingAmount = Math.min(maxPositionAmount, targetAmount);
-        ( uint256 tradingPrice, ) = _biddingPrice(LibTypes.opposite(targetSide), priceLimit, _rebalanceSlippage);
+        ( uint256 tradingPrice, ) = _biddingPrice(targetSide.opposite(), priceLimit, _rebalanceSlippage);
         _tradePosition(_self(), _msgSender(), targetSide, tradingPrice, tradingAmount);
         emit Rebalance(targetSide, tradingPrice, tradingAmount);
     }
