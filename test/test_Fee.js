@@ -21,32 +21,32 @@ contract('TestFee', accounts => {
     it("updateFee", async () => {
         var t1 = await fundFee.lastFeeTime();
         await fundFee.updateFee(toWad(100.1));
-        assert.equal(await fundFee.totalFeeClaimed(), toWad(100.1));
+        assert.equal(await fundFee.totalFeeClaimable(), toWad(100.1));
         var t2 = await fundFee.lastFeeTime();
         assert.ok(t2.toString() > t1.toString());
 
         await sleep(1000);
 
         await fundFee.updateFee(toWad(2.33));
-        assert.equal(await fundFee.totalFeeClaimed(), toWad(102.43));
+        assert.equal(await fundFee.totalFeeClaimable(), toWad(102.43));
         var t3 = await fundFee.lastFeeTime();
         assert.ok(t3.toString() > t2.toString());
     })
 
-    it("updateMaxNetAssetValuePerShare", async () => {
-        assert.equal(await fundFee.maxNetAssetValuePerShare(), 0);
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(100));
+    it("updateHistoricMaxNetAssetValuePerShare", async () => {
+        assert.equal(await fundFee.historicMaxNetAssetValuePerShare(), 0);
+        await fundFee.updateHistoricMaxNetAssetValuePerShare(toWad(100));
 
         await sleep(1000);
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001.1));
-        assert.equal(await fundFee.maxNetAssetValuePerShare(), toWad(1001.1));
+        await fundFee.updateHistoricMaxNetAssetValuePerShare(toWad(1001.1));
+        assert.equal(await fundFee.historicMaxNetAssetValuePerShare(), toWad(1001.1));
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001));
-        assert.equal(await fundFee.maxNetAssetValuePerShare(), toWad(1001.1));
+        await fundFee.updateHistoricMaxNetAssetValuePerShare(toWad(1001));
+        assert.equal(await fundFee.historicMaxNetAssetValuePerShare(), toWad(1001.1));
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1001.11));
-        assert.equal(await fundFee.maxNetAssetValuePerShare(), toWad(1001.11));
+        await fundFee.updateHistoricMaxNetAssetValuePerShare(toWad(1001.11));
+        assert.equal(await fundFee.historicMaxNetAssetValuePerShare(), toWad(1001.11));
     })
 
     it("entrance fee", async () => {
@@ -65,16 +65,16 @@ contract('TestFee', accounts => {
         var totalSupply = toWad(1);
         await fundFee.mint(user1, toWad(1));
 
-        await fundFee.updateMaxNetAssetValuePerShare(0);
+        await fundFee.updateHistoricMaxNetAssetValuePerShare(0);
         assert.equal(await fundFee.performanceFee(toWad(1000)), toWad(50));
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(1000));
-        console.log(fromWad(await fundFee.maxNetAssetValuePerShare()));
+        await fundFee.updateHistoricMaxNetAssetValuePerShare(toWad(1000));
+        console.log(fromWad(await fundFee.historicMaxNetAssetValuePerShare()));
         console.log(fromWad(await fundFee.totalSupply()));
 
         assert.equal(await fundFee.performanceFee(toWad(900)), toWad(0));
 
-        await fundFee.updateMaxNetAssetValuePerShare(toWad(900));
+        await fundFee.updateHistoricMaxNetAssetValuePerShare(toWad(900));
         assert.equal(await fundFee.performanceFee(toWad(1100)), toWad(5));
     })
 

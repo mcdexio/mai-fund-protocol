@@ -68,7 +68,7 @@ contract SocialTradingFund is
         returns (uint256)
     {
         _updateNetAssetValue();
-        return _totalFeeClaimed;
+        return _totalFeeClaimable;
     }
 
     /**
@@ -128,10 +128,10 @@ contract SocialTradingFund is
         internal
     {
         _updateNetAssetValue();
-        if (_totalFeeClaimed == 0 || collateralAmount == 0 || _manager == address(0)) {
+        if (_totalFeeClaimable == 0 || collateralAmount == 0 || _manager == address(0)) {
             return;
         }
-        _totalFeeClaimed = _totalFeeClaimed.sub(collateralAmount, "insufficient fee");
+        _totalFeeClaimable = _totalFeeClaimable.sub(collateralAmount, "insufficient fee");
         uint256 rawCollateralAmount = _toRawAmount(collateralAmount);
         if (_state == FundState.Normal) {
             _withdraw(rawCollateralAmount);

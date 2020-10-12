@@ -101,7 +101,7 @@ contract('AutoTradingFund', accounts => {
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fee                           │                 ");
         console.log("  │    Manager                    │  ", await fund.manager());
-        console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimed()));
+        console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimable()));
         console.log("  │    LastFeeTime                │  ", (await fund.lastFeeTime()).toString());
         console.log("  └───────────────────────────────┴─────────────────");
         console.log("");

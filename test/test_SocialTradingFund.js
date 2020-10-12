@@ -90,7 +90,7 @@ contract('SocialTradingFund', accounts => {
         console.log("  ├───────────────────────────────┼─────────────────");
         console.log("  │ Fee                           │                 ");
         console.log("  │    Manager                    │  ", await fund.manager());
-        console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimed()));
+        console.log("  │    FeeClaimed                 │  ", fromWad(await fund.totalFeeClaimable()));
         console.log("  │    LastFeeTime                │  ", (await fund.lastFeeTime()).toString());
         console.log("  └───────────────────────────────┴─────────────────");
         console.log("");
@@ -152,10 +152,10 @@ contract('SocialTradingFund', accounts => {
 
         await fund.withdrawManagementFee(toWad(0)); // update
         await printFundState(deployer, fund, user2);
-        // console.log(fromWad(await fund.totalFeeClaimed()));
+        // console.log(fromWad(await fund.totalFeeClaimable()));
 
-        await fund.withdrawManagementFee(await fund.totalFeeClaimed());
-        assert.equal(fromWad(await fund.totalFeeClaimed()), 0);
+        await fund.withdrawManagementFee(await fund.totalFeeClaimable());
+        assert.equal(fromWad(await fund.totalFeeClaimable()), 0);
     });
 
 
@@ -195,8 +195,8 @@ contract('SocialTradingFund', accounts => {
 
     const testPurchaseAmount = async (calculator, amount, price, user) => {
         // from contract
-        var maxNAV = await fund.maxNetAssetValuePerShare();
-        var feePrev = await fund.totalFeeClaimed();
+        var maxNAV = await fund.historicMaxNetAssetValuePerShare();
+        var feePrev = await fund.totalFeeClaimable();
         var marginBalance = await deployer.perpetual.marginBalance.call(fund.address);
         var totalSupply = await fund.totalSupply();
 
@@ -207,7 +207,7 @@ contract('SocialTradingFund', accounts => {
         var t2 = await fund.lastFeeTime();
 
         var purchased = (await fund.balanceOf(user)).sub(purchased);
-        var feePost = await fund.totalFeeClaimed();
+        var feePost = await fund.totalFeeClaimable();
         var feeClaimed = feePost.sub(feePrev);
         var totalFee = await fund.managementFee.call();
         // from calc
