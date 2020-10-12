@@ -19,7 +19,7 @@ contract RSITrendingStrategy is RSIReader {
     }
 
     // upperbound && lowerbound, HARD limit is from [-10 ~ +10],
-    // the range may be narrower in different implements.
+    // the range may be narrower in different implementations.
     int256 public constant TARGET_LOWERBOUND = 10 ** 18 * -10;
     int256 public constant TARGET_UPPERBOUND = 10 ** 18 * 10;
 
@@ -29,11 +29,10 @@ contract RSITrendingStrategy is RSIReader {
     mapping(uint256 => mapping(uint256 => int256)) internal _transfers;
 
     /**
-     * @dev Target leverage calculator. A lookup table with input from rsi oralce, acctually.
+     * @dev Target leverage calculator. A lookup table with input from rsi oracle, actually.
      * @param period            Trading period in seconds.
      * @param numPeriod         Period required for calculation.
-     * @param seperators        Rsi triggering segments, something like | 40 | 50 | 60 | (decimals = 18).
-     *                          Values must be monotune increasing and all values could not excceed 100 (RSI max value).
+     * @param seperators        Rsi triggering segments, something like | 40 | 50 | 60 |, must be monotonically increasing.
      * @param transferEntries   Start / Stop segments and ouput, Transferring table.
      */
     constructor(
@@ -71,8 +70,8 @@ contract RSITrendingStrategy is RSIReader {
     }
 
     /**
-     * @dev get next leverage target according to rsi trends.
-     * @return Ouput leverage target, between [-10 ~ +10].
+     * @dev Get next leverage target according to rsi trends.
+     * @return Output leverage target, between [-10 ~ +10].
      */
     function getNextTarget() public returns (int256) {
         uint256 rsi = getCurrentRSI();

@@ -85,9 +85,9 @@ contract('TestCoreParameter', accounts => {
 
     it ("out of range value", async () => {
         await shouldThrows(fund.setParameter(toBytes32("leverageHighWaterMark"), (toWad(10.1))), "too high hwm.");
-        await shouldThrows(fund.setParameter(toBytes32("entranceFeeRate"), (toWad(100.1))), "too large rate");
-        await shouldThrows(fund.setParameter(toBytes32("streamingFeeRate"), (toWad(100.1))), "too large rate");
-        await shouldThrows(fund.setParameter(toBytes32("performanceFeeRate"), (toWad(100.1))), "too large rate");
+        await shouldThrows(fund.setParameter(toBytes32("entranceFeeRate"), (toWad(100.1))), "rate too large");
+        await shouldThrows(fund.setParameter(toBytes32("streamingFeeRate"), (toWad(100.1))), "rate too large");
+        await shouldThrows(fund.setParameter(toBytes32("performanceFeeRate"), (toWad(100.1))), "rate too large");
     });
 
     it ("set address", async () => {

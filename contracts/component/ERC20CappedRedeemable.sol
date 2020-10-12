@@ -49,7 +49,7 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
     }
 
     /**
-     * @dev     Before actually sold (redeemed), the share will still belongs to redeeming account.
+     * @dev     Before actually sold (redeemed), the share will still belong to redeeming account.
      * @param   trader  Address of share owner.
      * @return  Amount of redeemable share balance.
      */
@@ -75,7 +75,7 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
     /**
      * @dev     Set redeeming slippage, a fixed float in decimals 18, 0.01 ether == 1%.
      * @param   trader      Address of share owner.
-     * @param   slippage    Slipage percent of redeeming rate.
+     * @param   slippage    Slippage percent of redeeming rate.
      */
     function _setRedeemingSlippage(address trader, uint256 slippage)
         internal
@@ -148,7 +148,7 @@ contract ERC20CappedRedeemable is Initializable, ERC20UpgradeSafe, Context {
     }
 
     /**
-     * @dev Hook to check redeemable amount before transfer && update purchase time.
+     * @dev Hook to check redeemable amount before transfer and update purchase time.
      */
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);

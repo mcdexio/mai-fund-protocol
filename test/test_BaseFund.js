@@ -270,7 +270,7 @@ contract('BaseFund', accounts => {
         await checkEtherBalance(fund.redeem(toWad(0.5)), admin, toWad(-100));
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
 
-        await shouldThrows(fund.redeem(toWad(0.6)), "amount excceeded");
+        await shouldThrows(fund.redeem(toWad(0.6)), "amount exceeded");
 
         await checkEtherBalance(fund.redeem(toWad(0.5)), admin, toWad(-100));
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);

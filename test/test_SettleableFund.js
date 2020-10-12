@@ -175,7 +175,7 @@ contract('TestSettleableFund', accounts => {
         await fund.settle(toWad(2), { from: user2 });
 
         assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
-        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount excceeded");
+        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount exceeded");
     });
 
     it("settle - 3", async () => {
@@ -233,7 +233,7 @@ contract('TestSettleableFund', accounts => {
         assert.equal(fromWad(await fund.netAssetValue.call()), 0);
         assert.equal(fromWad(await fund.totalSupply()), 0);
         assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
-        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount excceeded");
+        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount exceeded");
     });
 
     it("settle - 4", async () => {
@@ -278,7 +278,7 @@ contract('TestSettleableFund', accounts => {
         await fund.setEmergency();
         // price
         // console.log(fromWad(await deployer.perpetual.markPrice.call()));
-        await shouldThrows(fund.bidSettledShare(toWad(4), toWad(0.01), LONG, { from: user3 }), "amount excceeded");
+        await shouldThrows(fund.bidSettledShare(toWad(4), toWad(0.01), LONG, { from: user3 }), "amount exceeded");
         await shouldThrows(fund.bidSettledShare(toWad(3), toWad(0.01), LONG, { from: user3 }), "perpetual emergency");
         await shouldThrows(fund.settleMarginAccount(), "wrong perpetual status");
 
@@ -287,13 +287,13 @@ contract('TestSettleableFund', accounts => {
         await fund.setShutdown();
 
         await fund.settle(toWad(1), { from: admin });
-        await shouldThrows(fund.settle(toWad(1), { from: user1 }), "amount excceeded");
+        await shouldThrows(fund.settle(toWad(1), { from: user1 }), "amount exceeded");
         await fund.settle(toWad(2), { from: user2 });
 
         assert.equal(fromWad(await fund.netAssetValue.call()), 0);
         assert.equal(fromWad(await fund.totalSupply()), 0);
         assert.equal(fromWad(await web3.eth.getBalance(fund.address)), 0);
-        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount excceeded");
+        await shouldThrows(fund.settle(toWad(1), { from: admin }), "amount exceeded");
     });
 
     it("settle - C01", async () => {
