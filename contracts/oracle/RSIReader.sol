@@ -66,7 +66,6 @@ contract RSIReader {
         require(prices.length > 0, "no price to be calculated");
         uint256 accumulativeGain;
         uint256 accumulativeLoss;
-        uint256 lastNonZeroPrice;
         for (uint256 i = 1; i < prices.length; i++) {
             uint256 current = prices[i];
             uint256 previous = prices[i - 1];
@@ -76,7 +75,6 @@ contract RSIReader {
             } else if (current < previous) {
                 accumulativeLoss = accumulativeLoss.add(previous.sub(current));
             }
-            lastNonZeroPrice = current;
         }
         if (accumulativeGain == accumulativeLoss) {
             return BALANCED_RSI;
