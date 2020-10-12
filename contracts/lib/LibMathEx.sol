@@ -20,7 +20,6 @@ library LibMathEx {
     }
 
     function wfrac(uint256 x, uint256 y, uint256 z) internal pure returns (uint256 r) {
-        require(z != 0, "division by zero");
         r = x.mul(y).div(z);
     }
 
@@ -33,7 +32,6 @@ library LibMathEx {
     }
 
     function wfrac(int256 x, int256 y, int256 z) internal pure returns (int256 r) {
-        require(z != 0, "division by zero");
         r = x.mul(y).div(z);
     }
 
