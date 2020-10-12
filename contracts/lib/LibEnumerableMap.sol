@@ -2,8 +2,6 @@
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/EnumerableMap.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/Arrays.sol";
 
 library LibEnumerableMap {
 
