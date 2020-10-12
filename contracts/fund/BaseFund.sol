@@ -153,7 +153,7 @@ contract BaseFund is
     function purchase(uint256 collateralAmount, uint256 shareAmountLimit, uint256 priceLimit)
         external
         payable
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
         whenNotPaused
         nonReentrant
     {
@@ -193,7 +193,7 @@ contract BaseFund is
     function setRedeemingSlippage(uint256 slippage)
         external
         whenNotPaused
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
     {
         require(_redeemingSlippages[_msgSender()] != slippage, "same slippage");
         _setRedeemingSlippage(_msgSender(), slippage);
@@ -210,7 +210,7 @@ contract BaseFund is
     function redeem(uint256 shareAmount)
         external
         whenNotPaused
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
         nonReentrant
     {
         address account = _msgSender();
@@ -237,7 +237,7 @@ contract BaseFund is
      */
     function cancelRedeeming(uint256 shareAmount)
         external
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
         whenNotPaused
     {
         require(shareAmount > 0, "amount is 0");
@@ -265,7 +265,7 @@ contract BaseFund is
         LibTypes.Side side
     )
         external
-        whenInState(FundState.Normal)
+        whenInState(FundState.NORMAL)
         whenNotPaused
         nonReentrant
     {
