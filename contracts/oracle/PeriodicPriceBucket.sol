@@ -79,13 +79,14 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
     }
 
     /**
-     * @notice  Add time bucket, no duplication.
+     * @notice  Add time bucket, no duplication. period must be within (0, 86400*7]
      * @param   period  Period of bucket to be added.
      */
     function addBucket(uint256 period)
         external
         onlyOwner
     {
+        require(period <= 86400*7, "period must be less than 1 week");
         require(period > 0, "period must be greater than 0");
         require(_periods.length() < MAX_BUCKETS, "number of buckets reaches limit");
         require(_periods.add(period), "period is duplicated");
