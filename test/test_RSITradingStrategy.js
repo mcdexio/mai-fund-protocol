@@ -1,4 +1,4 @@
-const { toBytes32, fromBytes32, uintToBytes32, toWad, fromWad } = require("./utils.js");
+const { toBytes32, fromBytes32, uintToBytes32, toWad, fromWad, shouldThrows } = require("./utils.js");
 const { buildOrder } = require("./order.js");
 const { getPerpetualComponents } = require("./perpetual.js");
 
@@ -53,6 +53,102 @@ contract('TestRSITrendingStrategy', accounts => {
             assert.equal(result[i], outputs[i]);
         }
     }
+
+    it("constructor", async () => {
+        feeder = await TestPriceFeeder.new();
+        bucket = await PeriodicPriceBucket.new();
+        await bucket.initialize(feeder.address);
+
+        await shouldThrows(TestRSITrendingStrategy.new(
+            bucket.address,
+            3600,
+            3,
+            [toWad(0), toWad(40), toWad(60)],
+            [
+                { begin: 0, end: 0, target: toWad(-1) },
+                { begin: 0, end: 1, target: toWad(-1) },
+                { begin: 0, end: 2, target: toWad(1) },
+                { begin: 1, end: 0, target: toWad(-1) },
+                { begin: 1, end: 1, target: toWad(0) },
+                { begin: 1, end: 2, target: toWad(1) },
+                { begin: 2, end: 0, target: toWad(-1) },
+                { begin: 2, end: 1, target: toWad(1) },
+                { begin: 2, end: 2, target: toWad(1) },
+            ]
+        ), "seperators out of range");
+
+        await shouldThrows(TestRSITrendingStrategy.new(
+            bucket.address,
+            3600,
+            3,
+            [toWad(40), toWad(60), toWad(100)],
+            [
+                { begin: 0, end: 0, target: toWad(-1) },
+                { begin: 0, end: 1, target: toWad(-1) },
+                { begin: 0, end: 2, target: toWad(1) },
+                { begin: 1, end: 0, target: toWad(-1) },
+                { begin: 1, end: 1, target: toWad(0) },
+                { begin: 1, end: 2, target: toWad(1) },
+                { begin: 2, end: 0, target: toWad(-1) },
+                { begin: 2, end: 1, target: toWad(1) },
+                { begin: 2, end: 2, target: toWad(1) },
+            ]
+        ), "seperators out of range");
+
+        await shouldThrows(TestRSITrendingStrategy.new(
+            bucket.address,
+            3600,
+            3,
+            [toWad(40), toWad(60), toWad(100.1)],
+            [
+                { begin: 0, end: 0, target: toWad(-1) },
+                { begin: 0, end: 1, target: toWad(-1) },
+                { begin: 0, end: 2, target: toWad(1) },
+                { begin: 1, end: 0, target: toWad(-1) },
+                { begin: 1, end: 1, target: toWad(0) },
+                { begin: 1, end: 2, target: toWad(1) },
+                { begin: 2, end: 0, target: toWad(-1) },
+                { begin: 2, end: 1, target: toWad(1) },
+                { begin: 2, end: 2, target: toWad(1) },
+            ]
+        ), "seperators out of range");
+
+        await shouldThrows(TestRSITrendingStrategy.new(
+            bucket.address,
+            3600,
+            3,
+            [toWad(40), toWad(10), toWad(90)],
+            [
+                { begin: 0, end: 0, target: toWad(-1) },
+                { begin: 0, end: 1, target: toWad(-1) },
+                { begin: 0, end: 2, target: toWad(1) },
+                { begin: 1, end: 0, target: toWad(-1) },
+                { begin: 1, end: 1, target: toWad(0) },
+                { begin: 1, end: 2, target: toWad(1) },
+                { begin: 2, end: 0, target: toWad(-1) },
+                { begin: 2, end: 1, target: toWad(1) },
+                { begin: 2, end: 2, target: toWad(1) },
+            ]
+        ), "seperators must be monoture increasing");
+
+        await shouldThrows(TestRSITrendingStrategy.new(
+            bucket.address,
+            3600,
+            3,
+            [],
+            [
+                { begin: 0, end: 0, target: toWad(-1) },
+                { begin: 0, end: 1, target: toWad(-1) },
+                { begin: 0, end: 2, target: toWad(1) },
+                { begin: 1, end: 0, target: toWad(-1) },
+                { begin: 1, end: 1, target: toWad(0) },
+                { begin: 1, end: 2, target: toWad(1) },
+                { begin: 2, end: 0, target: toWad(-1) },
+                { begin: 2, end: 1, target: toWad(1) },
+                { begin: 2, end: 2, target: toWad(1) },
+            ]
+        ), "no seperators");
+    });
 
     it("initial from +1", async () => {
         // 10, 1595174400
