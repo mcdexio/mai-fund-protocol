@@ -24,7 +24,7 @@ contract SettleableFund is
     uint256 internal _drawdownHighWaterMark;
     uint256 internal _leverageHighWaterMark;
 
-    event Settle(address indexed account, uint256 shareAmount);
+    event Settle(address indexed account, uint256 shareAmount, uint256 collateralToReturn);
 
     function __SettleableFund_init(
         string calldata tokenName,
@@ -214,7 +214,7 @@ contract SettleableFund is
         uint256 collateralToReturn = collateralSettled.wfrac(shareAmount, totalSupply());
         _burn(account, shareAmount);
         _pushToUser(payable(account), _toRawAmount(collateralToReturn));
-        emit Settle(account, shareAmount);
+        emit Settle(account, shareAmount, collateralToReturn);
     }
 
     uint256[18] private __gap;

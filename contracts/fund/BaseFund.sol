@@ -205,9 +205,11 @@ contract BaseFund is
      *          able to withdraw through `withdrawCollateral` method.
      *          Note that the slippage given will override existed value of the same account.
      *          This is to say, the slippage is by account, not by per redeem call.
+     *
      * @param   shareAmount At least amount of shares token received by user.
+     * @param   slippage    Slippage of account, will override previous setting.
      */
-    function redeem(uint256 shareAmount)
+    function redeem(uint256 shareAmount, uint256 slippage)
         external
         whenNotPaused
         whenInState(FundState.Normal)
@@ -220,6 +222,9 @@ contract BaseFund is
         require(shareAmount > 0, "amount is 0");
         require(shareAmount <= balanceOf(account), "amount excceeded");
         require(_canRedeem(account), "cannot redeem now");
+        if (slippage != _redeemingSlippages[_msgSender()]) {
+            _setRedeemingSlippage(_msgSender(), slippage);
+        }
         if (_marginAccount().size > 0) {
             // have to wait for keeper to take redeemed shares (positions).
             _increaseRedeemingShareBalance(account, shareAmount);
@@ -228,6 +233,7 @@ contract BaseFund is
             // direct withdraw, no waiting, no slippage.
             uint256 collateralToReturn = _updateNetAssetValue().wfrac(shareAmount, totalSupply());
             _redeem(account, shareAmount, collateralToReturn);
+            emit RequestToRedeem(account, shareAmount, 0);
         }
     }
 
@@ -253,7 +259,7 @@ contract BaseFund is
      *          !!! Note that the side paramter is the expected trading direction for CALLER, not the fund's.
      *
      * @dev     size = position size * share / total share supply.
-     * @param   account     Amount of collateral to withdraw.
+     * @param   account     Account who has shares to redeem.
      * @param   shareAmount Amount of share balance to bid.
      * @param   priceLimit  Price limit of dealing price. Calculated differently for long and short.
      * @param   side        Trding side for caller.

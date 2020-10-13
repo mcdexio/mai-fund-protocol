@@ -6,6 +6,10 @@ import "./SettleableFund.sol";
 
 contract Getter is SettleableFund {
     // asset value
+    function perpetual() public view returns (address) {
+        return address(_perpetual);
+    }
+
     /**
      * @dev This is overrided version from Core.sol
      */
