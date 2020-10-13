@@ -8,7 +8,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/SafeCast.sol";
 
-import "../lib/LibConstant.sol";
 import "../lib/LibMathEx.sol";
 
 import "../component/Auction.sol";
