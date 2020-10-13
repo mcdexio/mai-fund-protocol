@@ -29,9 +29,6 @@ contract BaseFund is
     using LibMathEx for uint256;
     using SafeCast for int256;
 
-    // uint256 internal _totalWithdrawableCollateral;
-    // mapping(address => uint256) internal _withdrawableCollaterals;
-
     event Received(address indexed sender, uint256 amount);
     event SetParameter(bytes32 key, int256 value);
     event Purchase(address indexed account, uint256 netAssetValue, uint256 shareAmount);
