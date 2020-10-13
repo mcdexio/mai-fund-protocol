@@ -168,7 +168,7 @@ contract('BaseFund', accounts => {
         await fund.purchase(toWad(200), toWad(1), toWad(200), { value: toWad(200) });
         assert.equal(fromWad(await fund.balanceOf(admin)), 1);
 
-        await shouldThrows(fund.redeem(toWad(0)), "amount is 0");
+        await shouldThrows(fund.redeem(toWad(0), toWad(0)), "amount is 0");
         await shouldThrows(fund.setRedeemingSlippage(toWad(1)), "slippage too large");
 
         await fund.purchase(toWad(200), toWad(1), toWad(200), { from: user1, value: toWad(200) });
@@ -176,9 +176,9 @@ contract('BaseFund', accounts => {
 
         await fund.setParameter(toBytes32("redeemingLockPeriod"), 6);
         await fund.setRedeemingSlippage(toWad(0.2));
-        await shouldThrows(fund.redeem(toWad(1)), "cannot redeem now");
+        await shouldThrows(fund.redeem(toWad(1), toWad(0.2)), "cannot redeem now");
         await sleep(6000);
-        await checkEtherBalance(fund.redeem(toWad(1)), admin, toWad(-200));
+        await checkEtherBalance(fund.redeem(toWad(1), toWad(0.2)), admin, toWad(-200));
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
     });
 
@@ -205,7 +205,7 @@ contract('BaseFund', accounts => {
 
         // assert.equal(fromWad(post.minus(prev)), 200);
         await fund.setRedeemingSlippage(toWad(0.1), { from: user1 });
-        await fund.redeem(toWad(1), { from: user1 });
+        await fund.redeem(toWad(1), toWad(0.1), { from: user1 });
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 1);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.1);
 
@@ -232,7 +232,7 @@ contract('BaseFund', accounts => {
         await delegateTrade(admin, user2, 'buy', toWad(200), toWad(1));
 
         await fund.setRedeemingSlippage(toWad(0.01), { from: user1 });
-        await fund.redeem(toWad(1), { from: user1 });
+        await fund.redeem(toWad(1), toWad(0.01), { from: user1 });
         assert.equal(fromWad(await fund.redeemingBalance(user1)), 1);
         assert.equal(fromWad(await fund.redeemingSlippage(user1)), 0.01);
 
@@ -261,18 +261,16 @@ contract('BaseFund', accounts => {
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
 
         await fund.setParameter(toBytes32("redeemingLockPeriod"), 6);
-        await fund.setRedeemingSlippage(toWad(0.01));
-        await shouldThrows(fund.redeem(toWad(1)), "cannot redeem now");
+        await shouldThrows(fund.redeem(toWad(1), toWad(0.01)), "cannot redeem now");
 
         await sleep(7000);
 
-        await fund.setRedeemingSlippage(toWad(0.2));
-        await checkEtherBalance(fund.redeem(toWad(0.5)), admin, toWad(-100));
-        assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
+        await checkEtherBalance(fund.redeem(toWad(0.5), toWad(0.01)), admin, toWad(-100));
 
-        await shouldThrows(fund.redeem(toWad(0.6)), "amount excceeded");
+        await shouldThrows(fund.redeem(toWad(0.6), toWad(0.2)), "amount excceeded");
+        assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.01);
 
-        await checkEtherBalance(fund.redeem(toWad(0.5)), admin, toWad(-100));
+        await checkEtherBalance(fund.redeem(toWad(0.5), toWad(0.2)), admin, toWad(-100));
         assert.equal(fromWad(await fund.redeemingSlippage(admin)), 0.2);
         assert.equal(fromWad(await fund.balanceOf(admin)), 0);
     });
@@ -298,7 +296,7 @@ contract('BaseFund', accounts => {
 
         await printFundState(deployer, fund, user1);
 
-        await fund.redeem(toWad(1), { from: user1 });
+        await fund.redeem(toWad(1), toWad(0), { from: user1 });
 
         // console.log(await deployer.perpetual.getMarginAccount(user2));
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0), SHORT, { from: user2 });
@@ -329,7 +327,7 @@ contract('BaseFund', accounts => {
         await deployer.setIndex(400);
         await printFundState(deployer, fund, user1);
 
-        await fund.redeem(toWad(1), { from: user1 });
+        await fund.redeem(toWad(1), toWad(0), { from: user1 });
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0), 1);
 
         await printFundState(deployer, fund, user1);
@@ -360,7 +358,7 @@ contract('BaseFund', accounts => {
         await deployer.setIndex(400);
         await printFundState(deployer, fund, user1);
 
-        await fund.redeem(toWad(1), { from: user1 });
+        await fund.redeem(toWad(1), toWad(0), { from: user1 });
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0), 1);
 
         await printFundState(deployer, fund, user1);
@@ -392,7 +390,7 @@ contract('BaseFund', accounts => {
         await deployer.setIndex(400);
         await printFundState(deployer, fund, user1);
 
-        await fund.redeem(toWad(1), { from: user1 });
+        await fund.redeem(toWad(1), toWad(0), { from: user1 });
         await fund.bidRedeemingShare(user1, toWad(1), toWad(0), 1);
 
         await printFundState(deployer, fund, user1);

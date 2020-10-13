@@ -241,8 +241,8 @@ contract('SocialTradingFund', accounts => {
         await deployer.setIndex(200);
         await testPurchaseAmount(calr, 15, 1000, user2);
 
-        await fund.redeem(await fund.balanceOf(user2), { from: user2 });
-        await fund.redeem(await fund.balanceOf(user1), { from: user1 });
+        await fund.redeem(await fund.balanceOf(user2), toWad(0), { from: user2 });
+        await fund.redeem(await fund.balanceOf(user1), toWad(0), { from: user1 });
 
         var fee = fromWad(await fund.managementFee.call());
         await fund.withdrawManagementFee(toWad(0)); // update
@@ -282,8 +282,8 @@ contract('SocialTradingFund', accounts => {
         await deployer.setIndex(200);
         await testPurchaseAmount(calr, 15, 1000, user2);
 
-        await fund.redeem(await fund.balanceOf(user2), { from: user2 });
-        await fund.redeem(await fund.balanceOf(user1), { from: user1 });
+        await fund.redeem(await fund.balanceOf(user2), toWad(0),  { from: user2 });
+        await fund.redeem(await fund.balanceOf(user1), toWad(0), { from: user1 });
 
         // console.log((await fund.lastFeeTime()).toString());
         // console.log(fromWad(await fund.managementFee.call()));/
@@ -394,7 +394,7 @@ contract('SocialTradingFund', accounts => {
         var marginBalance = new BigNumber(await deployer.perpetual.marginBalance.call(fund.address));
         approximatelyEqual((await fund.managementFee.call()).toString(), marginBalance.times(new BigNumber(0.00000004)).toFixed(0), 100);
 
-        await fund.redeem(toWad(10), { from: user2 });
+        await fund.redeem(toWad(10), toWad(0), { from: user2 });
         await fund.bidRedeemingShare(user2, toWad(10), toWad(0), SHORT, { from: user3});
 
         await fund.setEmergency();
@@ -452,7 +452,7 @@ contract('SocialTradingFund', accounts => {
         var marginBalance = new BigNumber(await deployer.perpetual.marginBalance.call(fund.address));
         approximatelyEqual((await fund.managementFee.call()).toString(), marginBalance.times(new BigNumber(0.00000004)).toFixed(0), 100);
 
-        await fund.redeem(toWad(10), { from: user2 });
+        await fund.redeem(toWad(10), toWad(0), { from: user2 });
         await fund.bidRedeemingShare(user2, toWad(10), toWad(0), SHORT, { from: user3});
 
         await fund.setEmergency();
