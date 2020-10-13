@@ -34,7 +34,7 @@ contract BaseFund is
 
     event Received(address indexed sender, uint256 amount);
     event SetParameter(bytes32 key, int256 value);
-    event Purchase(address indexed account, uint256 netAssetValue, uint256 shareAmount);
+    event Purchase(address indexed account, uint256 netAssetValuePerShare, uint256 shareAmount);
     event RequestToRedeem(address indexed account, uint256 shareAmount, uint256 slippage);
     event Redeem(address indexed account, uint256 shareAmount, uint256 returnedCollateral);
     event CancelRedeeming(address indexed account, uint256 shareAmount);
