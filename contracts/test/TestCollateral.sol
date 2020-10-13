@@ -55,14 +55,16 @@ contract TestCollateral is Collateral {
         payable
         returns (uint256)
     {
-        return _pullFromUser(trader, amount);
+        _pullFromUser(trader, amount);
+        return amount;
     }
 
     function pushToUser(address payable trader, uint256 amount)
         external
         returns (uint256)
     {
-        return _pushToUser(trader, amount);
+        _pushToUser(trader, amount);
+        return amount;
     }
 
     function toInternalAmount(uint256 rawAmount)

@@ -103,11 +103,9 @@ contract Collateral is Initializable {
      * @dev     Transfer token from user if token is erc20 token.
      * @param   account     Address of account owner.
      * @param   rawAmount   Amount of token to be transferred into contract.
-     * @return Internal representation of the raw amount.
      */
     function _pullFromUser(address account, uint256 rawAmount)
         internal
-        returns (uint256)
     {
         require(rawAmount > 0, "amount is 0");
         if (_isCollateralERC20()) {
@@ -115,18 +113,15 @@ contract Collateral is Initializable {
         } else {
             require(msg.value == rawAmount, "bad sent value");
         }
-        return rawAmount;
     }
 
     /**
      * @dev     Transfer token to user no matter erc20 token or ether.
      * @param   account     Address of account owner.
      * @param   rawAmount   Amount of token to be transferred to user.
-     * @return  Internal representation of the raw amount.
      */
     function _pushToUser(address payable account, uint256 rawAmount)
         internal
-        returns (uint256)
     {
         require(rawAmount > 0, "amount is 0");
         if (_isCollateralERC20()) {
@@ -134,7 +129,6 @@ contract Collateral is Initializable {
         } else {
             Address.sendValue(account, rawAmount);
         }
-        return rawAmount;
     }
 
     /**
