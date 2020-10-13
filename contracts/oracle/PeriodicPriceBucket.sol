@@ -157,7 +157,7 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         view
         returns (uint256[] memory)
     {
-        require(beginTimestamp <= endTimestamp, "begin must be earlier than end");
+        require(beginTimestamp <= endTimestamp, "begin must be earlier than or equal to end");
         require(_periods.contains(period), "period is not exist");
 
         uint256 beginIndex = beginTimestamp.div(period);
