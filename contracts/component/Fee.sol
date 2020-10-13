@@ -16,8 +16,8 @@ contract Fee is Context, ERC20CappedRedeemable {
     using SafeMath for uint256;
     using LibMathEx for uint256;
 
-    uint256 internal _totalFeeClaimed;
-    uint256 internal _maxNetAssetValuePerShare;
+    uint256 internal _totalFeeClaimable;
+    uint256 internal _historicMaxNetAssetValuePerShare;
     uint256 internal _lastFeeTime;
     uint256 internal _entranceFeeRate;
     uint256 internal _streamingFeeRate;
@@ -110,7 +110,7 @@ contract Fee is Context, ERC20CappedRedeemable {
         if (_performanceFeeRate == 0) {
             return 0;
         }
-        uint256 _maxNetAssetValue = _maxNetAssetValuePerShare.wmul(totalSupply());
+        uint256 _maxNetAssetValue = _historicMaxNetAssetValuePerShare.wmul(totalSupply());
         if (netAssetValue <= _maxNetAssetValue) {
             return 0;
         }
@@ -125,20 +125,20 @@ contract Fee is Context, ERC20CappedRedeemable {
         internal
         returns (uint256)
     {
-        _totalFeeClaimed = _totalFeeClaimed.add(fee);
+        _totalFeeClaimable = _totalFeeClaimable.add(fee);
         _lastFeeTime = _now();
-        return _totalFeeClaimed;
+        return _totalFeeClaimable;
     }
 
     /**
      * @dev     Update max asset value per share, for drawdown and performance fee calculating.
      * @param   netAssetValuePerShare   Value of net asset.
      */
-    function _updateMaxNetAssetValuePerShare(uint256 netAssetValuePerShare)
+    function _updateHistoricMaxNetAssetValuePerShare(uint256 netAssetValuePerShare)
         internal
     {
-        if (netAssetValuePerShare > _maxNetAssetValuePerShare) {
-            _maxNetAssetValuePerShare = netAssetValuePerShare;
+        if (netAssetValuePerShare > _historicMaxNetAssetValuePerShare) {
+            _historicMaxNetAssetValuePerShare = netAssetValuePerShare;
         }
     }
 

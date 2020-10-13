@@ -46,8 +46,8 @@ contract Getter is SettleableFund {
         return _lastPurchaseTimes[account];
     }
 
-    function maxNetAssetValuePerShare() public view returns (uint256) {
-        return _maxNetAssetValuePerShare;
+    function historicMaxNetAssetValuePerShare() public view returns (uint256) {
+        return _historicMaxNetAssetValuePerShare;
     }
 
     // collateral
@@ -59,8 +59,8 @@ contract Getter is SettleableFund {
         return _scaler;
     }
 
-    function totalFeeClaimed() public view returns (uint256) {
-        return _totalFeeClaimed;
+    function totalFeeClaimable() public view returns (uint256) {
+        return _totalFeeClaimable;
     }
 
     function lastFeeTime() public view returns (uint256) {

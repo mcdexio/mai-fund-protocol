@@ -19,16 +19,16 @@ contract TestFee is Fee {
         _mint(account, amount);
     }
 
-    function maxNetAssetValuePerShare() external view returns (uint256) {
-        return _maxNetAssetValuePerShare;
+    function historicMaxNetAssetValuePerShare() external view returns (uint256) {
+        return _historicMaxNetAssetValuePerShare;
     }
 
     function lastFeeTime() external view returns (uint256) {
         return _lastFeeTime;
     }
 
-    function totalFeeClaimed() external view returns (uint256) {
-        return _totalFeeClaimed;
+    function totalFeeClaimable() external view returns (uint256) {
+        return _totalFeeClaimable;
     }
 
     function feeRates()
@@ -73,7 +73,7 @@ contract TestFee is Fee {
         return _updateFee(fee);
     }
 
-    function updateMaxNetAssetValuePerShare(uint256 netAssetValuePerShare) external {
-        _updateMaxNetAssetValuePerShare(netAssetValuePerShare);
+    function updateHistoricMaxNetAssetValuePerShare(uint256 netAssetValuePerShare) external {
+        _updateHistoricMaxNetAssetValuePerShare(netAssetValuePerShare);
     }
 }
