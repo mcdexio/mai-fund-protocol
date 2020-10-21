@@ -16,7 +16,7 @@ library LibMathEx {
     }
 
     function wdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = x.mul(LibConstant.UNSIGNED_ONE).add(y / 2) / y;
+        z = x.mul(LibConstant.UNSIGNED_ONE).add(y / 2).div(y);
     }
 
     function wfrac(uint256 x, uint256 y, uint256 z) internal pure returns (uint256 r) {
@@ -30,10 +30,10 @@ library LibMathEx {
 
     function wdiv(int256 x, int256 y) internal pure returns (int256 z) {
         if (y < 0) {
-            y = -y;
-            x = -x;
+            y = neg(y);
+            x = neg(x);
         }
-        z = roundHalfUp(x.mul(LibConstant.SIGNED_ONE), y) / y;
+        z = roundHalfUp(x.mul(LibConstant.SIGNED_ONE), y).div(y);
     }
 
     function wfrac(int256 x, int256 y, int256 z) internal pure returns (int256 r) {
@@ -42,7 +42,7 @@ library LibMathEx {
             z = neg(z);
             t = neg(t);
         }
-        r = roundHalfUp(t, z) / z;
+        r = roundHalfUp(t, z).div(z);
     }
 
     function abs(int256 x) internal pure returns (int256) {
