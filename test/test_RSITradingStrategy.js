@@ -129,7 +129,7 @@ contract('TestRSITrendingStrategy', accounts => {
                 { begin: 2, end: 1, target: toWad(1) },
                 { begin: 2, end: 2, target: toWad(1) },
             ]
-        ), "seperators must be monoture increasing");
+        ), "seperators must be monotonically increasing");
 
         await shouldThrows(TestRSITrendingStrategy.new(
             bucket.address,
