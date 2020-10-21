@@ -57,9 +57,9 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         view
         returns (uint256[] memory)
     {
-        uint256 bucketCount = _periods.length();
-        uint256[] memory bucketList = new uint256[](bucketCount);
-        for (uint256 i = 0; i < _periods.length(); i++) {
+        uint256 numPeriods = _periods.length();
+        uint256[] memory bucketList = new uint256[](numPeriods);
+        for (uint256 i = 0; i < numPeriods; i++) {
             bucketList[i] = _periods.at(i);
         }
         return bucketList;
