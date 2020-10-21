@@ -87,7 +87,8 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
     {
         require(period > 0, "period must be greater than 0");
         require(_periods.length() < MAX_BUCKETS, "number of buckets reaches limit");
-        require(_periods.add(period), "period is duplicated");
+        bool success = _periods.add(period);
+        require(success, "period is duplicated");
         emit AddBucket(period);
     }
 
@@ -99,7 +100,8 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         external
         onlyOwner
     {
-        require(_periods.remove(period), "period is not exist");
+        bool success = _periods.remove(period);
+        require(success, "period is not exist");
         delete _buckets[period];
         delete _firstPeriodIndexes[period];
         emit RemoveBucket(period);
