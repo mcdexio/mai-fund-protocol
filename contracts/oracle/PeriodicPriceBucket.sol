@@ -110,7 +110,6 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         external
         onlyOwner
     {
-        require(Address.isContract(newPriceFeeder), "price feeder must be contract");
         _setPriceFeeder(newPriceFeeder);
     }
 
@@ -194,6 +193,7 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
     function _setPriceFeeder(address newPriceFeeder)
         internal
     {
+        require(Address.isContract(newPriceFeeder), "price feeder must be contract");
         require(newPriceFeeder != address(0), "invalid price feeder address");
         require(newPriceFeeder != address(_priceFeeder), "price feeder duplicated");
         emit UpdatePriceFeeder(address(_priceFeeder), newPriceFeeder);
