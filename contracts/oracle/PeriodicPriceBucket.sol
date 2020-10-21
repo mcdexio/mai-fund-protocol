@@ -100,7 +100,8 @@ contract PeriodicPriceBucket is OwnableUpgradeSafe {
         external
         onlyOwner
     {
-        require(_periods.remove(period), "period is not exist");
+        bool success = _periods.remove(period);
+        require(success, "period is not exist");
         delete _buckets[period];
         delete _firstPeriodIndexes[period];
         emit RemoveBucket(period);
