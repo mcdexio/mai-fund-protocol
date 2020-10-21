@@ -16,7 +16,7 @@ library LibMathEx {
     }
 
     function wdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = x.mul(LibConstant.UNSIGNED_ONE).add(y / 2) / y;
+        z = x.mul(LibConstant.UNSIGNED_ONE).add(y / 2).div(y);
     }
 
     function wfrac(uint256 x, uint256 y, uint256 z) internal pure returns (uint256 r) {
@@ -25,24 +25,41 @@ library LibMathEx {
     }
 
     function wmul(int256 x, int256 y) internal pure returns (int256 z) {
-        z = x.mul(y).add(LibConstant.SIGNED_ONE / 2) / LibConstant.SIGNED_ONE;
+        z = roundHalfUp(x.mul(y), LibConstant.SIGNED_ONE) / LibConstant.SIGNED_ONE;
     }
 
     function wdiv(int256 x, int256 y) internal pure returns (int256 z) {
-        z = x.mul(LibConstant.SIGNED_ONE).add(y / 2) / y;
+        if (y < 0) {
+            y = neg(y);
+            x = neg(x);
+        }
+        z = roundHalfUp(x.mul(LibConstant.SIGNED_ONE), y).div(y);
     }
 
     function wfrac(int256 x, int256 y, int256 z) internal pure returns (int256 r) {
-        require(z != 0, "division by zero");
-        r = x.mul(y).div(z);
+        int256 t = x.mul(y);
+        if (z < 0) {
+            z = neg(z);
+            t = neg(t);
+        }
+        r = roundHalfUp(t, z).div(z);
     }
 
     function abs(int256 x) internal pure returns (int256) {
-        return x >= 0? x: -x;
+        return x >= 0 ? x: neg(x);
     }
 
     function neg(int256 a) internal pure returns (int256) {
         return SignedSafeMath.sub(int256(0), a);
     }
 
+    // ROUND_HALF_UP rule helper. You have to call roundHalfUp(x, y) / y to finish the rounding operation
+    // 0.5 ≈ 1, 0.4 ≈ 0, -0.5 ≈ -1, -0.4 ≈ 0
+    function roundHalfUp(int256 x, int256 y) internal pure returns (int256) {
+        require(y > 0, "roundHalfUp only supports y > 0");
+        if (x >= 0) {
+            return x.add(y / 2);
+        }
+        return x.sub(y / 2);
+    }
 }
