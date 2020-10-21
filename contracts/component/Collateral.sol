@@ -4,10 +4,8 @@ pragma solidity 0.6.10;
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/SafeCast.sol";
 
 import "../lib/LibConstant.sol";
-
 
 /**
  * @title   Collateral Module
