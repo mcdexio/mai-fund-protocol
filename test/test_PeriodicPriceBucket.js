@@ -39,6 +39,7 @@ contract('PeriodicPriceBucket', accounts => {
 
     it("0 0x0 feeder", async () => {
         await shouldThrows(bucket.setPriceFeeder("0x0000000000000000000000000000000000000000"), "invalid price feeder address");
+        await shouldThrows(bucket.setPriceFeeder(accounts[1]), "price feeder must be contract");
         await shouldThrows(bucket.setPriceFeeder(feeder.address), "price feeder duplicated");
 
         var feeder2 = await TestPriceFeeder.new();
@@ -256,6 +257,6 @@ contract('PeriodicPriceBucket', accounts => {
         ]);
         await shouldThrows(assertArray(30, 30, 270, [1, 1, 1, 1, 5, 6, 7, 8, 8]), "begin is earlier than first time");
         await shouldThrows(assertArray(60, 30, 270, [1, 1, 1, 1, 5, 6, 7, 8, 8]), "period does not exist");
-        await shouldThrows(assertArray(60, 270, 30, [1, 1, 1, 1, 5, 6, 7, 8, 8]), "begin must be earlier than end");
+        await shouldThrows(assertArray(60, 270, 30, [1, 1, 1, 1, 5, 6, 7, 8, 8]), "revert begin must be earlier than or equal to end");
     });
 });

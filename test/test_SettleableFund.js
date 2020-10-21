@@ -334,7 +334,7 @@ contract('TestSettleableFund', accounts => {
         assert.equal(fromWad(await deployer.collateral.balanceOf(user1)), 0);
 
         assert.equal(fromWad(await fund.balanceOf(user1)), 1);
-        assert.equal(fromWad(await fund.totalFeeClaimed()), 10);
+        assert.equal(fromWad(await fund.totalFeeClaimable()), 10);
 
         await fund.setEmergency();
         await fund.setShutdown();
