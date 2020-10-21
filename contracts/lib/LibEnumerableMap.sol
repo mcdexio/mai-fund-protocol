@@ -89,7 +89,7 @@ library LibEnumerableMap {
     }
 
     /**
-     * @dev Find `last` none zero value in the set with binary search , in index sequence.
+     * @dev Find `last` non-zero value in the set with binary search , in index sequence.
      */
     function findLastNonZeroValue(AppendOnlyUintToUintMap storage map, uint256 key) internal view returns (uint256) {
         if (map._entries.length == 0) {
