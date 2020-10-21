@@ -131,6 +131,9 @@ contract AutoTradingFund is
                 currentNetAssetValue,
                 nextTargetLeverage
             );
+        } else {
+            amount = 0;
+            side = LibTypes.Side.FLAT;
         }
     }
 
