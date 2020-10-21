@@ -30,29 +30,29 @@ contract Fee is Context, ERC20CappedRedeemable {
     );
 
     /**
-     * @dev     Set entrance fee rete.
+     * @dev     Set entrance fee rate.
      * @param   newRate Rate of entrance fee. 0 < rate <= 100%
      */
     function _setEntranceFeeRate(uint256 newRate) internal {
-        require(newRate <= LibConstant.RATE_UPPERBOUND, "too large rate");
+        require(newRate <= LibConstant.RATE_UPPERBOUND, "rate too large");
         _entranceFeeRate = newRate;
     }
 
     /**
-     * @dev     Set streaming fee rete.
+     * @dev     Set streaming fee rate.
      * @param   newRate Rate of streaming fee. 0 < rate <= 100%
      */
     function _setStreamingFeeRate(uint256 newRate) internal {
-        require(newRate <= LibConstant.RATE_UPPERBOUND, "too large rate");
+        require(newRate <= LibConstant.RATE_UPPERBOUND, "rate too large");
         _streamingFeeRate = newRate;
     }
 
     /**
-     * @dev     Set performance fee rete.
+     * @dev     Set performance fee rate.
      * @param   newRate Rate of performance fee. 0 < rate <= 100%
      */
     function _setPerformanceFeeRate(uint256 newRate) internal {
-        require(newRate <= LibConstant.RATE_UPPERBOUND, "too large rate");
+        require(newRate <= LibConstant.RATE_UPPERBOUND, "rate too large");
         _performanceFeeRate = newRate;
     }
 
@@ -77,7 +77,7 @@ contract Fee is Context, ERC20CappedRedeemable {
     }
 
     /**
-     * @dev     Claim streaming fee. Assume that 1 year == 365 day
+     * @dev     Claim streaming fee. Assume that 1 year == 365 days
      * @param   netAssetValue   Total asset value.
      * @return  Amount of streaming fee.
      */

@@ -172,7 +172,7 @@ contract('PeriodicPriceBucket', accounts => {
         }
         var periods = await bucket.buckets();
         assert.equal(periods.length, MAX_BUCKET);
-        await shouldThrows(bucket.addBucket(30), "number of buckets reaches limit");
+        await shouldThrows(bucket.addBucket(30), "number of buckets has already reached the limit");
         assert.equal(await bucket.hasBucket(30), false);
     });
 
@@ -184,7 +184,7 @@ contract('PeriodicPriceBucket', accounts => {
         assert.equal(periods[0], 3600);
         assert.equal(await bucket.hasBucket(3600), true);
 
-        await shouldThrows(bucket.removeBucket(300), "period is not exist");
+        await shouldThrows(bucket.removeBucket(300), "period does not exist");
         await bucket.removeBucket(3600);
         var periods = await bucket.buckets();
         assert.equal(periods.length, 0);
@@ -255,7 +255,7 @@ contract('PeriodicPriceBucket', accounts => {
             [8, 240],
         ]);
         await shouldThrows(assertArray(30, 30, 270, [1, 1, 1, 1, 5, 6, 7, 8, 8]), "begin is earlier than first time");
-        await shouldThrows(assertArray(60, 30, 270, [1, 1, 1, 1, 5, 6, 7, 8, 8]), "period is not exist");
+        await shouldThrows(assertArray(60, 30, 270, [1, 1, 1, 1, 5, 6, 7, 8, 8]), "period does not exist");
         await shouldThrows(assertArray(60, 270, 30, [1, 1, 1, 1, 5, 6, 7, 8, 8]), "begin must be earlier than end");
     });
 });
