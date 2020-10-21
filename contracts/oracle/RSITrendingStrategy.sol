@@ -33,7 +33,7 @@ contract RSITrendingStrategy is RSIReader {
      * @param period            Trading period in seconds.
      * @param numPeriod         Period required for calculation.
      * @param seperators        Rsi triggering segments, something like | 40 | 50 | 60 |, must be monotonically increasing.
-     * @param transferEntries   Start / Stop segments and ouput, Transferring table.
+     * @param transferEntries   Start / Stop segments and output, Transferring table.
      */
     constructor(
         address priceReader,
