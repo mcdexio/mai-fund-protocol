@@ -120,4 +120,35 @@ contract('TestCoreParameter', accounts => {
         var desc = await fund.description();
         assert.equal(desc.strategy, rsistg2.address);
     });
+
+    it ("set address", async () => {
+        deployer = await new PerpetualDeployer(accounts, true);
+        await deployer.deploy();
+        await deployer.initialize();
+        await deployer.setIndex(200);
+        await deployer.createPool();
+
+        const lib1 = await LibTargetCalculator.new();
+        AutoTradingFund.link("LibTargetCalculator", lib1.address);
+
+        var rsistg = await MockRSITrendingStrategy.new();
+        fund = await AutoTradingFund.new();
+        await fund.initialize(
+            "Fund Share Token",
+            "FST",
+            18,
+            deployer.perpetual.address,
+            toWad(1000),
+            rsistg.address,
+            true,
+        )
+
+        var desc = await fund.description();
+        assert.equal(desc.strategy, rsistg.address);
+
+        var rsistg2 = await MockRSITrendingStrategy.new();
+        await fund.setParameter(toBytes32("strategy"), rsistg2.address);
+        var desc = await fund.description();
+        assert.equal(desc.strategy, rsistg2.address);
+    });
 });
